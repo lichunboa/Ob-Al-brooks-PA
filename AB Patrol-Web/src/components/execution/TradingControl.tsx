@@ -6,9 +6,11 @@ import { Power, RefreshCw, Zap, ZapOff } from 'lucide-react';
 interface TradingControlProps {
   tradingEnabled: boolean;
   lastSync: string | null;
-  binanceBalance: number;
-  binanceAvailable: number;
+  totalBalance: number;
+  availableBalance: number;
   unrealizedPnl: number;
+  accountAsset?: string;
+  exchangeLabel?: string;
   onToggle: (enabled: boolean) => Promise<void>;
   onSync: () => Promise<void>;
   isLoading?: boolean;
@@ -17,9 +19,11 @@ interface TradingControlProps {
 export function TradingControl({
   tradingEnabled,
   lastSync,
-  binanceBalance,
-  binanceAvailable,
+  totalBalance,
+  availableBalance,
   unrealizedPnl,
+  accountAsset = 'USDT',
+  exchangeLabel = '执行账户',
   onToggle,
   onSync,
   isLoading = false,
@@ -77,7 +81,7 @@ export function TradingControl({
           <div>
             <h3 className="text-lg font-semibold text-white">交易控制</h3>
             <p className="text-sm text-slate-400">
-              {tradingEnabled ? '机器人可以执行交易' : '机器人仅分析不交易'}
+              {exchangeLabel} · {tradingEnabled ? '机器人可以执行交易' : '机器人仅分析不交易'}
             </p>
           </div>
         </div>
@@ -85,7 +89,7 @@ export function TradingControl({
           onClick={handleSync}
           disabled={syncing || isLoading}
           className="p-2 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
-          title="同步币安数据"
+          title="同步账户数据"
         >
           <RefreshCw
             className={`w-5 h-5 text-slate-400 ${syncing ? 'animate-spin' : ''}`}
@@ -123,13 +127,13 @@ export function TradingControl({
         <div className="bg-slate-800/50 rounded-lg p-3">
           <p className="text-slate-400 text-xs mb-1">总余额</p>
           <p className="text-lg font-semibold text-white">
-            ${binanceBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {accountAsset} {totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
         <div className="bg-slate-800/50 rounded-lg p-3">
           <p className="text-slate-400 text-xs mb-1">可用</p>
           <p className="text-lg font-semibold text-green-400">
-            ${binanceAvailable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {accountAsset} {availableBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
         <div className="bg-slate-800/50 rounded-lg p-3">
@@ -140,7 +144,7 @@ export function TradingControl({
             }`}
           >
             {unrealizedPnl >= 0 ? '+' : ''}
-            ${unrealizedPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {accountAsset} {unrealizedPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
       </div>

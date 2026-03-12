@@ -169,15 +169,7 @@ def get_default_symbols(exchange: str) -> list[str]:
     if exchange == "binance":
         return [
             "BTCUSDT",
-            "ETHUSDT",
-            "BNBUSDT",
             "SOLUSDT",
-            "XRPUSDT",
-            "ADAUSDT",
-            "DOGEUSDT",
-            "AVAXUSDT",
-            "DOTUSDT",
-            "MATICUSDT",
         ]
     elif exchange == "okx":
         return [
@@ -194,7 +186,9 @@ def get_default_symbols(exchange: str) -> list[str]:
             "USDJPY",
             "AUDUSD",
             "USDCAD",
-            "XAUUSD",  # 黄金
+            "XAUUSD",
+            "US 30",
+            "US TECH 100",
         ]
     else:
         return []

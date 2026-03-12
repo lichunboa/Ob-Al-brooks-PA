@@ -20,6 +20,7 @@ from utils import (
     infer_trade_style_from_refs,
     normalize_refs,
     order_type_cn,
+    signal_event_ranks,
     structured_trade_semantics,
 )
 
@@ -79,6 +80,7 @@ class BrooksFilterMixin:
         has_signal_trigger = event_has_prefix(events, ("signal_trigger:", "hl_signal:", "trigger:"))
         has_second_signal = has_second_entry_signal(events)
         has_first_signal = has_first_entry_signal(events)
+        signal_rank = max((rank for _, rank in signal_event_ranks(events)), default=0)
         has_tr_edge = event_has_prefix(events, ("tr_edge:",))
         strong_breakout = state_upper in {"BO", "TC", "BC"} or any(
             token in combined for token in ("ais", "aib", "always in", "强突破", "紧通道", "宽通道")
@@ -107,6 +109,7 @@ class BrooksFilterMixin:
                 for token in ("接受", "站上", "站回", "跟进", "follow-through", "acceptance", "higher low", "lower high")
             )
         )
+        acceptance_ready = acceptance_clues and (has_signal_trigger or signal_rank >= 2 or not has_first_signal)
         continuation_clues = (
             event_has_prefix(events, ("first_pb:",))
             or event_has_exact(events, {"ema_touch", "cached_pre_signal"})
@@ -143,6 +146,10 @@ class BrooksFilterMixin:
                 "upgrade_condition": "先回到交易区间上/下三分之一边缘，再等信号。",
                 "brooks_rule": "TR 以低买高卖 BLSHS 为主，中部位置通常没有优势。",
                 "source_refs": ["S4-strategy-match.md", "S6-tr.md", "S5-evaluation.md"],
+                "signal_rank": signal_rank,
+                "requires_second_entry": True,
+                "has_signal_trigger": has_signal_trigger,
+                "acceptance_ready": acceptance_ready,
             }
 
         if strong_breakout and reversal_clues and not has_second_signal:
@@ -158,6 +165,10 @@ class BrooksFilterMixin:
                 "upgrade_condition": "至少等 H2/L2 或 HL/LH MTR，再看到明确接受，才考虑升级。",
                 "brooks_rule": "强突破里多数反转先失败；第一次反转常只是小反转或 scalp。",
                 "source_refs": ["S4-strategy-match.md", "S6-reversal.md", "S5-evaluation.md"],
+                "signal_rank": signal_rank,
+                "requires_second_entry": True,
+                "has_signal_trigger": has_signal_trigger,
+                "acceptance_ready": acceptance_ready,
             }
 
         if tbtl_incomplete:
@@ -173,6 +184,10 @@ class BrooksFilterMixin:
                 "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
                 "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
                 "source_refs": ["S4-strategy-match.md", "S6-reversal.md"],
+                "signal_rank": signal_rank,
+                "requires_second_entry": True,
+                "has_signal_trigger": has_signal_trigger,
+                "acceptance_ready": acceptance_ready,
             }
 
         if reversal_clues and not has_second_signal:
@@ -188,6 +203,10 @@ class BrooksFilterMixin:
                 "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
                 "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
                 "source_refs": ["S4-strategy-match.md", "S5-evaluation.md", "S6-reversal.md"],
+                "signal_rank": signal_rank,
+                "requires_second_entry": True,
+                "has_signal_trigger": has_signal_trigger,
+                "acceptance_ready": acceptance_ready,
             }
 
         if broad_channel_like and reversal_clues:
@@ -203,6 +222,10 @@ class BrooksFilterMixin:
                 "upgrade_condition": "先等到边缘，再等二次信号；没有二次信号就只保留试探/观察。",
                 "brooks_rule": "Broad Channel 本质更像 TR：scalp more、swing less、use limit orders。",
                 "source_refs": ["S4-strategy-match.md", "S6-channel.md", "S5-evaluation.md"],
+                "signal_rank": signal_rank,
+                "requires_second_entry": True,
+                "has_signal_trigger": has_signal_trigger,
+                "acceptance_ready": acceptance_ready,
             }
 
         if broad_channel_like and continuation_clues:
@@ -222,6 +245,10 @@ class BrooksFilterMixin:
                 "upgrade_condition": "先有顺势恢复/first pullback 完成，再看到接受或触发信号；没有恢复信号时不追 stop。",
                 "brooks_rule": "Broad Channel 更像 TR：逆势多用 limit，顺势只有在恢复信号和接受都清晰时才用 stop。",
                 "source_refs": ["S4-strategy-match.md", "S6-channel.md", "S5-evaluation.md"],
+                "signal_rank": signal_rank,
+                "requires_second_entry": has_first_signal and not has_second_signal,
+                "has_signal_trigger": has_signal_trigger,
+                "acceptance_ready": acceptance_ready,
             }
 
         if limit_order_environment and has_tr_edge:
@@ -240,19 +267,46 @@ class BrooksFilterMixin:
                     else "先等边缘出现明确 signal bar，再看是否形成二次入场。",
                     "brooks_rule": "TR 低买高卖主要靠边缘和二次入场；背景不清晰时要等第二次信号。",
                     "source_refs": ["S4-strategy-match.md", "S6-tr.md", "S5-evaluation.md"],
+                    "signal_rank": signal_rank,
+                    "requires_second_entry": True,
+                    "has_signal_trigger": has_signal_trigger,
+                    "acceptance_ready": acceptance_ready,
                 }
             return {
                 "category": "tr_edge_limit_only",
                 "label": "TR 边缘限价单环境",
                 "summary": "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。",
                 "max_status": "entry_ready" if ((has_second_signal or has_signal_trigger) and has_plan) else "pre_signal",
-                "allow_executable": bool((has_second_signal or has_signal_trigger) and has_plan),
+                "allow_executable": bool((has_second_signal or (has_signal_trigger and signal_rank == 0)) and has_plan),
                 "stage_family": "limit_edge",
                 "preferred_style": inferred_style or "Scalp",
                 "preferred_order_type": "LIMIT",
                 "upgrade_condition": "边缘 + 二次信号/清晰 signal bar 同时出现时，才升级成可执行限价单。",
                 "brooks_rule": "TR 做法是 Buy Low Sell High，优先在上/下三分之一边缘用限价单处理。",
                 "source_refs": ["S4-strategy-match.md", "S6-tr.md", "S5-evaluation.md"],
+                "signal_rank": signal_rank,
+                "requires_second_entry": True,
+                "has_signal_trigger": has_signal_trigger,
+                "acceptance_ready": acceptance_ready,
+            }
+
+        if continuation_clues and has_first_signal and not has_second_signal and not acceptance_ready:
+            return {
+                "category": "first_entry_wait_acceptance",
+                "label": "首次顺势信号先等接受",
+                "summary": "当前只有 H1/L1 级别的第一次顺势信号，还缺少 follow-through / acceptance，不直接升级成 executable。",
+                "max_status": "pre_signal" if not has_plan else "entry_ready_blocked",
+                "allow_executable": False,
+                "stage_family": "wait_acceptance",
+                "preferred_style": inferred_style,
+                "preferred_order_type": preferred_order_type,
+                "upgrade_condition": "至少看到更清晰的接受、触发，或升级成 H2/L2 后，再进入 candidate / executable。",
+                "brooks_rule": "第一次入场在弱接受环境里更容易失败；更成熟的二次信号通常更稳。",
+                "source_refs": ["S4-strategy-match.md", "S5-evaluation.md", "S6-common.md"],
+                "signal_rank": signal_rank,
+                "requires_second_entry": True,
+                "has_signal_trigger": has_signal_trigger,
+                "acceptance_ready": acceptance_ready,
             }
 
         if has_signal_trigger or event_has_prefix(events, ("first_pb:", "pb_depth:")):
@@ -268,6 +322,10 @@ class BrooksFilterMixin:
                 "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
                 "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
                 "source_refs": ["S4-strategy-match.md", "S6-common.md", "S5-evaluation.md"],
+                "signal_rank": signal_rank,
+                "requires_second_entry": has_first_signal and not has_second_signal,
+                "has_signal_trigger": has_signal_trigger,
+                "acceptance_ready": acceptance_ready,
             }
 
         return {
@@ -282,6 +340,10 @@ class BrooksFilterMixin:
             "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
             "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
             "source_refs": ["S4-strategy-match.md", "S6-common.md"],
+            "signal_rank": signal_rank,
+            "requires_second_entry": False,
+            "has_signal_trigger": has_signal_trigger,
+            "acceptance_ready": acceptance_ready,
         }
 
     def apply_brooks_filter_to_patch(self, base: dict[str, Any], events: list[str]) -> dict[str, Any]:
@@ -329,6 +391,7 @@ class BrooksFilterMixin:
         evaluation["risk"] = filter_meta.get("summary")
         evaluation["candidate_stage"] = semantics["candidate_stage_cn"]
         evaluation["execution_mode"] = semantics["execution_mode_cn"]
+        evaluation["signal_rank"] = semantics.get("signal_rank")
         evaluation["brooks_rule"] = filter_meta.get("brooks_rule")
         evaluation["source_refs"] = normalize_refs(filter_meta.get("source_refs"))
         base["evaluation"] = evaluation

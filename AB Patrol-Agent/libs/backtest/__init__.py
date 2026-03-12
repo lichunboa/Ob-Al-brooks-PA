@@ -16,7 +16,6 @@
     result.print_report()
 """
 
-from .background import BackgroundAnalyzer, BackgroundContext
 from .cycle_identifier import BACKTEST_STRATEGY_MATRIX, CycleIdentifier, classify_backtest_market_state
 from .indicators import CandlePatterns, calculate_atr, calculate_ema, ema_slope
 from .models import Candle, MarketState, PASignal, Trade
@@ -33,12 +32,7 @@ except ModuleNotFoundError:
     MarketReplay = None
 
 try:
-    from .scoring import ScoringEngine
-except ModuleNotFoundError:
-    ScoringEngine = None
-
-try:
-    from .runner import BacktestRunner, BacktestConfig
+    from .runner import BacktestConfig, BacktestRunner
 except ModuleNotFoundError:
     BacktestRunner = None
     BacktestConfig = None
@@ -56,9 +50,6 @@ __all__ = [
     "MarketState",
     "Trade",
     "SimExchange",
-    "ScoringEngine",
-    "BackgroundAnalyzer",
-    "BackgroundContext",
     "CandlePatterns",
     "calculate_ema",
     "ema_slope",

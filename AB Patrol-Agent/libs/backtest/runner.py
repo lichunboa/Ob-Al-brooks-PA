@@ -5,7 +5,7 @@ BacktestRunner — 回测主控
   1. 替换 engine._fetch_candles → MarketReplay.get_candles
   2. 替换冷却系统 → 内存 dict + 虚拟时钟
   3. 通过 SignalPublisher.subscribe() 捕获信号
-  4. 用 ScoringEngine + BackgroundAnalyzer 评分
+  4. 让 Brooks 路由与执行检查直接消费真实 PA 信号
   5. 用 SimExchange 模拟交易执行
 
 这样修改 pa_engine.py 的策略/参数后，重跑回测就能直接看到效果。
@@ -24,12 +24,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from .background import BackgroundAnalyzer, BackgroundContext
 from .cycle_identifier import BACKTEST_STRATEGY_MATRIX, CycleIdentifier, classify_backtest_market_state
 from .data_loader import DataLoader
 from .market_replay import MarketReplay
 from .report import BacktestResult
-from .scoring import ScoringEngine
 from .sim_exchange import SimExchange
 from .strategy_filters import (
     StrategySelection,
@@ -43,6 +41,7 @@ from .strategy_filters import (
 
 logger = logging.getLogger(__name__)
 _RUNTIME_TARGET_ROUTER = None
+_STRUCTURE_STOPS = None
 
 
 @dataclass
@@ -53,7 +52,7 @@ class BacktestConfig:
     days: int = 30
     start_date: str = None
     end_date: str = None
-    threshold: int = 80          # 评分阈值
+    threshold: int = 80          # 回测实验用全局 signal_threshold 覆盖，不再作为后置评分门槛
     max_holding_bars: int = 48   # 最大持仓 K 线数
     fee_rate: float = 0.0004     # 手续费率
     cache_dir: str = None        # 数据缓存目录
@@ -199,8 +198,6 @@ class BacktestRunner:
 
     def __init__(self, config: BacktestConfig = None):
         self.config = config or BacktestConfig()
-        self.scoring = ScoringEngine()
-        self.bg_analyzer = BackgroundAnalyzer()
 
         # 统计
         self._signals_generated = 0
@@ -208,8 +205,6 @@ class BacktestRunner:
         self._signals_blocked_bg = 0
         self._signals_blocked_score = 0
         self._signals_blocked_rr = 0
-        self._signals_blocked_vol = 0      # 威科夫: 量价不足
-        self._signals_blocked_momentum = 0  # 量化: RSI/OBV/15m 不通过
         self._signals_blocked_strategy = 0  # 策略白名单/黑名单拦截
         self._signals_blocked_route = 0  # Brooks 全局路由拦截
         self._score_histogram = {}  # 分数分布诊断
@@ -315,11 +310,7 @@ class BacktestRunner:
                 _h4 = replay.get_h4_candles(sym, limit=50)
                 _d1 = replay.get_daily_candles(sym, limit=50)
                 print(f"  {sym}: 4h={len(_h4)}根, 1d={len(_d1)}根")
-                if _h4:
-                    _bg = self.bg_analyzer.analyze(_d1, _h4)
-                    print(f"  背景: {_bg.background} | 4h: {_bg.h4_trend}(斜率{_bg.h4_slope:.4f}) "
-                          f"| daily: {_bg.daily_trend}(斜率{_bg.daily_slope:.4f})")
-                else:
+                if not _h4:
                     # 检查原始数据
                     _raw = replay._data.get(sym, {})
                     for tf, df in _raw.items():
@@ -376,17 +367,10 @@ class BacktestRunner:
                     self._signals_blocked_strategy += 1
                     continue
 
-                # 获取大周期背景
-                bg = self._get_background(replay, event.symbol, ts)
-                extra = dict(getattr(event, "extra", {}) or {})
-                extra["background_label"] = str(bg.background or "")
-                event.extra = extra
-
                 # 信号周期 → 过滤器周期映射
                 sig_tf = getattr(event, "timeframe", cfg.timeframes[0])
                 ftf = TF_FILTER_MAP.get(sig_tf, TF_FILTER_MAP["5m"])
 
-                # === 三域融合质量过滤 ===
                 candles_q = replay.get_candles(
                     event.symbol, ftf["quality"], limit=30
                 )
@@ -395,6 +379,9 @@ class BacktestRunner:
                 self._apply_entry_route_adjustments(event, market_state, higher_market_state, candles_q)
                 self._attach_structure_context(event, candles_q, replay)
                 self._attach_playbook_context(event, market_state, higher_market_state)
+                extra = dict(getattr(event, "extra", {}) or {})
+                extra["background_label"] = self._compose_background_label(extra)
+                event.extra = extra
 
                 reentry_ctx = exchange.match_reentry(event)
                 if reentry_ctx:
@@ -403,131 +390,18 @@ class BacktestRunner:
                     extra["reentry_attempt"] = int(reentry_ctx.get("next_attempt", 1) or 1)
                     event.extra = extra
 
-                # 1. 威科夫: 量价确认
-                vol_ok = self._check_volume(candles_q)
-
-                # 2. 量化: RSI 动量方向确认
-                rsi = self._calc_rsi(candles_q)
-                rsi_ok = self._check_rsi_direction(rsi, event.direction)
-
-                # 3. 威科夫: OBV 趋势确认
-                obv_ok = self._check_obv_direction(candles_q, event.direction)
-
-                # 4. 量化: 高周期趋势确认
-                tf_ok = self._check_higher_tf_trend(
-                    replay, event.symbol, event.direction, ftf["trend"]
-                )
-
-                quality_score = sum([vol_ok, rsi_ok, obv_ok, tf_ok])
-
-                # === Al Brooks: 多周期 Always In 方向过滤 ===
-                # 原则: 交易方向跟随更大级别的 Always In 方向
-                # CycleIdentifier 做 5m 级别判断, 这里用 4h/daily 做最终确认
-                always_in = "neutral"
-                if bg.daily_trend == "多头" and bg.h4_trend == "多头":
-                    always_in = "long"
-                elif bg.daily_trend == "空头" and bg.h4_trend == "空头":
-                    always_in = "short"
-                elif bg.h4_trend == "多头":
-                    always_in = "lean_long"   # 4h 偏多, 但 daily 不确认
-                elif bg.h4_trend == "空头":
-                    always_in = "lean_short"  # 4h 偏空
-
-                is_reversal = event.signal_type in REVERSAL_STRATEGIES
-                # 顺势策略: 必须与高级别 Always In 一致
-                _trend_strats = {
-                    "高1",
-                    "低1",
-                    "高2",
-                    "低2",
-                    "收线追进",
-                    "20均线缺口",
-                    "MAG 20/20 Setup",
-                    "第一均线缺口",
-                    "突破回调",
-                }
-                is_trend_strat = event.signal_type in _trend_strats
-
-                if always_in == "long" and event.direction == "SELL":
-                    if not is_reversal:
-                        self._signals_blocked_bg += 1
-                        continue
-                elif always_in == "short" and event.direction == "BUY":
-                    if not is_reversal:
-                        self._signals_blocked_bg += 1
-                        continue
-                # 4h 偏向性: 趋势策略需要与 4h 方向一致
-                elif always_in == "lean_long" and event.direction == "SELL":
-                    if is_trend_strat:
-                        self._signals_blocked_bg += 1
-                        continue
-                elif always_in == "lean_short" and event.direction == "BUY":
-                    if is_trend_strat:
-                        self._signals_blocked_bg += 1
-                        continue
-
                 # === Al Brooks: 信号棒质量综合评估 ===
-                # CycleIdentifier 已做信号棒质量检查，这里降低阈值避免重复过滤
+                # 只保留价格行为自己的信号棒质量，不再叠加 RSI/OBV/Wyckoff 外围前置层。
                 if len(candles_q) >= 5:
                     sig_bar = candles_q[-1]
                     prev_bars = candles_q[-6:-1]
                     sbq = self._signal_bar_quality(
                         sig_bar, prev_bars, event.direction)
                     if sbq < 0.3:
-                        self._signals_blocked_momentum += 1
                         continue
 
-                # === 威科夫: No Demand 模式 ===
-                if len(candles_q) >= 6:
-                    curr_c = candles_q[-1]
-                    spread = curr_c.high - curr_c.low
-                    avg_spread = sum(
-                        (c.high - c.low) for c in candles_q[-6:-1]
-                    ) / 5
-                    avg_vol = sum(
-                        c.volume for c in candles_q[-6:-1]
-                    ) / 5
-                    if (avg_vol > 0 and spread < avg_spread * 0.6
-                            and curr_c.volume < avg_vol * 0.7):
-                        self._signals_blocked_vol += 1
-                        continue
-
-                # === 量化: 逆势过滤（SELL 专用，反转策略豁免）===
-                # Al Brooks: 末端旗形/双重顶/楔形顶 就是在多头市场顶部做空
-                # 这类反转策略不应被上升动能过滤（它们的目的正是捕捉末端反转）
-                if event.direction == "SELL" and not is_reversal:
-                    counter_candles = replay.get_candles(
-                        event.symbol, ftf["counter"], limit=25
-                    )
-                    if len(counter_candles) >= 22:
-                        closes_ct = [c.close for c in counter_candles]
-                        ema_ct = self._simple_ema(closes_ct, 20)
-                        if len(ema_ct) >= 3:
-                            slope_ct = (
-                                (ema_ct[-1] - ema_ct[-3])
-                                / ema_ct[-3] * 100
-                            )
-                            if slope_ct > 0.1:
-                                self._signals_blocked_momentum += 1
-                                continue
-
-                # 三域质量门槛
-                # 顺势信号: q>=2；逆日线方向信号: q>=3（三域融合更严格）
-                # Al Brooks: 逆大势需要更多确认，减少在强趋势中的错误逆势入场
-                min_q = 3 if (
-                    (bg.daily_trend == "多头" and event.direction == "SELL") or
-                    (bg.daily_trend == "空头" and event.direction == "BUY")
-                ) else 2
-                if quality_score < min_q:
-                    self._signals_blocked_momentum += 1
-                    continue
-
-                # 评分
-                score, reasons = self.scoring.score_signal(
-                    event, bg,
-                    exchange.daily_losses,
-                    exchange.strategy_history,
-                )
+                # 分数直接沿用真实 PA 引擎的 strength，避免回测链再叠一套额外评分体系。
+                score = int(getattr(event, "strength", 0) or 0)
                 route_allowed, route_reason = self._check_route_consistency(
                     event,
                     market_state,
@@ -551,19 +425,21 @@ class BacktestRunner:
                 if score == 0:
                     self._signals_blocked_rr += 1
                     continue
-                score_floor = max(
-                    int(cfg.threshold),
-                    int(
-                        management_score_floor(
-                            event.signal_type,
-                            management_profile,
-                            market_state=str((getattr(event, "extra", {}) or {}).get("market_state", "") or ""),
-                            higher_market_state=str((getattr(event, "extra", {}) or {}).get("higher_market_state", "") or ""),
-                            timeframe=str(getattr(event, "timeframe", "") or ""),
-                            entry_type=str(getattr(event, "entry_type", "STOP") or "STOP"),
-                            route_style=str((getattr(event, "extra", {}) or {}).get("route_style", "") or ""),
-                        )
-                    ),
+
+                # 真实链已经在各周期内做过 signal_threshold，回测只保留 Brooks playbook
+                # 自己的最低成熟度门槛，不再叠加第二套全局分数阈值。
+                score_floor = int(
+                    management_score_floor(
+                        event.signal_type,
+                        management_profile,
+                        market_state=str((getattr(event, "extra", {}) or {}).get("market_state", "") or ""),
+                        higher_market_state=str(
+                            (getattr(event, "extra", {}) or {}).get("higher_market_state", "") or ""
+                        ),
+                        timeframe=str(getattr(event, "timeframe", "") or ""),
+                        entry_type=str(getattr(event, "entry_type", "STOP") or "STOP"),
+                        route_style=str((getattr(event, "extra", {}) or {}).get("route_style", "") or ""),
+                    )
                 )
                 if score < score_floor:
                     self._signals_blocked_score += 1
@@ -575,17 +451,17 @@ class BacktestRunner:
                 # SCALP 是主要盈利来源，TP 是趋势行情的奖金
                 risk = abs(event.price - event.stop_loss)
                 if risk > 0:
-                    if not self._apply_management_template(event, bg, management_profile):
+                    if not self._apply_management_template(event, management_profile):
                         self._signals_blocked_rr += 1
                         continue
 
                 # 开仓
-                exchange.place_order(event, score, bg.background)
+                background_label = self._compose_background_label(getattr(event, "extra", {}) or {})
+                exchange.place_order(event, score, background_label)
 
                 if cfg.verbose:
                     print(f"\n  {ts} | {event.signal_type} {event.direction} "
-                          f"@ {event.price:.2f} | 评分: {score} | {bg.background} "
-                          f"| Q:{quality_score}/4 V:{vol_ok} R:{rsi_ok} O:{obv_ok} T:{tf_ok}")
+                          f"@ {event.price:.2f} | 强度: {score} | {background_label}")
 
         # Step 6: 强制平仓剩余持仓
         if exchange.open_trades:
@@ -602,7 +478,6 @@ class BacktestRunner:
         print(f"  拦截: 背景={self._signals_blocked_bg} | "
               f"策略过滤={self._signals_blocked_strategy} | "
               f"路由={self._signals_blocked_route} | "
-              f"量价/动量={self._signals_blocked_vol + self._signals_blocked_momentum} | "
               f"评分={self._signals_blocked_score} | "
               f"R:R={self._signals_blocked_rr}")
 
@@ -672,7 +547,10 @@ class BacktestRunner:
         # 创建引擎实例（不使用单例）
         engine = PASignalEngine(symbols=cfg.symbols, timeframes=cfg.timeframes)
 
-        # 回测阶段允许覆盖各周期信号阈值，用于参数实验，不污染生产默认值。
+        # 回测阶段允许覆盖真实引擎的 signal_threshold，用于参数实验，不污染生产默认值。
+        for timeframe in cfg.timeframes:
+            if timeframe in engine.timeframe_config:
+                engine.timeframe_config[timeframe]["signal_threshold"] = int(cfg.threshold)
         for timeframe, threshold in (cfg.engine_threshold_overrides or {}).items():
             if timeframe in engine.timeframe_config:
                 engine.timeframe_config[timeframe]["signal_threshold"] = int(threshold)
@@ -761,6 +639,18 @@ class BacktestRunner:
         _RUNTIME_TARGET_ROUTER = import_module("utils.target_magnets")
         return _RUNTIME_TARGET_ROUTER
 
+    @staticmethod
+    def _load_structure_stops():
+        """懒加载真实引擎的结构止损工具，保证回测与真实链共用一套模板。"""
+        global _STRUCTURE_STOPS
+        if _STRUCTURE_STOPS is not None:
+            return _STRUCTURE_STOPS
+        signal_service_src = Path(__file__).parent.parent.parent / "services" / "signal-service" / "src"
+        if str(signal_service_src) not in sys.path:
+            sys.path.insert(0, str(signal_service_src))
+        _STRUCTURE_STOPS = import_module("engines.pa.structure_stops")
+        return _STRUCTURE_STOPS
+
     def _identify_market_state_snapshot(self, candles_q) -> dict | None:
         """从一组 K 线提取可复用的市场状态快照。"""
         if len(candles_q) < 20:
@@ -772,12 +662,15 @@ class BacktestRunner:
             return None
 
         market_state = CycleIdentifier.identify(candles_q, ema20)
+        context_meta = CycleIdentifier.context_range(candles_q)
         market_key = classify_backtest_market_state(market_state) or ""
         recommendation = BACKTEST_STRATEGY_MATRIX.get(market_key, {})
-        range_span = max(market_state.range_high - market_state.range_low, 0.0)
+        range_low = float(context_meta["range_low"] or market_state.range_low or 0.0)
+        range_high = float(context_meta["range_high"] or market_state.range_high or 0.0)
+        range_span = max(range_high - range_low, 0.0)
         range_position = 0.5
         if range_span > 0:
-            range_position = (candles_q[-1].close - market_state.range_low) / range_span
+            range_position = (candles_q[-1].close - range_low) / range_span
         range_position = max(0.0, min(1.0, range_position))
         if range_position <= 0.33:
             range_edge = "bottom"
@@ -785,6 +678,20 @@ class BacktestRunner:
             range_edge = "top"
         else:
             range_edge = "middle"
+        if range_position <= 0.22:
+            range_zone = "deep_bottom"
+        elif range_position <= 0.38:
+            range_zone = "bottom_advantage"
+        elif range_position < 0.45:
+            range_zone = "lower_origin"
+        elif range_position <= 0.55:
+            range_zone = "middle"
+        elif range_position < 0.62:
+            range_zone = "upper_origin"
+        elif range_position < 0.78:
+            range_zone = "top_advantage"
+        else:
+            range_zone = "deep_top"
         return {
             "state": market_state,
             "market_state": market_key,
@@ -794,6 +701,10 @@ class BacktestRunner:
             "channel_type": market_state.channel_type,
             "range_position": range_position,
             "range_edge": range_edge,
+            "range_zone": range_zone,
+            "range_window": int(context_meta["window_size"] or len(candles_q)),
+            "range_high": range_high,
+            "range_low": range_low,
         }
 
     def _build_market_state_context(self, event, candles_q):
@@ -810,6 +721,8 @@ class BacktestRunner:
         extra["channel_type"] = snapshot["channel_type"]
         extra["range_position"] = snapshot["range_position"]
         extra["range_edge"] = snapshot["range_edge"]
+        extra["range_zone"] = snapshot["range_zone"]
+        extra["range_window"] = snapshot["range_window"]
         event.extra = extra
         return snapshot["state"]
 
@@ -819,7 +732,7 @@ class BacktestRunner:
         if not higher_tf:
             return None
 
-        candles_higher = replay.get_candles(event.symbol, higher_tf, limit=30)
+        candles_higher = replay.get_candles(event.symbol, higher_tf, limit=80)
         snapshot = self._identify_market_state_snapshot(candles_higher)
         if not snapshot:
             return None
@@ -832,6 +745,8 @@ class BacktestRunner:
         extra["higher_channel_type"] = snapshot["channel_type"]
         extra["higher_range_position"] = snapshot["range_position"]
         extra["higher_range_edge"] = snapshot["range_edge"]
+        extra["higher_range_zone"] = snapshot["range_zone"]
+        extra["higher_range_window"] = snapshot["range_window"]
         event.extra = extra
         return snapshot["state"]
 
@@ -908,6 +823,27 @@ class BacktestRunner:
             ):
                 return candle
         return candles_q[-1]
+
+    @staticmethod
+    def _compose_background_label(extra: dict) -> str:
+        """把当前与更高周期状态压成可读背景标签。"""
+        market_state = str(extra.get("market_state", "") or "")
+        higher_market_state = str(extra.get("higher_market_state", "") or "")
+        higher_timeframe = str(extra.get("higher_timeframe", "") or "")
+        range_zone = str(extra.get("range_zone", "") or "")
+        higher_range_zone = str(extra.get("higher_range_zone", "") or "")
+
+        parts: list[str] = []
+        if market_state:
+            parts.append(f"当前:{market_state}")
+        if higher_market_state:
+            label = higher_timeframe or "HTF"
+            parts.append(f"{label}:{higher_market_state}")
+        if range_zone:
+            parts.append(f"区位:{range_zone}")
+        if higher_range_zone:
+            parts.append(f"HTF区位:{higher_range_zone}")
+        return " | ".join(parts) if parts else "价格行为背景"
 
     @staticmethod
     def _trendline_break_confirmed(candles_q, direction: str) -> bool:
@@ -1018,6 +954,113 @@ class BacktestRunner:
             return "tr_leg", len(leg), overlap_ratio
         return "mixed", len(leg), overlap_ratio
 
+    @staticmethod
+    def _estimate_atr(candles_q, period: int = 14) -> float:
+        """轻量估算 ATR，供回测结构止损模板共用。"""
+        if len(candles_q) < 2:
+            return 0.0
+        window = candles_q[-period:] if len(candles_q) >= period else candles_q
+        true_ranges: list[float] = []
+        prev_close = float(window[0].close)
+        for candle in window:
+            high = float(candle.high)
+            low = float(candle.low)
+            tr = max(high - low, abs(high - prev_close), abs(low - prev_close))
+            true_ranges.append(tr)
+            prev_close = float(candle.close)
+        return sum(true_ranges) / max(len(true_ranges), 1)
+
+    @classmethod
+    def _build_playbook_perfect_stop(
+        cls,
+        *,
+        direction: str,
+        signal_type: str,
+        playbook_id: str,
+        candles_q,
+        signal_bar_high: float,
+        signal_bar_low: float,
+        nearest_support: float,
+        nearest_resistance: float,
+        higher_range_low: float,
+        higher_range_high: float,
+        extra: dict,
+    ) -> float:
+        """按 Brooks playbook 生成回测侧的结构止损基准。"""
+        structure_stops = cls._load_structure_stops()
+        atr = cls._estimate_atr(candles_q)
+        direction = str(direction or "")
+        signal_type = str(signal_type or "")
+        playbook_id = str(playbook_id or "")
+        reference_levels = [
+            value
+            for value in [nearest_support, nearest_resistance, higher_range_low, higher_range_high]
+            if float(value or 0.0) > 0
+        ]
+
+        if playbook_id == "TR2_FAILED_BO_FADE":
+            breakout_extreme = float(extra.get("breakout_extreme") or 0.0)
+            if breakout_extreme <= 0:
+                breakout_extreme = signal_bar_high if direction == "SELL" else signal_bar_low
+            return structure_stops.build_tr_failed_breakout_stop(
+                direction,
+                candles_q,
+                breakout_extreme,
+                signal_bar_high,
+                signal_bar_low,
+                atr,
+            )
+
+        if playbook_id == "TR3_SECOND_LEG_TRAP":
+            second_leg_extreme = float(extra.get("second_leg_extreme") or 0.0)
+            if second_leg_extreme <= 0:
+                second_leg_extreme = signal_bar_high if direction == "SELL" else signal_bar_low
+            return structure_stops.build_tr_second_leg_trap_stop(
+                direction,
+                candles_q,
+                second_leg_extreme,
+                signal_bar_high,
+                signal_bar_low,
+                atr,
+            )
+
+        if playbook_id in {"R0_FIRST_REVERSAL_PROBE", "R1_BROAD_CHANNEL_REVERSAL", "R2_TR_EDGE_REVERSAL"}:
+            return structure_stops.build_reversal_structure_stop(
+                direction,
+                candles_q,
+                signal_bar_high,
+                signal_bar_low,
+                atr,
+                reference_levels=reference_levels,
+            )
+
+        if playbook_id in {"T6_TR_LEG_FIRST_PULLBACK", "T6_TR_LEG_CHANNEL_RECOVERY", "T6_TR_LEG_EMA_RECOVERY"}:
+            return structure_stops.build_channel_recovery_stop(
+                direction,
+                candles_q,
+                signal_bar_high,
+                signal_bar_low,
+                atr,
+            )
+
+        if signal_type in {"双重顶", "双重底", "楔形顶", "楔形底", "头肩顶MTR", "头肩底MTR", "末端旗形", "急速通道"}:
+            return structure_stops.build_reversal_structure_stop(
+                direction,
+                candles_q,
+                signal_bar_high,
+                signal_bar_low,
+                atr,
+                reference_levels=reference_levels,
+            )
+
+        return structure_stops.build_trend_pullback_stop(
+            direction,
+            candles_q,
+            signal_bar_high,
+            signal_bar_low,
+            atr,
+        )
+
     def _attach_structure_context(self, event, candles_q, replay) -> None:
         """补充关键位、目标路径与结构止损诊断。"""
         if not candles_q:
@@ -1029,21 +1072,25 @@ class BacktestRunner:
         take_profit = float(getattr(event, "take_profit", 0.0) or 0.0)
         direction = str(getattr(event, "direction", "") or "")
         higher_tf = str(extra.get("higher_timeframe", "") or "")
-        higher_candles = replay.get_candles(event.symbol, higher_tf, limit=40) if higher_tf else []
+        higher_candles = replay.get_candles(event.symbol, higher_tf, limit=80) if higher_tf else []
         current_swings = CycleIdentifier._find_swings(candles_q[-30:] if len(candles_q) >= 30 else candles_q)
         higher_swings = CycleIdentifier._find_swings(
             higher_candles[-30:] if len(higher_candles) >= 30 else higher_candles
         )
-        range_low = float(min(candle.low for candle in candles_q[-20:])) if len(candles_q) >= 5 else 0.0
-        range_high = float(max(candle.high for candle in candles_q[-20:])) if len(candles_q) >= 5 else 0.0
-        higher_range_low = (
-            float(min(candle.low for candle in higher_candles[-20:]))
-            if len(higher_candles) >= 5
-            else 0.0
-        )
-        higher_range_high = (
-            float(max(candle.high for candle in higher_candles[-20:]))
-            if len(higher_candles) >= 5
+        current_context = CycleIdentifier.context_range(candles_q)
+        higher_context = CycleIdentifier.context_range(higher_candles) if higher_candles else {
+            "range_low": 0.0,
+            "range_high": 0.0,
+            "window_size": 0,
+        }
+        range_low = float(current_context["range_low"] or 0.0)
+        range_high = float(current_context["range_high"] or 0.0)
+        range_midpoint = (range_low + range_high) / 2.0 if range_low > 0 and range_high > 0 else 0.0
+        higher_range_low = float(higher_context["range_low"] or 0.0)
+        higher_range_high = float(higher_context["range_high"] or 0.0)
+        higher_range_midpoint = (
+            (higher_range_low + higher_range_high) / 2.0
+            if higher_range_low > 0 and higher_range_high > 0
             else 0.0
         )
 
@@ -1064,6 +1111,16 @@ class BacktestRunner:
             signal_bar_high = float(candles_q[-1].high)
         if signal_bar_low <= 0:
             signal_bar_low = float(candles_q[-1].low)
+        estimated_atr = self._estimate_atr(candles_q)
+        signal_bar_range = max(signal_bar_high - signal_bar_low, 0.0)
+        # Brooks 的“结构位外”应该是动态缓冲，不是固定 0.1%。
+        # 固定比例会把大量本来已经在结构外的 5m 单误判成止损过紧。
+        signal_bar_buffer = max(
+            estimated_atr * 0.08,
+            abs(entry_price) * 0.0002,
+            signal_bar_range * 0.08,
+            1e-9,
+        )
 
         trendline_break_confirmed = self._trendline_break_confirmed(candles_q, direction)
         failed_breakout_evidence, trapped_side, signal_bar_context = self._failed_breakout_evidence(
@@ -1079,28 +1136,74 @@ class BacktestRunner:
             str(extra.get("higher_market_state", "") or ""),
         )
 
+        playbook_id = str(extra.get("playbook_id") or "")
+        signal_type = str(getattr(event, "signal_type", "") or "")
         perfect_stop = stop_loss
         actual_risk = abs(entry_price - stop_loss)
         entry_type = str(getattr(event, "entry_type", "STOP") or "STOP").upper()
         route_style = str(extra.get("route_style", "") or "")
-        if direction == "BUY":
-            stop_candidates = [value for value in [signal_bar_low, nearest_support, higher_range_low] if value > 0]
-            if stop_candidates:
-                perfect_stop = min(stop_candidates)
-            stop_structure_ok = stop_loss < signal_bar_low * 0.999 if signal_bar_low > 0 else stop_loss < entry_price
-            if entry_type == "STOP" and nearest_support > 0 and stop_loss > nearest_support:
-                stop_structure_ok = False
-        else:
-            stop_candidates = [value for value in [signal_bar_high, nearest_resistance, higher_range_high] if value > 0]
-            if stop_candidates:
-                perfect_stop = max(stop_candidates)
-            stop_structure_ok = stop_loss > signal_bar_high * 1.001 if signal_bar_high > 0 else stop_loss > entry_price
-            if entry_type == "STOP" and nearest_resistance > 0 and stop_loss < nearest_resistance:
-                stop_structure_ok = False
+        if entry_price > 0:
+            perfect_stop = self._build_playbook_perfect_stop(
+                direction=direction,
+                signal_type=signal_type,
+                playbook_id=playbook_id,
+                candles_q=candles_q,
+                signal_bar_high=signal_bar_high,
+                signal_bar_low=signal_bar_low,
+                nearest_support=nearest_support,
+                nearest_resistance=nearest_resistance,
+                higher_range_low=higher_range_low,
+                higher_range_high=higher_range_high,
+                extra=extra,
+            )
 
         perfect_risk = abs(entry_price - perfect_stop)
 
         actual_to_perfect_risk_ratio = actual_risk / perfect_risk if perfect_risk > 0 else 1.0
+
+        relaxed_trend_stop_playbooks = {
+            "T1_FIRST_PULLBACK",
+            "T2_TREND_H2",
+            "T3_TREND_EMA",
+            "T2_BROAD_CHANNEL_RECOVERY",
+            "T3_BROAD_CHANNEL_EMA",
+        }
+        strict_structure_playbooks = {
+            "TR2_FAILED_BO_FADE",
+            "TR3_SECOND_LEG_TRAP",
+            "R0_FIRST_REVERSAL_PROBE",
+            "R1_BROAD_CHANNEL_REVERSAL",
+            "R2_TR_EDGE_REVERSAL",
+        }
+
+        if direction == "BUY":
+            stop_structure_ok = (
+                stop_loss <= signal_bar_low - signal_bar_buffer
+                if signal_bar_low > 0
+                else stop_loss < entry_price
+            )
+            if playbook_id in strict_structure_playbooks and entry_type == "STOP" and nearest_support > 0 and stop_loss > nearest_support:
+                stop_structure_ok = False
+            if perfect_stop > 0:
+                if playbook_id in relaxed_trend_stop_playbooks:
+                    if actual_to_perfect_risk_ratio < 0.78:
+                        stop_structure_ok = False
+                elif stop_loss > perfect_stop:
+                    stop_structure_ok = False
+        else:
+            stop_structure_ok = (
+                stop_loss >= signal_bar_high + signal_bar_buffer
+                if signal_bar_high > 0
+                else stop_loss > entry_price
+            )
+            if playbook_id in strict_structure_playbooks and entry_type == "STOP" and nearest_resistance > 0 and stop_loss < nearest_resistance:
+                stop_structure_ok = False
+            if perfect_stop > 0:
+                if playbook_id in relaxed_trend_stop_playbooks:
+                    if actual_to_perfect_risk_ratio < 0.78:
+                        stop_structure_ok = False
+                elif stop_loss < perfect_stop:
+                    stop_structure_ok = False
 
         router = self._load_runtime_target_router()
         mm_target = float(extra.get("measured_move_target", 0.0) or 0.0)
@@ -1113,6 +1216,7 @@ class BacktestRunner:
             "support": [value for value in [nearest_support, range_low, higher_range_low] if value > 0],
             "resistance": [value for value in [nearest_resistance, range_high, higher_range_high] if value > 0],
             "round": self._round_number_candidates(entry_price),
+            "midline": [value for value in [range_midpoint, higher_range_midpoint] if value > 0],
         }
         magnets = router.build_target_magnets(
             direction,
@@ -1189,6 +1293,8 @@ class BacktestRunner:
         extra["stop_structure_ok"] = stop_structure_ok
         extra["perfect_stop"] = perfect_stop
         extra["actual_to_perfect_risk_ratio"] = actual_to_perfect_risk_ratio
+        extra["range_window"] = int(current_context["window_size"] or 0)
+        extra["higher_range_window"] = int(higher_context["window_size"] or 0)
         event.extra = extra
 
     @staticmethod
@@ -1203,9 +1309,9 @@ class BacktestRunner:
 
     def _build_management_snapshot(self, replay, symbol: str, candle) -> dict:
         """给持仓管理构造当前 symbol 的轻量级结构快照。"""
-        candles_5m = replay.get_candles(symbol, "5m", limit=30)
-        candles_15m = replay.get_candles(symbol, "15m", limit=30)
-        candles_1h = replay.get_candles(symbol, "1h", limit=30)
+        candles_5m = replay.get_candles(symbol, "5m", limit=80)
+        candles_15m = replay.get_candles(symbol, "15m", limit=80)
+        candles_1h = replay.get_candles(symbol, "1h", limit=80)
 
         snapshot_5m = self._identify_market_state_snapshot(candles_5m)
         snapshot_15m = self._identify_market_state_snapshot(candles_15m)
@@ -1328,11 +1434,30 @@ class BacktestRunner:
         return (range_edge == "bottom" and direction == "BUY") or (range_edge == "top" and direction == "SELL")
 
     @staticmethod
-    def _is_tr_blshs_signal(signal_type: str, direction: str, range_edge: str) -> bool:
+    def _range_zone_matches_direction(range_zone: str, direction: str, *, allow_origin: bool = False) -> bool:
+        """交易区间近边缘优势区与反做方向是否一致。"""
+        if direction == "BUY":
+            zones = {"deep_bottom", "bottom_advantage"}
+            if allow_origin:
+                zones.add("lower_origin")
+            return range_zone in zones
+        if direction == "SELL":
+            zones = {"deep_top", "top_advantage"}
+            if allow_origin:
+                zones.add("upper_origin")
+            return range_zone in zones
+        return False
+
+    @staticmethod
+    def _is_tr_blshs_signal(signal_type: str, direction: str, range_edge: str, range_zone: str = "") -> bool:
         """H1/H2/L1/L2 与反转结构在 TR 边缘可作为 BLSHS 的执行信号。"""
-        if direction == "BUY" and range_edge == "bottom":
+        if direction == "BUY" and (
+            range_edge == "bottom" or range_zone in {"deep_bottom", "bottom_advantage"}
+        ):
             return signal_type in TR_BLSHS_BUY_SIGNALS
-        if direction == "SELL" and range_edge == "top":
+        if direction == "SELL" and (
+            range_edge == "top" or range_zone in {"deep_top", "top_advantage"}
+        ):
             return signal_type in TR_BLSHS_SELL_SIGNALS
         return False
 
@@ -1348,7 +1473,17 @@ class BacktestRunner:
 
     @staticmethod
     def _is_edge_zone(range_position: float, direction: str) -> bool:
-        """判断是否仍靠近更高 TR 边缘。"""
+        """判断是否仍贴近更高 TR 边缘。"""
+        pos = max(0.0, min(1.0, float(range_position or 0.5)))
+        if direction == "BUY":
+            return pos <= 0.35
+        if direction == "SELL":
+            return pos >= 0.65
+        return False
+
+    @staticmethod
+    def _is_advantage_zone(range_position: float, direction: str) -> bool:
+        """判断是否仍处于 Brooks 可接受的优势半区，而非真正中部。"""
         pos = max(0.0, min(1.0, float(range_position or 0.5)))
         if direction == "BUY":
             return pos <= 0.45
@@ -1413,7 +1548,7 @@ class BacktestRunner:
         extra: dict,
     ) -> tuple[str, str, str]:
         """按 Brooks 状态路由给候选单打上 playbook 标签。"""
-        if market_key in {"tight_range", "broad_range"}:
+        if market_key == "tight_range":
             if signal_type == "第二腿陷阱" or str(extra.get("playbook_hint") or "") == "TR3_SECOND_LEG_TRAP":
                 return "TR3_SECOND_LEG_TRAP", "tr", "STOP"
             if signal_type == "看衰突破" or bool(extra.get("failed_breakout_evidence", False)):
@@ -1421,6 +1556,29 @@ class BacktestRunner:
             if str(extra.get("prior_leg_context") or "") == "tr_second_leg":
                 return "TR3_SECOND_LEG_TRAP", "tr", "STOP"
             return "TR1_BLSHS", "tr", "LIMIT"
+
+        if market_key == "broad_range":
+            if signal_type == "第二腿陷阱" or str(extra.get("playbook_hint") or "") == "TR3_SECOND_LEG_TRAP":
+                return "TR3_SECOND_LEG_TRAP", "tr", "STOP"
+            if signal_type == "看衰突破" or bool(extra.get("failed_breakout_evidence", False)):
+                return "TR2_FAILED_BO_FADE", "tr", "STOP"
+            if str(extra.get("prior_leg_context") or "") == "tr_second_leg":
+                return "TR3_SECOND_LEG_TRAP", "tr", "STOP"
+            if signal_type in BROOKS_REVERSAL_SIGNALS:
+                if higher_key in {"tight_range", "broad_range"}:
+                    return "R2_TR_EDGE_REVERSAL", "reversal", "LIMIT"
+                return "R1_BROAD_CHANNEL_REVERSAL", "reversal", "LIMIT"
+            if signal_type in CHANNEL_FIRST_PULLBACK_SIGNALS | CHANNEL_RECOVERY_SIGNALS:
+                if higher_key in {"tight_range", "broad_range"}:
+                    return "T6_TR_LEG_CHANNEL_RECOVERY", "channel", "LIMIT" if entry_type == "LIMIT" else "STOP"
+                return "T2_BROAD_CHANNEL_RECOVERY", "channel", "STOP"
+            if signal_type in EMA_RECOVERY_SIGNALS:
+                if higher_key in {"tight_range", "broad_range"}:
+                    return "T6_TR_LEG_EMA_RECOVERY", "channel", "LIMIT" if entry_type == "LIMIT" else "STOP"
+                return "T3_BROAD_CHANNEL_EMA", "channel", "STOP"
+            if signal_type in BREAKOUT_CHASE_SIGNALS:
+                return "T5_BREAKOUT_CHASE", "breakout", "STOP"
+            return "UNCLASSIFIED", "other", entry_type
 
         if signal_type in BROOKS_REVERSAL_SIGNALS:
             if higher_key in {"tight_range", "broad_range"}:
@@ -1491,6 +1649,7 @@ class BacktestRunner:
         entry_type = str(getattr(event, "entry_type", "STOP") or "STOP").upper()
         extra = dict(getattr(event, "extra", {}) or {})
         range_edge = str(extra.get("range_edge", "") or "")
+        range_zone = str(extra.get("range_zone", "") or "")
         higher_range_position = float(extra.get("higher_range_position", 0.5) or 0.5)
         higher_range_edge = str(extra.get("higher_range_edge", "") or "")
 
@@ -1503,6 +1662,7 @@ class BacktestRunner:
             or (direction == "SELL" and higher_range_edge == "bottom")
         )
         higher_edge_zone = self._is_edge_zone(higher_range_position, direction)
+        higher_advantage_zone = self._is_advantage_zone(higher_range_position, direction)
         higher_origin_half = self._is_origin_half(higher_range_position, direction)
         higher_mid_band = self._is_mid_band(higher_range_position)
         counter_weak_trend = (
@@ -1510,7 +1670,12 @@ class BacktestRunner:
             or (market_key == "weak_trend_bear" and direction == "BUY")
         )
 
-        if market_key in {"tight_range", "broad_range"} and self._is_tr_blshs_signal(signal_type, direction, range_edge):
+        if market_key in {"tight_range", "broad_range"} and self._is_tr_blshs_signal(
+            signal_type,
+            direction,
+            range_edge,
+            range_zone,
+        ):
             self._convert_to_limit_order(
                 event,
                 candles_q,
@@ -1547,7 +1712,7 @@ class BacktestRunner:
             higher_range_like
             and signal_type in TR_LEG_RECOVERY_SIGNALS
             and not higher_edge_conflict
-            and (higher_edge_zone or higher_origin_half)
+            and (higher_edge_zone or higher_advantage_zone or higher_origin_half)
             and market_key in {"weak_trend_bull", "weak_trend_bear", "tight_range", "broad_range"}
         ):
             self._convert_to_limit_order(
@@ -1576,6 +1741,7 @@ class BacktestRunner:
         extra = dict(getattr(event, "extra", {}) or {})
         tbtl_big = int(extra.get("tbtl_big", 0) or 0)
         range_edge = str(extra.get("range_edge", "") or "")
+        range_zone = str(extra.get("range_zone", "") or "")
         higher_key = (
             classify_backtest_market_state(higher_market_state) if higher_market_state is not None else ""
         ) or str(extra.get("higher_market_state", "") or "")
@@ -1593,11 +1759,15 @@ class BacktestRunner:
             or bool(getattr(higher_market_state, "is_ttr", False))
             or not higher_follow_through
         )
+        failed_breakout_evidence = bool(extra.get("failed_breakout_evidence", False))
+        prior_leg_context = str(extra.get("prior_leg_context", "") or "")
+        trendline_break_confirmed = bool(extra.get("trendline_break_confirmed", False))
+        signal_bar_quality = float(extra.get("signal_bar_quality", 0.0) or 0.0)
 
         is_reversal = signal_type in ROUTE_REVERSAL_STRATEGIES
         is_minor_reversal = signal_type in ROUTE_MINOR_REVERSAL_STRATEGIES
         is_trend = signal_type in ROUTE_TREND_STRATEGIES
-        is_tr_blshs = BacktestRunner._is_tr_blshs_signal(signal_type, direction, range_edge)
+        is_tr_blshs = BacktestRunner._is_tr_blshs_signal(signal_type, direction, range_edge, range_zone)
         is_channel_scalp = signal_type in CHANNEL_SCALP_SIGNALS
         is_breakout_chase = signal_type in BREAKOUT_CHASE_SIGNALS
         is_breakout = (
@@ -1622,10 +1792,20 @@ class BacktestRunner:
                 if not weakening or score < 70:
                     return False, "强空趋势中反转证据不足"
 
-        if market_key in {"tight_range", "broad_range"}:
-            if range_edge == "middle":
+        if market_key == "tight_range":
+            in_advantage_edge = BacktestRunner._range_zone_matches_direction(range_zone, direction)
+            near_edge_trade_ready = in_advantage_edge and (
+                failed_breakout_evidence
+                or prior_leg_context == "tr_second_leg"
+                or signal_type in {"双重顶", "双重底", "头肩顶MTR", "头肩底MTR", "高2", "低2"}
+            ) and score >= 68
+            tradeable_edge = BacktestRunner._range_edge_matches_direction(
+                range_edge,
+                direction,
+            ) or near_edge_trade_ready
+            if range_zone in {"middle", "lower_origin", "upper_origin"}:
                 return False, "交易区间中部不做单"
-            if not BacktestRunner._range_edge_matches_direction(range_edge, direction):
+            if not tradeable_edge:
                 return False, "交易区间里必须在边缘反做"
             if is_breakout and signal_type not in {"看衰突破"}:
                 return False, "区间里禁止突破追单和趋势延续单"
@@ -1635,6 +1815,52 @@ class BacktestRunner:
                 return False, "紧密交易区间只做更高质量 setup"
             if is_reversal and entry_type == "STOP" and signal_type not in {"头肩顶MTR", "头肩底MTR"} and score < 65:
                 return False, "区间中的反转 stop 单质量不足"
+
+        if market_key == "broad_range":
+            in_advantage_edge = BacktestRunner._range_zone_matches_direction(range_zone, direction, allow_origin=True)
+            near_edge_trade_ready = in_advantage_edge and (
+                failed_breakout_evidence
+                or prior_leg_context == "tr_second_leg"
+                or signal_type in {"双重顶", "双重底", "头肩顶MTR", "头肩底MTR", "高2", "低2", "楔形顶", "楔形底"}
+            ) and score >= 66
+            tradeable_edge = BacktestRunner._range_edge_matches_direction(
+                range_edge,
+                direction,
+            ) or near_edge_trade_ready
+
+            if playbook_id in {
+                "TR1_BLSHS",
+                "TR2_FAILED_BO_FADE",
+                "TR3_SECOND_LEG_TRAP",
+                "R1_BROAD_CHANNEL_REVERSAL",
+                "R2_TR_EDGE_REVERSAL",
+            } or is_reversal:
+                if range_zone == "middle":
+                    return False, "宽通道中部不做逆势 fade"
+                if not tradeable_edge and score < 72:
+                    return False, "宽通道逆势单仍需靠近边缘或优势区"
+                if is_breakout and signal_type not in {"看衰突破"} and score < 74:
+                    return False, "宽通道逆势里不追弱突破"
+
+            if playbook_id in {
+                "T2_BROAD_CHANNEL_RECOVERY",
+                "T3_BROAD_CHANNEL_EMA",
+                "T6_TR_LEG_FIRST_PULLBACK",
+                "T6_TR_LEG_CHANNEL_RECOVERY",
+                "T6_TR_LEG_EMA_RECOVERY",
+            } or (is_trend and not is_reversal):
+                strong_second_entry_recovery = (
+                    signal_type in {"高2", "低2", "突破回调", "20均线缺口", "第一均线缺口"}
+                    and trendline_break_confirmed
+                    and signal_bar_quality >= 0.55
+                    and score >= 68
+                )
+                if range_zone == "middle" and not follow_through and not strong_second_entry_recovery and score < 76:
+                    return False, "宽通道中部顺势恢复仍缺少接受"
+                if not (follow_through or higher_follow_through) and not strong_second_entry_recovery and score < 70:
+                    return False, "宽通道顺势恢复缺少 follow-through"
+                if is_breakout and score < 78 and not follow_through:
+                    return False, "宽通道里不追弱突破"
 
         if market_key in {"weak_trend_bull", "weak_trend_bear"}:
             aligned_bull = market_key == "weak_trend_bull" and direction == "BUY"
@@ -1659,6 +1885,7 @@ class BacktestRunner:
             )
             higher_origin_half = BacktestRunner._is_origin_half(higher_range_position, direction)
             higher_edge_zone = BacktestRunner._is_edge_zone(higher_range_position, direction)
+            higher_advantage_zone = BacktestRunner._is_advantage_zone(higher_range_position, direction)
             higher_mid_band = BacktestRunner._is_mid_band(higher_range_position)
             if market_key in {"tight_range", "broad_range"}:
                 if is_breakout and signal_type not in {"看衰突破"}:
@@ -1675,21 +1902,23 @@ class BacktestRunner:
                     return False, "15m 为 TR，中部腿不做顺势追单"
                 if (
                     playbook_id == "T6_TR_LEG_FIRST_PULLBACK"
-                    and (not higher_edge_zone or higher_weakening or not follow_through or score < 76)
+                    and (not higher_advantage_zone or higher_weakening or not follow_through or score < 76)
                 ):
                     return False, "15m 为 TR，5m H1/L1 只在边缘第一腿做"
                 if playbook_id in {"T6_TR_LEG_CHANNEL_RECOVERY", "T6_TR_LEG_EMA_RECOVERY"}:
                     if entry_type == "LIMIT":
                         if higher_mid_band:
                             return False, "15m 为 TR，中部不做顺势 limit 单"
-                        if not higher_origin_half and not higher_edge_zone and score < 72:
+                        if not higher_origin_half and not higher_advantage_zone and score < 72:
                             return False, "15m 为 TR，5m 顺势 limit 已离开边缘优势区"
-                    elif not higher_origin_half:
+                    elif not higher_origin_half and not higher_advantage_zone:
                         return False, "15m 为 TR，5m 顺势恢复已离开有利半区"
                     if higher_edge_conflict:
                         return False, "15m 为 TR，5m 顺势恢复已逼近对侧边缘"
-                    if signal_type in CHANNEL_RECOVERY_SIGNALS and not higher_edge_zone and score < 74:
+                    if signal_type in CHANNEL_RECOVERY_SIGNALS and not higher_advantage_zone and score < 74:
                         return False, "15m 为 TR，5m H2/L2/突破回调 先等边缘半区确认"
+                    if signal_type in EMA_RECOVERY_SIGNALS and not higher_advantage_zone and score < 72:
+                        return False, "15m 为 TR，5m EMA 恢复离边缘优势区太远"
                     if not (follow_through or higher_follow_through) and score < 72:
                         return False, "15m 为 TR，5m 顺势恢复缺少 follow-through"
                 if is_trend and not is_reversal and not is_channel_scalp and higher_edge_conflict:
@@ -1751,8 +1980,6 @@ class BacktestRunner:
         stop_structure_ok = bool(extra.get("stop_structure_ok", True))
         target_path_clear = bool(extra.get("target_path_clear", True))
         risk_ratio = float(extra.get("actual_to_perfect_risk_ratio", 1.0) or 1.0)
-        background_label = str(extra.get("background_label") or "")
-
         if not stop_structure_ok:
             return False, "止损没有放到结构位外"
 
@@ -1806,8 +2033,36 @@ class BacktestRunner:
                 return block("watch", "H1/L1 仍缺少 follow-through / acceptance")
             if requires_second_entry and not (acceptance_ready and executable_signal_ready):
                 return block("candidate", "第一次信号尚未完成接受，继续等 H2/L2 或二次确认")
-        elif signal_rank == 2 and score < 68 and entry_type == "STOP":
-            return block("candidate", "H2/L2 还没成熟到 executable")
+        elif signal_rank == 2 and entry_type == "STOP":
+            min_executable_score = 68
+            if playbook_id in {
+                "T2_BROAD_CHANNEL_RECOVERY",
+                "T3_BROAD_CHANNEL_EMA",
+                "T6_TR_LEG_FIRST_PULLBACK",
+                "T6_TR_LEG_CHANNEL_RECOVERY",
+                "T6_TR_LEG_EMA_RECOVERY",
+            } or market_state in {
+                "strong_trend_bull",
+                "strong_trend_bear",
+                "weak_trend_bull",
+                "weak_trend_bear",
+                "broad_range",
+            }:
+                min_executable_score = 62
+            if score < min_executable_score:
+                return block("candidate", "H2/L2 还没成熟到 executable")
+
+        if signal_type == "第二腿陷阱":
+            if prior_leg_context != "tr_second_leg":
+                return block("watch", "第二腿陷阱缺少清晰的 second-leg 背景")
+            if not (failed_breakout_evidence or trapped_side or trendline_break_confirmed):
+                return block("candidate", "第二腿陷阱仍缺少 failed breakout / trapped trader 证据")
+            if (
+                not target_path_clear
+                and blocking_magnet_distance_r > 0
+                and blocking_magnet_distance_r < 0.8
+            ):
+                return block("candidate", "第二腿陷阱前方磁体过近，先等更清晰的折返空间")
 
         if playbook_id == "T6_TR_LEG_FIRST_PULLBACK" and entry_type == "STOP":
             if not BacktestRunner._is_edge_zone(higher_range_position, str(getattr(event, "direction", "") or "")):
@@ -1818,7 +2073,7 @@ class BacktestRunner:
                 return block("candidate", "更高 TR 的顺势恢复刚回到中部附近，先等接受完成再执行")
 
         if timeframe == "5m" and signal_type == "高2" and entry_type == "STOP":
-            if "震荡背景" in background_label:
+            if market_state in {"tight_range", "broad_range"} or higher_market_state in {"tight_range", "broad_range"}:
                 return block("watch", "5m 高2 在震荡背景中更像区间噪音，先等更清晰确认")
             if risk_ratio < 0.55:
                 return block("candidate", "5m 高2 止损过紧，回调还没有足够呼吸空间")
@@ -1865,6 +2120,22 @@ class BacktestRunner:
             ):
                 return block("candidate", "头肩底 MTR 所在的上下级结构仍在弱空，先等 failed breakout 证据")
 
+        if playbook_id == "R1_BROAD_CHANNEL_REVERSAL":
+            if (
+                not target_path_clear
+                and not failed_breakout_evidence
+                and blocking_magnet_distance_r > 0
+                and blocking_magnet_distance_r < 1.0
+            ):
+                return block("candidate", "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径")
+            if (
+                prior_leg_context == "tr_second_leg"
+                and not failed_breakout_evidence
+                and not trendline_break_confirmed
+                and score < 70
+            ):
+                return block("candidate", "宽通道反转更像 second-leg trap，先等失败突破或趋势线破坏")
+
         if timeframe == "5m" and signal_type == "头肩底MTR" and entry_type == "STOP":
             if not target_path_clear and risk_ratio < 0.5:
                 return block("candidate", "5m 头肩底 MTR 止损太紧且前方受阻，先等更清晰的 failed breakout")
@@ -1878,6 +2149,18 @@ class BacktestRunner:
             return block("candidate", "区间里的 H2/L2 仍可能只是 second leg trap")
 
         if signal_type in {"高2", "低2"} and entry_type == "STOP":
+            range_or_weak_context = (
+                market_state in {"tight_range", "broad_range", "weak_trend_bull", "weak_trend_bear"}
+                or higher_market_state in {"tight_range", "broad_range", "weak_trend_bull", "weak_trend_bear"}
+            )
+            if (
+                range_or_weak_context
+                and prior_leg_context != "trend_leg"
+                and not failed_breakout_evidence
+                and not trendline_break_confirmed
+                and score < 82
+            ):
+                return block("candidate", "区间/弱趋势里的 H2/L2 仍缺少失败突破或趋势线破坏证据")
             if (
                 prior_leg_context == "tr_second_leg"
                 and not failed_breakout_evidence
@@ -1936,7 +2219,7 @@ class BacktestRunner:
         event.extra = extra
         return True, ""
 
-    def _apply_management_template(self, event, background: BackgroundContext, management_profile: str) -> bool:
+    def _apply_management_template(self, event, management_profile: str) -> bool:
         """按回测管理模板修正 SL / TP。"""
         risk = abs(event.price - event.stop_loss)
         if risk <= 0 or event.price <= 0:
@@ -1955,6 +2238,7 @@ class BacktestRunner:
             timeframe=str(getattr(event, "timeframe", "") or ""),
             entry_type=str(getattr(event, "entry_type", "STOP") or "STOP"),
             route_style=str(extra.get("route_style", "") or ""),
+            playbook_id=str(extra.get("playbook_id", "") or ""),
         )
         extra = dict(getattr(event, "extra", {}) or {})
         extra["management_style"] = style
@@ -2015,101 +2299,6 @@ class BacktestRunner:
                     event.take_profit = recommended_target
 
         return True
-
-    def _get_background(self, replay: MarketReplay, symbol: str, current_time: datetime) -> BackgroundContext:
-        """获取当前时间点的大周期背景"""
-        daily_candles = replay.get_daily_candles(symbol, limit=50)
-        h4_candles = replay.get_h4_candles(symbol, limit=50)
-
-        # EMA20 需要 20 根 + 斜率 lookback 5 = 25; 日线可能不够但 4h 一般足够
-        # 降低门槛: 有 EMA20 最低需求即可 (21根), 数据不足时背景分析自动退化
-        if len(h4_candles) < 21:
-            return BackgroundContext("中性", "中性", "⚪ 中性", 0, 0)
-
-        return self.bg_analyzer.analyze(daily_candles, h4_candles)
-
-    # === 三域融合过滤器 ===
-
-    def _check_volume(self, candles, lookback=20, threshold=0.8):
-        """威科夫: 信号棒成交量 >= 均量 × threshold
-        Al Brooks: 好的信号棒不一定需要超高成交量，只要不是 No Demand 即可
-        0.8 = 至少达到平均成交量的 80%（原来1.0太严格，50%棒子都失败）
-        """
-        if len(candles) < lookback + 1:
-            return True
-        curr_vol = candles[-1].volume
-        if curr_vol == 0:
-            return True  # 无量数据则放行
-        avg_vol = sum(
-            c.volume for c in candles[-(lookback + 1):-1]
-        ) / lookback
-        if avg_vol == 0:
-            return True
-        return curr_vol >= avg_vol * threshold
-
-    def _calc_rsi(self, candles, period=14):
-        """量化: 计算 RSI"""
-        if len(candles) < period + 1:
-            return 50.0
-        closes = [c.close for c in candles[-(period + 1):]]
-        deltas = [
-            closes[i] - closes[i - 1] for i in range(1, len(closes))
-        ]
-        gains = [d if d > 0 else 0 for d in deltas]
-        losses = [-d if d < 0 else 0 for d in deltas]
-        avg_gain = sum(gains) / period
-        avg_loss = sum(losses) / period
-        if avg_loss == 0:
-            return 100.0
-        rs = avg_gain / avg_loss
-        return 100 - (100 / (1 + rs))
-
-    def _check_rsi_direction(self, rsi, direction):
-        """量化: RSI 方向过滤 — 不在极值区逆势"""
-        if direction == "BUY":
-            return rsi < 72  # 不追超买
-        else:
-            return rsi > 28  # 不追超卖
-
-    def _check_obv_direction(self, candles, direction):
-        """威科夫: OBV 趋势确认 — 资金流方向"""
-        if len(candles) < 25:
-            return True
-        # 计算 OBV
-        obv = [0.0]
-        for i in range(1, len(candles)):
-            if candles[i].close > candles[i - 1].close:
-                obv.append(obv[-1] + candles[i].volume)
-            elif candles[i].close < candles[i - 1].close:
-                obv.append(obv[-1] - candles[i].volume)
-            else:
-                obv.append(obv[-1])
-        # OBV 5期 vs 前5期 趋势
-        if len(obv) < 10:
-            return True
-        recent = sum(obv[-5:]) / 5
-        earlier = sum(obv[-10:-5]) / 5
-        if direction == "BUY":
-            return recent >= earlier  # OBV 不下降
-        else:
-            return recent <= earlier  # OBV 不上升
-
-    def _check_higher_tf_trend(self, replay, symbol, direction, tf="15m"):
-        """量化: 高周期 EMA20 趋势确认"""
-        candles_tf = replay.get_candles(symbol, tf, limit=30)
-        if len(candles_tf) < 25:
-            return True
-        closes = [c.close for c in candles_tf]
-        ema = self._simple_ema(closes, 20)
-        if len(ema) < 3:
-            return True
-        slope = (ema[-1] - ema[-3]) / ema[-3] * 100
-        price = candles_tf[-1].close
-        above = price > ema[-1]
-        if direction == "BUY":
-            return slope > -0.05 or above
-        else:
-            return slope < 0.05 or not above
 
     @staticmethod
     def _signal_bar_quality(sig_bar, prev_bars, direction) -> float:

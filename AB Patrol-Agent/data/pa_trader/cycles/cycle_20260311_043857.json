@@ -1,0 +1,1143 @@
+{
+  "cycle_id": "cycle_20260311_043857",
+  "phase": "BOOTSTRAP",
+  "time_utc": "2026-03-10T20:38:57.926191+00:00",
+  "trigger": null,
+  "quick_scan_events": {
+    "BTCUSDT": {
+      "5m": [
+        "state:TR"
+      ]
+    },
+    "ETHUSDT": {
+      "5m": [
+        "state:TR",
+        "stale:consecutive_watching"
+      ]
+    },
+    "BNBUSDT": {
+      "5m": [
+        "state:TR"
+      ]
+    }
+  },
+  "phase_plan": {
+    "phase": "BOOTSTRAP",
+    "summary": "冷启动或缓存过期，执行全刷新并重建 daily bias / structure / scenarios。",
+    "full_refresh": true,
+    "full_refresh_reason": "stale_symbol_threshold",
+    "focus_symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT"
+    ],
+    "manage_symbols": [],
+    "prompt_references": [
+      "S0-daily-bias.md",
+      "S1-reading.md",
+      "S2-direction.md",
+      "S3-market-state.md",
+      "S3b-key-levels.md",
+      "S4-strategy-match.md",
+      "S5-evaluation.md",
+      "S6-common.md",
+      "S6-bo.md",
+      "S6-channel.md",
+      "S6-tr.md",
+      "S7-management.md"
+    ],
+    "trigger_symbol": null
+  },
+  "knowledge_loading": {},
+  "analysis_board": {
+    "BTCUSDT": {
+      "symbol": "BTCUSDT",
+      "analysis_mode": "scan",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "EXIT_REBUILT_LONG",
+        "consecutive_watching": 2,
+        "daily_bias": "中性偏空到中性",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "TR",
+        "key_levels": {
+          "support": [
+            69600.0,
+            69594.6,
+            69149.0
+          ],
+          "resistance": [
+            69984.1,
+            70000.0
+          ]
+        },
+        "trade": {
+          "side": "LONG",
+          "quantity": 0.03,
+          "entry_price": 70789.7,
+          "mark_price": 70718.4,
+          "unrealized_pnl": -0.0213900000000009,
+          "style": "Swing",
+          "premise": "顺势恢复 long",
+          "premise_status": "失去执行级接受，转为残仓清理",
+          "intent": "EXIT_REBUILT_LONG"
+        },
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {}
+    },
+    "ETHUSDT": {
+      "symbol": "ETHUSDT",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 6,
+        "daily_bias": "中性偏多试探",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "TR",
+        "key_levels": {
+          "support": [
+            2150.0,
+            2151.6,
+            2120.93
+          ],
+          "resistance": [
+            2163.91,
+            2187.0,
+            2171.67
+          ]
+        },
+        "trade": {
+          "side": "LONG",
+          "quantity": 0.328,
+          "entry_price": 2000.595938931,
+          "mark_price": 2011.62,
+          "unrealized_pnl": 3.61589203,
+          "style": "反转试探",
+          "premise": "1990.29 低点后的 H2 修复腿",
+          "premise_status": "测试到关键位，宜兑现",
+          "intent": "EXIT_ON_TEST"
+        },
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {},
+      "chart_context": {
+        "chart_files": [
+          "ETHUSDT_1d.png"
+        ],
+        "chart_paths": [
+          "daily/ETHUSDT_1d.png"
+        ],
+        "chart_api_paths": [
+          "/api/charts?path=daily/ETHUSDT_1d.png"
+        ],
+        "primary_chart_file": "ETHUSDT_1d.png",
+        "primary_chart_path": "daily/ETHUSDT_1d.png",
+        "primary_chart_api_path": "/api/charts?path=daily/ETHUSDT_1d.png",
+        "latest_generated_at": "2026-03-10T23:48:24.537678+08:00",
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    },
+    "BNBUSDT": {
+      "symbol": "BNBUSDT",
+      "analysis_mode": "scan",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "EXIT_WEAK_LONG",
+        "consecutive_watching": 4,
+        "daily_bias": "中性偏多试探",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "TR",
+        "key_levels": {
+          "support": [
+            643.05,
+            641.0,
+            640.0
+          ],
+          "resistance": [
+            643.7,
+            644.15,
+            645.0
+          ]
+        },
+        "trade": {
+          "side": "LONG",
+          "quantity": 3.0,
+          "entry_price": 642.5,
+          "mark_price": 642.1,
+          "unrealized_pnl": -0.0119999999999993,
+          "style": "Scalp",
+          "premise": "低周期多头修复 long",
+          "premise_status": "已退化为 TR 弱持仓",
+          "intent": "EXIT_WEAK_LONG"
+        },
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {}
+    }
+  },
+  "positions": [],
+  "position_summaries": [],
+  "decision": {
+    "phase": "BOOTSTRAP",
+    "market_summary": "规则引擎执行路径：识别到 3 个可执行交易。",
+    "focus_symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT"
+    ],
+    "symbols": {
+      "BTCUSDT": {
+        "status": "watching",
+        "stage": "EXIT_REBUILT_LONG",
+        "consecutive_watching": 2,
+        "daily_bias": "中性偏空到中性",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "trade": {
+          "side": "LONG",
+          "quantity": 0.03,
+          "entry_price": 70789.7,
+          "mark_price": 70718.4,
+          "unrealized_pnl": -0.0213900000000009,
+          "style": "Swing",
+          "premise": "顺势恢复 long",
+          "premise_status": "失去执行级接受，转为残仓清理",
+          "intent": "EXIT_REBUILT_LONG"
+        },
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED",
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "ai_direction": "TR",
+        "market_state": null,
+        "event_tags": [
+          "state:TR"
+        ],
+        "thesis": null,
+        "running_narrative": null,
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "WAIT",
+          "filter_summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "继续观察",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "scenarios": [
+          "当前结构还不足以升级为候选单，继续观察并等待新证据。"
+        ],
+        "brooks_filter": {
+          "category": "watch_only",
+          "label": "继续观察",
+          "summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "max_status": "watching",
+          "allow_executable": false,
+          "stage_family": "watch_only",
+          "preferred_style": "WAIT",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        }
+      },
+      "ETHUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 6,
+        "daily_bias": "中性偏多试探",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "trade": {
+          "side": "LONG",
+          "quantity": 0.328,
+          "entry_price": 2000.595938931,
+          "mark_price": 2011.62,
+          "unrealized_pnl": 3.61589203,
+          "style": "反转试探",
+          "premise": "1990.29 低点后的 H2 修复腿",
+          "premise_status": "测试到关键位，宜兑现",
+          "intent": "EXIT_ON_TEST"
+        },
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED",
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "ai_direction": "TR",
+        "market_state": null,
+        "event_tags": [
+          "state:TR",
+          "stale:consecutive_watching"
+        ],
+        "thesis": null,
+        "running_narrative": null,
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "反转试探",
+          "filter_summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "40%反转仅够 scalp",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        },
+        "scenarios": [
+          "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。"
+        ],
+        "brooks_filter": {
+          "category": "forty_percent_reversal_scalp_only",
+          "label": "40%反转仅够 scalp",
+          "summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "max_status": "pre_signal",
+          "allow_executable": false,
+          "stage_family": "countertrend_probe",
+          "preferred_style": "反转试探",
+          "preferred_order_type": "STOP_MARKET",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        }
+      },
+      "BNBUSDT": {
+        "status": "watching",
+        "stage": "EXIT_WEAK_LONG",
+        "consecutive_watching": 4,
+        "daily_bias": "中性偏多试探",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "trade": {
+          "side": "LONG",
+          "quantity": 3.0,
+          "entry_price": 642.5,
+          "mark_price": 642.1,
+          "unrealized_pnl": -0.0119999999999993,
+          "style": "Scalp",
+          "premise": "低周期多头修复 long",
+          "premise_status": "已退化为 TR 弱持仓",
+          "intent": "EXIT_WEAK_LONG"
+        },
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED",
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "ai_direction": "TR",
+        "market_state": null,
+        "event_tags": [
+          "state:TR"
+        ],
+        "thesis": null,
+        "running_narrative": null,
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "WAIT",
+          "filter_summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "继续观察",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "scenarios": [
+          "当前结构还不足以升级为候选单，继续观察并等待新证据。"
+        ],
+        "brooks_filter": {
+          "category": "watch_only",
+          "label": "继续观察",
+          "summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "max_status": "watching",
+          "allow_executable": false,
+          "stage_family": "watch_only",
+          "preferred_style": "WAIT",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        }
+      }
+    },
+    "symbol_updates": {
+      "BTCUSDT": {
+        "status": "watching",
+        "stage": "EXIT_REBUILT_LONG",
+        "consecutive_watching": 2,
+        "daily_bias": "中性偏空到中性",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "trade": {
+          "side": "LONG",
+          "quantity": 0.03,
+          "entry_price": 70789.7,
+          "mark_price": 70718.4,
+          "unrealized_pnl": -0.0213900000000009,
+          "style": "Swing",
+          "premise": "顺势恢复 long",
+          "premise_status": "失去执行级接受，转为残仓清理",
+          "intent": "EXIT_REBUILT_LONG"
+        },
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED",
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "ai_direction": "TR",
+        "market_state": null,
+        "event_tags": [
+          "state:TR"
+        ],
+        "thesis": null,
+        "running_narrative": null,
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "WAIT",
+          "filter_summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "继续观察",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "scenarios": [
+          "当前结构还不足以升级为候选单，继续观察并等待新证据。"
+        ],
+        "brooks_filter": {
+          "category": "watch_only",
+          "label": "继续观察",
+          "summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "max_status": "watching",
+          "allow_executable": false,
+          "stage_family": "watch_only",
+          "preferred_style": "WAIT",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        }
+      },
+      "ETHUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 6,
+        "daily_bias": "中性偏多试探",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "trade": {
+          "side": "LONG",
+          "quantity": 0.328,
+          "entry_price": 2000.595938931,
+          "mark_price": 2011.62,
+          "unrealized_pnl": 3.61589203,
+          "style": "反转试探",
+          "premise": "1990.29 低点后的 H2 修复腿",
+          "premise_status": "测试到关键位，宜兑现",
+          "intent": "EXIT_ON_TEST"
+        },
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED",
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "ai_direction": "TR",
+        "market_state": null,
+        "event_tags": [
+          "state:TR",
+          "stale:consecutive_watching"
+        ],
+        "thesis": null,
+        "running_narrative": null,
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "反转试探",
+          "filter_summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "40%反转仅够 scalp",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        },
+        "scenarios": [
+          "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。"
+        ],
+        "brooks_filter": {
+          "category": "forty_percent_reversal_scalp_only",
+          "label": "40%反转仅够 scalp",
+          "summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "max_status": "pre_signal",
+          "allow_executable": false,
+          "stage_family": "countertrend_probe",
+          "preferred_style": "反转试探",
+          "preferred_order_type": "STOP_MARKET",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        }
+      },
+      "BNBUSDT": {
+        "status": "watching",
+        "stage": "EXIT_WEAK_LONG",
+        "consecutive_watching": 4,
+        "daily_bias": "中性偏多试探",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "trade": {
+          "side": "LONG",
+          "quantity": 3.0,
+          "entry_price": 642.5,
+          "mark_price": 642.1,
+          "unrealized_pnl": -0.0119999999999993,
+          "style": "Scalp",
+          "premise": "低周期多头修复 long",
+          "premise_status": "已退化为 TR 弱持仓",
+          "intent": "EXIT_WEAK_LONG"
+        },
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED",
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "ai_direction": "TR",
+        "market_state": null,
+        "event_tags": [
+          "state:TR"
+        ],
+        "thesis": null,
+        "running_narrative": null,
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "WAIT",
+          "filter_summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "继续观察",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "scenarios": [
+          "当前结构还不足以升级为候选单，继续观察并等待新证据。"
+        ],
+        "brooks_filter": {
+          "category": "watch_only",
+          "label": "继续观察",
+          "summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "max_status": "watching",
+          "allow_executable": false,
+          "stage_family": "watch_only",
+          "preferred_style": "WAIT",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        }
+      }
+    },
+    "actions": [
+      {
+        "type": "OPEN_ORDER",
+        "symbol": "BTCUSDT",
+        "side": "BUY",
+        "entry": 69180.0,
+        "sl": 67796.4,
+        "tp": 71947.2,
+        "strategy": "T1: H1/L1 after BO",
+        "style": "Swing",
+        "reason": "规则引擎: T1: H1/L1 after BO | T1: BO 后首次 PB (1 周期 BO)",
+        "refs": [],
+        "market_state": "5分钟 TC + 15分钟 BO + 1小时 TC，旧上沿上方延续",
+        "signal_bar": null,
+        "equation": "",
+        "bar_reading": "timeframes=5m:/ | 15m:/ | 1h:/ ; events=state:TR ; PA summary generated from current multi-timeframe structure, signal, and event tags.",
+        "ai_direction": "BUY",
+        "risk_usdt": 10,
+        "signal_source": "claude-pa",
+        "entry_price": 69180.0,
+        "price": 69180.0,
+        "stop_loss": 67796.4,
+        "take_profit": 71947.2,
+        "order_type": "MARKET",
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "继续观察",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "WAIT",
+          "filter_summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "risk_percent": null
+      },
+      {
+        "type": "OPEN_ORDER",
+        "symbol": "ETHUSDT",
+        "side": "BUY",
+        "entry": 2026.0,
+        "sl": 1995.61,
+        "tp": 2086.78,
+        "strategy": "T6: Channel 内 PB",
+        "style": "Scalp",
+        "reason": "规则引擎: T6: Channel 内 PB | T6: 通道内 PB (1 周期 TC)",
+        "refs": [],
+        "market_state": "5分钟 TC + 15分钟 TC + 30分钟 BO，旧上沿附近回收",
+        "signal_bar": null,
+        "equation": "",
+        "bar_reading": "timeframes=5m:/ | 15m:/ | 1h:/ ; events=state:TR, stale:consecutive_watching ; PA summary generated from current multi-timeframe structure, signal, and event tags.",
+        "ai_direction": "BUY",
+        "risk_usdt": 10,
+        "signal_source": "claude-pa",
+        "entry_price": 2026.0,
+        "price": 2026.0,
+        "stop_loss": 1995.61,
+        "take_profit": 2086.78,
+        "order_type": "MARKET",
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "40%反转仅够 scalp",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        },
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "反转试探",
+          "filter_summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        },
+        "risk_percent": null
+      },
+      {
+        "type": "OPEN_ORDER",
+        "symbol": "BNBUSDT",
+        "side": "BUY",
+        "entry": 639.1,
+        "sl": 626.318,
+        "tp": 664.6640000000001,
+        "strategy": "T1: H1/L1 after BO",
+        "style": "Swing",
+        "reason": "规则引擎: T1: H1/L1 after BO | T1: BO 后首次 PB (1 周期 BO)",
+        "refs": [],
+        "market_state": "5分钟 TC + 15分钟 BO + 1小时 TC，旧上沿上方延续",
+        "signal_bar": null,
+        "equation": "",
+        "bar_reading": "timeframes=5m:/ | 15m:/ | 1h:/ ; events=state:TR ; PA summary generated from current multi-timeframe structure, signal, and event tags.",
+        "ai_direction": "BUY",
+        "risk_usdt": 10,
+        "signal_source": "claude-pa",
+        "entry_price": 639.1,
+        "price": 639.1,
+        "stop_loss": 626.318,
+        "take_profit": 664.6640000000001,
+        "order_type": "MARKET",
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "继续观察",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "WAIT",
+          "filter_summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "risk_percent": null
+      }
+    ],
+    "position_management": [],
+    "next_scan_seconds": 120,
+    "next_scan_reason": "规则引擎执行路径：无持仓 2 分钟扫描，有持仓 1 分钟扫描",
+    "state_patch": {
+      "quiet_loops": 0,
+      "last_full_refresh_reason": "stale_symbol_threshold",
+      "fast_lane_attempted": false,
+      "fast_lane_executed": false,
+      "knowledge_loading": {},
+      "prompt_references": [],
+      "needs_post_trade_refresh": false,
+      "scan_bucket": {
+        "requested_seconds": 120,
+        "in_seconds": 240,
+        "reason_code": "ACTIVE_CONTEXT",
+        "reason_text": "当前有持仓、预信号、候选单或反转试探未完成，按 4 分钟继续跟踪。",
+        "bucket_rule": "P2：有持仓 / 有 pre_signal / 候选单 / 反转试探未完成 → 4 分钟",
+        "bucket_source_refs": [
+          "SKILL.md#Step 2",
+          "SKILL.md#Step 4",
+          "SKILL.md#Step 5",
+          "C5-step5-dynamic-timing.md",
+          "S4-strategy-match.md",
+          "S6-reversal.md",
+          "S7-management.md"
+        ],
+        "bucket_priority": "P2",
+        "cadence_tier": "常规巡逻",
+        "matched_conditions": [
+          "countertrend_probe_active"
+        ]
+      }
+    },
+    "explanation": "本轮未触发 LLM，直接使用规则引擎识别交易机会，并用代码化逻辑执行持仓管理。"
+  },
+  "execution_results": [
+    {
+      "type": "OPEN_ORDER",
+      "symbol": "BTCUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-10T20:38:57.924045+00:00",
+      "trade_gate": {
+        "ok": true,
+        "stdout": "当前 OPEN_ORDER 路径未执行 patrol_trade.py，直接沿用规则引擎动作",
+        "stderr": ""
+      },
+      "success": false,
+      "status": "BLOCKED",
+      "message": "can_trade blocked: -"
+    },
+    {
+      "type": "OPEN_ORDER",
+      "symbol": "ETHUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-10T20:38:57.924058+00:00",
+      "trade_gate": {
+        "ok": true,
+        "stdout": "当前 OPEN_ORDER 路径未执行 patrol_trade.py，直接沿用规则引擎动作",
+        "stderr": ""
+      },
+      "success": false,
+      "status": "BLOCKED",
+      "message": "can_trade blocked: -"
+    },
+    {
+      "type": "OPEN_ORDER",
+      "symbol": "BNBUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-10T20:38:57.924062+00:00",
+      "trade_gate": {
+        "ok": true,
+        "stdout": "当前 OPEN_ORDER 路径未执行 patrol_trade.py，直接沿用规则引擎动作",
+        "stderr": ""
+      },
+      "success": false,
+      "status": "BLOCKED",
+      "message": "can_trade blocked: -"
+    }
+  ],
+  "next_scan": {
+    "next_scan_at": "2026-03-10T20:42:57.925240+00:00",
+    "in_seconds": 240,
+    "requested_seconds": 120,
+    "model_suggested_seconds": 120,
+    "model_suggested_reason": "规则引擎执行路径：无持仓 2 分钟扫描，有持仓 1 分钟扫描",
+    "reason_code": "ACTIVE_CONTEXT",
+    "reason_text": "当前有持仓、预信号、候选单或反转试探未完成，按 4 分钟继续跟踪。",
+    "bucket_rule": "P2：有持仓 / 有 pre_signal / 候选单 / 反转试探未完成 → 4 分钟",
+    "bucket_source_refs": [
+      "SKILL.md#Step 2",
+      "SKILL.md#Step 4",
+      "SKILL.md#Step 5",
+      "C5-step5-dynamic-timing.md",
+      "S4-strategy-match.md",
+      "S6-reversal.md",
+      "S7-management.md"
+    ],
+    "derived_from_cycle": "cycle_20260311_043857",
+    "interruptible": true
+  },
+  "render_status": {
+    "cycle_card": {
+      "ok": true,
+      "skipped": false
+    },
+    "pre_signal": [],
+    "housekeeping": {
+      "ok": true,
+      "skipped": true,
+      "reason": "not_due"
+    }
+  },
+  "push_status": {
+    "cycle_card": {
+      "action": "send",
+      "channel": "telegram",
+      "dryRun": false,
+      "handledBy": "plugin",
+      "payload": {
+        "ok": true,
+        "messageId": "3357",
+        "chatId": "-1003512657369"
+      },
+      "photo": {
+        "mode": "direct_bot_api",
+        "ok": true,
+        "result": {
+          "message_id": 3358,
+          "from": {
+            "id": 8251154620,
+            "is_bot": true,
+            "first_name": "OpenClaw",
+            "username": "chunboClawd_bot"
+          },
+          "chat": {
+            "id": -1003512657369,
+            "title": "OpenClaw",
+            "is_forum": true,
+            "type": "supergroup"
+          },
+          "date": 1773175148,
+          "message_thread_id": 3,
+          "reply_to_message": {
+            "message_id": 3,
+            "from": {
+              "id": 756069822,
+              "is_bot": false,
+              "first_name": "MITCHELL",
+              "last_name": "CB",
+              "username": "MITCHELLCB",
+              "language_code": "zh-hans"
+            },
+            "chat": {
+              "id": -1003512657369,
+              "title": "OpenClaw",
+              "is_forum": true,
+              "type": "supergroup"
+            },
+            "date": 1769987079,
+            "message_thread_id": 3,
+            "forum_topic_created": {
+              "name": "al broos管理系统",
+              "icon_color": 16749490
+            },
+            "is_topic_message": true
+          },
+          "photo": [
+            {
+              "file_id": "AgACAgUAAyEGAATRXuXZAAIMimmwWLLYSK9TbCLN7PqcbagDDcipAALTDmsbh6uAVZArqs3aNtl_AQADAgADcwADOgQ",
+              "file_unique_id": "AQAD0w5rG4ergFV4",
+              "file_size": 779,
+              "width": 90,
+              "height": 48
+            },
+            {
+              "file_id": "AgACAgUAAyEGAATRXuXZAAIMimmwWLLYSK9TbCLN7PqcbagDDcipAALTDmsbh6uAVZArqs3aNtl_AQADAgADbQADOgQ",
+              "file_unique_id": "AQAD0w5rG4ergFVy",
+              "file_size": 12699,
+              "width": 320,
+              "height": 171
+            },
+            {
+              "file_id": "AgACAgUAAyEGAATRXuXZAAIMimmwWLLYSK9TbCLN7PqcbagDDcipAALTDmsbh6uAVZArqs3aNtl_AQADAgADeAADOgQ",
+              "file_unique_id": "AQAD0w5rG4ergFV9",
+              "file_size": 58158,
+              "width": 800,
+              "height": 428
+            },
+            {
+              "file_id": "AgACAgUAAyEGAATRXuXZAAIMimmwWLLYSK9TbCLN7PqcbagDDcipAALTDmsbh6uAVZArqs3aNtl_AQADAgADeQADOgQ",
+              "file_unique_id": "AQAD0w5rG4ergFV-",
+              "file_size": 126445,
+              "width": 1280,
+              "height": 685
+            },
+            {
+              "file_id": "AgACAgUAAyEGAATRXuXZAAIMimmwWLLYSK9TbCLN7PqcbagDDcipAALTDmsbh6uAVZArqs3aNtl_AQADAgADdwADOgQ",
+              "file_unique_id": "AQAD0w5rG4ergFV8",
+              "file_size": 132653,
+              "width": 1384,
+              "height": 741
+            }
+          ],
+          "caption": "📈 PA交易 Crypto｜ETHUSDT 图表\n• 轮次: cycle_20260311_043857\n• 阶段: 初始化扫描",
+          "is_topic_message": true
+        }
+      }
+    },
+    "pre_signal": [],
+    "housekeeping": null
+  }
+}

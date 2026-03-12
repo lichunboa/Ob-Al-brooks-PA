@@ -1,0 +1,1268 @@
+{
+  "cycle_id": "cycle_20260311_220201",
+  "phase": "SCAN",
+  "time_utc": "2026-03-11T14:02:05.981852+00:00",
+  "trigger": null,
+  "quick_scan_events": {},
+  "phase_plan": {
+    "phase": "SCAN",
+    "summary": "无持仓且暂无明确执行窗口，维持扫描与监控。",
+    "full_refresh": false,
+    "full_refresh_reason": null,
+    "focus_symbols": [
+      "EURUSD",
+      "GBPUSD",
+      "USDJPY"
+    ],
+    "manage_symbols": [],
+    "prompt_references": [
+      "S2-direction.md",
+      "S3-market-state.md",
+      "S3b-key-levels.md",
+      "S4-strategy-match.md",
+      "S5-evaluation.md",
+      "S6-common.md",
+      "S6-bo.md",
+      "S6-channel.md",
+      "S6-tr.md"
+    ],
+    "trigger_symbol": null
+  },
+  "knowledge_loading": {
+    "budget_chars": 65000,
+    "knowledge_chars": 12342,
+    "over_budget": false,
+    "skill_mode": "full_sections",
+    "skill_sections": [
+      "你是 Al Brooks",
+      "操作铁律",
+      "Step 1: 获取全局数据 + Daily 偏置",
+      "1a. 运行快照（每轮必做）",
+      "1b. Daily 偏置（条件化）",
+      "Step 3: 扫描新机会（两阶段扫描）",
+      "Phase A: Quick Scan（3 品种 × 3 周期，不读 S 文件）",
+      "Step 5: 定时器（智能动态间隔）",
+      "强制全刷新（Anti-Stale 机制）",
+      "pre_signal 超时（按周期区分）"
+    ],
+    "reference_modes": {
+      "C0-foundations.md": "full",
+      "C5-step5-dynamic-timing.md": "full",
+      "C1-market-cycle-and-state.md": "full",
+      "S0-daily-bias.md": "full",
+      "quotes/Q1-context.md": "full"
+    },
+    "full_reference_count": 5
+  },
+  "analysis_board": {
+    "EURUSD": {
+      "symbol": "EURUSD",
+      "analysis_mode": "scan",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "SCAN_ONLY",
+        "consecutive_watching": 5,
+        "daily_bias": "偏空",
+        "trade": {
+          "status": "watch_only",
+          "side": "NONE",
+          "style": "Scalp"
+        }
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {}
+    },
+    "GBPUSD": {
+      "symbol": "GBPUSD",
+      "analysis_mode": "scan",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "SCAN_ONLY",
+        "consecutive_watching": 5,
+        "daily_bias": "偏空",
+        "trade": {
+          "status": "watch_only",
+          "side": "NONE",
+          "style": "Scalp"
+        }
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {}
+    },
+    "USDJPY": {
+      "symbol": "USDJPY",
+      "analysis_mode": "scan",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "candidate",
+        "stage": "FAST_TRACK_EXECUTABLE",
+        "consecutive_watching": 0,
+        "daily_bias": "偏多",
+        "trade": {
+          "direction": "LONG",
+          "style": "Scalp",
+          "intent": "OPEN_ORDER",
+          "status": "executable"
+        }
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {}
+    }
+  },
+  "positions": [],
+  "position_summaries": [],
+  "decision": {
+    "phase": "SCAN",
+    "market_summary": "本轮是一个信息降级轮次：运行快照与 analysis_board 都明显弱于上一轮，外汇三符号缺少本轮完整多周期结构、关键位与最近K线细节，且 execution_snapshot 的健康与可交易字段也为空。因此本轮不能凭空发明新交易升级。按 canonical 的 Context > pattern > signal bar，当前最可靠的信息只有缓存层与上一轮已确认 authority：EURUSD 与 GBPUSD 仍应继续按冻结/失真环境处理，USDJPY 只能保留上一轮已存在的 executable 多头意图，但由于这轮缺乏新的价格行为细节与执行确认，不能把它继续升级成新的已执行动作，也不能写成已持仓。换言之，本轮优先做审慎的状态保持，而不是在信息退化时用想象补全结构。",
+    "focus_symbols": [
+      "EURUSD",
+      "GBPUSD",
+      "USDJPY"
+    ],
+    "symbol_updates": {
+      "EURUSD": {
+        "status": "watching",
+        "stage": "SCAN_ONLY",
+        "consecutive_watching": 5,
+        "daily_bias": "偏空",
+        "trade": {
+          "status": "watch_only",
+          "side": "NONE",
+          "style": "Scalp"
+        },
+        "thesis": "EURUSD 当前仍只能按失真/冻结环境继续观察，未获得足够新证据推翻上一轮结论。",
+        "ai_direction": "TR",
+        "market_state": "失真/TR",
+        "market_state_detail": "本轮 analysis_board 只保留了 scan 级缓存，没有新的多周期价格行为细节；结合上一轮已确认的 ATR≈0、O/H/L/C 长时间重合，本轮仍应首先按数据失真处理。按 canonical 纪律，若 context 本身不可靠，则任何 TR、H1/H2、wedge_or_mtr 标签都不得升级成真实 authority。这里不是正常的 TR 底边 setup，而是缺乏可验证波动的环境。",
+        "structure_summary": "本轮没有新的有效K线结构输入；沿用上一轮已确认的冻结报价审计结论。",
+        "pre_signal": "frozen_tr_bottom_watch",
+        "key_levels": {
+          "current_price": 1.16,
+          "support": [],
+          "resistance": [
+            1.17
+          ]
+        },
+        "entry_idea": {
+          "side": "NONE",
+          "style": "反转试探",
+          "premise": "先等数据恢复，再谈任何 TR 边缘或 H1/H2。",
+          "filter_summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        },
+        "planned_trade": {
+          "status": "planned_but_not_executable",
+          "entry_zone": null,
+          "entry_price": null,
+          "stop_loss": null,
+          "take_profit": [],
+          "order_type": "MARKET",
+          "style": "反转试探",
+          "candidate": false,
+          "executable": false,
+          "invalid_if": "若后续报价恢复并重新形成正常波动，则当前冻结判断失效。",
+          "cancel_if": "若继续缺乏有效行情输入，则取消一切模式解释。",
+          "degrade_to_watch_if": "当前已是观察状态。",
+          "why_wait": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "allow_executable": false,
+          "needs_exact_trigger": false,
+          "brooks_label": "TBTL 反转未完成",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ],
+          "order_type_cn": "市价执行",
+          "execution_semantics": {
+            "candidate_stage": "WATCH",
+            "candidate_stage_cn": "继续观察",
+            "execution_mode": "WATCH_ONLY",
+            "execution_mode_cn": "仅观察，不生成委托",
+            "order_type": "MARKET",
+            "order_type_cn": "市价执行",
+            "style": "反转试探",
+            "allow_executable": false,
+            "needs_exact_trigger": false,
+            "has_entry_price": false,
+            "has_entry_zone": false,
+            "brooks_label": "TBTL 反转未完成",
+            "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+            "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+            "stage_rule_source_refs": [
+              "S4-strategy-match.md",
+              "S6-reversal.md"
+            ],
+            "stage_rule_summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。"
+          }
+        },
+        "evaluation": {
+          "playbook": "WAIT_FOR_DATA_RECOVERY",
+          "style": "Scalp",
+          "p_estimate": 0.0,
+          "r_estimate": 0.0,
+          "pxr": 0.0,
+          "decision": "本轮信息不足且沿用冻结审计，继续不执行。",
+          "regime": "TBTL 反转未完成",
+          "execution_decision": "继续观察/等待",
+          "risk": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        },
+        "scenarios": [
+          "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。"
+        ],
+        "refs": [
+          "C0-foundations.md",
+          "C1-market-cycle-and-state.md",
+          "S0-daily-bias.md",
+          "quotes/Q1-context.md"
+        ],
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "running_narrative": "EURUSD 当前仍只能按失真/冻结环境继续观察，未获得足够新证据推翻上一轮结论。",
+        "brooks_filter": {
+          "category": "tbtl_incomplete",
+          "label": "TBTL 反转未完成",
+          "summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "max_status": "pre_signal",
+          "allow_executable": false,
+          "stage_family": "wait_acceptance",
+          "preferred_style": "反转试探",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        }
+      },
+      "GBPUSD": {
+        "status": "watching",
+        "stage": "SCAN_ONLY",
+        "consecutive_watching": 5,
+        "daily_bias": "偏空",
+        "trade": {
+          "status": "watch_only",
+          "side": "NONE",
+          "style": "Scalp"
+        },
+        "thesis": "GBPUSD 当前同样只能按失真/冻结环境继续观察，未出现足够新证据改变上一轮结论。",
+        "ai_direction": "TR",
+        "market_state": "失真/TR",
+        "market_state_detail": "本轮只有 scan 级缓存，没有新的有效多周期结构输入；结合上一轮已确认的 30m 静止在 1.34、ATR≈0，本轮仍必须优先把它视为失真环境，而不是可执行的 TR 边缘。按 canonical，Context 先于 pattern；在数据不可信时，任何底边、H2、wedge_or_mtr 都不构成交易 authority。",
+        "structure_summary": "本轮没有新的有效K线结构输入；沿用上一轮已确认的静止报价审计结论。",
+        "pre_signal": "frozen_tr_bottom_watch",
+        "key_levels": {
+          "current_price": 1.34,
+          "support": [
+            1.3
+          ],
+          "resistance": [
+            1.345,
+            1.35
+          ]
+        },
+        "entry_idea": {
+          "side": "NONE",
+          "style": "反转试探",
+          "premise": "必须先等报价恢复，再谈底边 test 或 H2。",
+          "filter_summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        },
+        "planned_trade": {
+          "status": "planned_but_not_executable",
+          "entry_zone": null,
+          "entry_price": null,
+          "stop_loss": null,
+          "take_profit": [],
+          "order_type": "MARKET",
+          "style": "反转试探",
+          "candidate": false,
+          "executable": false,
+          "invalid_if": "若后续 ATR 恢复非零并重新形成有效波动，则当前冻结判断失效。",
+          "cancel_if": "若继续缺乏有效行情输入，则取消一切交易解释。",
+          "degrade_to_watch_if": "当前已是观察状态。",
+          "why_wait": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "allow_executable": false,
+          "needs_exact_trigger": false,
+          "brooks_label": "TBTL 反转未完成",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ],
+          "order_type_cn": "市价执行",
+          "execution_semantics": {
+            "candidate_stage": "WATCH",
+            "candidate_stage_cn": "继续观察",
+            "execution_mode": "WATCH_ONLY",
+            "execution_mode_cn": "仅观察，不生成委托",
+            "order_type": "MARKET",
+            "order_type_cn": "市价执行",
+            "style": "反转试探",
+            "allow_executable": false,
+            "needs_exact_trigger": false,
+            "has_entry_price": false,
+            "has_entry_zone": false,
+            "brooks_label": "TBTL 反转未完成",
+            "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+            "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+            "stage_rule_source_refs": [
+              "S4-strategy-match.md",
+              "S6-reversal.md"
+            ],
+            "stage_rule_summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。"
+          }
+        },
+        "evaluation": {
+          "playbook": "WAIT_FOR_DATA_RECOVERY",
+          "style": "Scalp",
+          "p_estimate": 0.0,
+          "r_estimate": 0.0,
+          "pxr": 0.0,
+          "decision": "本轮信息不足且沿用冻结审计，继续不执行。",
+          "regime": "TBTL 反转未完成",
+          "execution_decision": "继续观察/等待",
+          "risk": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        },
+        "scenarios": [
+          "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。"
+        ],
+        "refs": [
+          "C0-foundations.md",
+          "C1-market-cycle-and-state.md",
+          "S0-daily-bias.md",
+          "quotes/Q1-context.md"
+        ],
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "running_narrative": "GBPUSD 当前同样只能按失真/冻结环境继续观察，未出现足够新证据改变上一轮结论。",
+        "brooks_filter": {
+          "category": "tbtl_incomplete",
+          "label": "TBTL 反转未完成",
+          "summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "max_status": "pre_signal",
+          "allow_executable": false,
+          "stage_family": "wait_acceptance",
+          "preferred_style": "反转试探",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        }
+      },
+      "USDJPY": {
+        "status": "candidate",
+        "stage": "FAST_TRACK_EXECUTABLE",
+        "consecutive_watching": 0,
+        "daily_bias": "偏多",
+        "trade": {
+          "direction": "LONG",
+          "style": "Scalp",
+          "intent": "OPEN_ORDER",
+          "status": "executable_pending_confirmation"
+        },
+        "thesis": "USDJPY 仅保留上一轮已确认的顺势 Scalp 多头 executable intent，但本轮缺少新的多周期细节，不能把它推进成新的成交事实或新的强化 authority。",
+        "ai_direction": "AIL",
+        "market_state": "TC 顶边测试中的顺势恢复",
+        "market_state_detail": "这里必须显式处理信息层级：上一轮完整 authority 已确认 USDJPY 属于 TC 顶边顺势恢复，并给出 5m H1@158.58、1h H2@158.63、158.40 结构止损与通过的 P×R；但本轮 analysis_board 退化成 scan-only，ab_context 甚至显示 alignment_score=0、dominant_direction=TR、且没有新的 quick_scan 细节。这种退化更像数据缺失而非结构真实反转，因此按 canonical 不能用本轮空白输入去推翻上一轮完整 authority，也不能据此发明新的升级。最稳妥的处理是保留上一轮 executable intent，同时明确当前仍未确认成交。",
+        "structure_summary": "本轮没有新的有效K线细节可用于重判；仅能保留上一轮已确认的 158.49/158.40 支撑与 158.58/158.63 恢复触发框架。",
+        "pre_signal": "bull_h1_h2_retest_at_top_edge",
+        "key_levels": {
+          "current_price": 158.53,
+          "support": [
+            158.49,
+            158.4
+          ],
+          "resistance": [
+            158.58,
+            158.63,
+            158.9,
+            160.0
+          ]
+        },
+        "entry_idea": {
+          "side": "BUY",
+          "style": "Scalp",
+          "premise": "上一轮已确认的 TC 顶边恢复意图继续有效，但本轮缺少新细节，先保留计划而不夸大执行状态。",
+          "filter_summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "COUNTERTREND_PROBE",
+          "candidate_stage_cn": "反转试探",
+          "execution_mode": "COUNTERTREND_PROBE",
+          "execution_mode_cn": "仅反转试探，不直接做 swing",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        },
+        "planned_trade": {
+          "side": "BUY",
+          "entry_price": 158.58,
+          "entry_zone": "158.53-158.58",
+          "entry_zone_label": "",
+          "stop_loss": 158.4,
+          "take_profit": 158.9,
+          "style": "Scalp",
+          "order_type": "STOP_MARKET",
+          "risk_percent": null,
+          "invalid_if": "若价格重新有效跌破 158.40，则当前顺势恢复 thesis 失效。",
+          "why_wait": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "COUNTERTREND_PROBE",
+          "candidate_stage_cn": "反转试探",
+          "execution_mode": "COUNTERTREND_PROBE",
+          "execution_mode_cn": "仅反转试探，不直接做 swing",
+          "allow_executable": false,
+          "needs_exact_trigger": false,
+          "brooks_label": "40%反转仅够 scalp",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ],
+          "order_type_cn": "止损触发委托",
+          "execution_semantics": {
+            "candidate_stage": "COUNTERTREND_PROBE",
+            "candidate_stage_cn": "反转试探",
+            "execution_mode": "COUNTERTREND_PROBE",
+            "execution_mode_cn": "仅反转试探，不直接做 swing",
+            "order_type": "STOP_MARKET",
+            "order_type_cn": "止损触发委托",
+            "style": "Scalp",
+            "allow_executable": false,
+            "needs_exact_trigger": false,
+            "has_entry_price": true,
+            "has_entry_zone": true,
+            "brooks_label": "40%反转仅够 scalp",
+            "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+            "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+            "stage_rule_source_refs": [
+              "S4-strategy-match.md",
+              "S5-evaluation.md",
+              "S6-reversal.md"
+            ],
+            "stage_rule_summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。"
+          }
+        },
+        "evaluation": {
+          "playbook": "T2/T6 顺势恢复",
+          "style": "Scalp",
+          "p_estimate": 0.58,
+          "r_estimate": 0.74,
+          "pxr": 0.43,
+          "decision": "沿用上一轮已确认的 executable intent；本轮不新增执行强化，也不确认成交。",
+          "regime": "40%反转仅够 scalp",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "反转试探",
+          "execution_mode": "仅反转试探，不直接做 swing",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        },
+        "scenarios": [
+          "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。"
+        ],
+        "refs": [
+          "C0-foundations.md",
+          "C1-market-cycle-and-state.md",
+          "C5-step5-dynamic-timing.md",
+          "S0-daily-bias.md",
+          "quotes/Q1-context.md"
+        ],
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "running_narrative": "USDJPY 仅保留上一轮已确认的顺势 Scalp 多头 executable intent，但本轮缺少新的多周期细节，不能把它推进成新的成交事实或新的强化 authority。",
+        "brooks_filter": {
+          "category": "forty_percent_reversal_scalp_only",
+          "label": "40%反转仅够 scalp",
+          "summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "max_status": "entry_ready_blocked",
+          "allow_executable": false,
+          "stage_family": "countertrend_probe",
+          "preferred_style": "Scalp",
+          "preferred_order_type": "STOP_MARKET",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        }
+      }
+    },
+    "actions": [
+      {
+        "type": "LOG_ONLY",
+        "symbol": "EURUSD",
+        "reason": "[AUDIT] DATA_DISTORTION EURUSD 本轮只有 scan 级缓存，缺少新的多周期价格行为细节；结合上一轮已确认的 ATR≈0 与 O/H/L/C 冻结，当前仍应先按数据失真环境处理，而不是把任何 TR/H1/H2 标签升级为交易 authority。",
+        "refs": [
+          "C0-foundations.md",
+          "C1-market-cycle-and-state.md",
+          "quotes/Q1-context.md"
+        ],
+        "bar_reading": "本轮无新的有效 bar 结构输入，沿用上一轮冻结报价审计结论。"
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "GBPUSD",
+        "reason": "[AUDIT] DATA_DISTORTION GBPUSD 本轮只有 scan 级缓存，缺少新的多周期价格行为细节；结合上一轮已确认的 30m 静止与 ATR≈0，当前仍应先按数据失真环境处理，而不是把底边、H2 或 wedge_or_mtr 当成真实 Brooks authority。",
+        "refs": [
+          "C0-foundations.md",
+          "C1-market-cycle-and-state.md",
+          "quotes/Q1-context.md"
+        ],
+        "bar_reading": "本轮无新的有效 bar 结构输入，沿用上一轮静止报价审计结论。"
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "USDJPY",
+        "reason": "[PASS-WAIT] USDJPY 上一轮已确认的顺势 Scalp executable intent 继续保留，但本轮 analysis_board 退化为 scan-only，缺少新的多周期价格行为与执行确认，不能据此夸大成新的成交或新的强化 authority；因此本轮以保留计划、等待完整确认为主。",
+        "refs": [
+          "C0-foundations.md",
+          "C1-market-cycle-and-state.md",
+          "C5-step5-dynamic-timing.md",
+          "quotes/Q1-context.md"
+        ],
+        "bar_reading": "本轮无新的有效 bar 细节可用于重判，沿用上一轮 158.49/158.40 支撑与 158.58/158.63 触发框架。"
+      }
+    ],
+    "position_management": [],
+    "next_scan_seconds": 120,
+    "next_scan_reason": "当前属于信息降级后的高频守候窗口：USDJPY 仍有未确认的 executable intent，需要下一轮完整结构确认是否继续或失效；EURUSD/GBPUSD 仍需等报价恢复。因此继续 120 秒而不是放慢。",
+    "state_patch": {
+      "focus_symbols": [
+        "EURUSD",
+        "GBPUSD",
+        "USDJPY"
+      ],
+      "best_candidate": "USDJPY",
+      "current_market_regime": "fx_scan_with_data_degradation_and_usdjpy_pending_confirmation",
+      "scan_bias": "preserve_prior_authority_without_over-upgrading_on_missing_context",
+      "agent_suggested_next_scan_seconds": 120,
+      "quiet_loops": 1,
+      "decision_model": "openai-codex/gpt-5.4",
+      "fast_lane_attempted": false,
+      "fast_lane_executed": false,
+      "knowledge_loading": {
+        "budget_chars": 65000,
+        "knowledge_chars": 12342,
+        "over_budget": false,
+        "skill_mode": "full_sections",
+        "skill_sections": [
+          "你是 Al Brooks",
+          "操作铁律",
+          "Step 1: 获取全局数据 + Daily 偏置",
+          "1a. 运行快照（每轮必做）",
+          "1b. Daily 偏置（条件化）",
+          "Step 3: 扫描新机会（两阶段扫描）",
+          "Phase A: Quick Scan（3 品种 × 3 周期，不读 S 文件）",
+          "Step 5: 定时器（智能动态间隔）",
+          "强制全刷新（Anti-Stale 机制）",
+          "pre_signal 超时（按周期区分）"
+        ],
+        "reference_modes": {
+          "C0-foundations.md": "full",
+          "C5-step5-dynamic-timing.md": "full",
+          "C1-market-cycle-and-state.md": "full",
+          "S0-daily-bias.md": "full",
+          "quotes/Q1-context.md": "full"
+        },
+        "full_reference_count": 5
+      },
+      "prompt_references": [
+        "C0-foundations.md",
+        "C5-step5-dynamic-timing.md",
+        "C1-market-cycle-and-state.md",
+        "S0-daily-bias.md",
+        "quotes/Q1-context.md"
+      ],
+      "needs_post_trade_refresh": false,
+      "scan_bucket": {
+        "requested_seconds": 120,
+        "in_seconds": 240,
+        "reason_code": "ACTIVE_CONTEXT",
+        "reason_text": "当前有持仓、预信号、候选单或反转试探未完成，按 4 分钟继续跟踪。",
+        "bucket_rule": "P2：有持仓 / 有 pre_signal / 候选单 / 反转试探未完成 → 4 分钟",
+        "bucket_source_refs": [
+          "SKILL.md#Step 2",
+          "SKILL.md#Step 4",
+          "SKILL.md#Step 5",
+          "C5-step5-dynamic-timing.md",
+          "S4-strategy-match.md",
+          "S6-reversal.md",
+          "S7-management.md"
+        ],
+        "bucket_priority": "P2",
+        "cadence_tier": "常规巡逻",
+        "matched_conditions": [
+          "countertrend_probe_active",
+          "tbtl_incomplete"
+        ]
+      }
+    },
+    "explanation": "本轮关键不是发现新 setup，而是处理信息质量下降。按 canonical，Context 优先于一切；当本轮输入比上一轮更差时，不能用缺失信息去推翻上一轮完整 authority，也不能借空白数据脑补新交易。于是 EURUSD/GBPUSD 继续按已确认的冻结/失真环境处理，USDJPY 则保留上一轮已通过交易方程的顺势 Scalp 意图，但明确仍未得到本轮成交确认。这样既避免在数据缺口中发明新规则，也符合 Brooks 对 context、概率与执行分层的要求。",
+    "symbols": {
+      "EURUSD": {
+        "status": "watching",
+        "stage": "SCAN_ONLY",
+        "consecutive_watching": 5,
+        "daily_bias": "偏空",
+        "trade": {
+          "status": "watch_only",
+          "side": "NONE",
+          "style": "Scalp"
+        },
+        "thesis": "EURUSD 当前仍只能按失真/冻结环境继续观察，未获得足够新证据推翻上一轮结论。",
+        "ai_direction": "TR",
+        "market_state": "失真/TR",
+        "market_state_detail": "本轮 analysis_board 只保留了 scan 级缓存，没有新的多周期价格行为细节；结合上一轮已确认的 ATR≈0、O/H/L/C 长时间重合，本轮仍应首先按数据失真处理。按 canonical 纪律，若 context 本身不可靠，则任何 TR、H1/H2、wedge_or_mtr 标签都不得升级成真实 authority。这里不是正常的 TR 底边 setup，而是缺乏可验证波动的环境。",
+        "structure_summary": "本轮没有新的有效K线结构输入；沿用上一轮已确认的冻结报价审计结论。",
+        "pre_signal": "frozen_tr_bottom_watch",
+        "key_levels": {
+          "current_price": 1.16,
+          "support": [],
+          "resistance": [
+            1.17
+          ]
+        },
+        "entry_idea": {
+          "side": "NONE",
+          "style": "反转试探",
+          "premise": "先等数据恢复，再谈任何 TR 边缘或 H1/H2。",
+          "filter_summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        },
+        "planned_trade": {
+          "status": "planned_but_not_executable",
+          "entry_zone": null,
+          "entry_price": null,
+          "stop_loss": null,
+          "take_profit": [],
+          "order_type": "MARKET",
+          "style": "反转试探",
+          "candidate": false,
+          "executable": false,
+          "invalid_if": "若后续报价恢复并重新形成正常波动，则当前冻结判断失效。",
+          "cancel_if": "若继续缺乏有效行情输入，则取消一切模式解释。",
+          "degrade_to_watch_if": "当前已是观察状态。",
+          "why_wait": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "allow_executable": false,
+          "needs_exact_trigger": false,
+          "brooks_label": "TBTL 反转未完成",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ],
+          "order_type_cn": "市价执行",
+          "execution_semantics": {
+            "candidate_stage": "WATCH",
+            "candidate_stage_cn": "继续观察",
+            "execution_mode": "WATCH_ONLY",
+            "execution_mode_cn": "仅观察，不生成委托",
+            "order_type": "MARKET",
+            "order_type_cn": "市价执行",
+            "style": "反转试探",
+            "allow_executable": false,
+            "needs_exact_trigger": false,
+            "has_entry_price": false,
+            "has_entry_zone": false,
+            "brooks_label": "TBTL 反转未完成",
+            "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+            "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+            "stage_rule_source_refs": [
+              "S4-strategy-match.md",
+              "S6-reversal.md"
+            ],
+            "stage_rule_summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。"
+          }
+        },
+        "evaluation": {
+          "playbook": "WAIT_FOR_DATA_RECOVERY",
+          "style": "Scalp",
+          "p_estimate": 0.0,
+          "r_estimate": 0.0,
+          "pxr": 0.0,
+          "decision": "本轮信息不足且沿用冻结审计，继续不执行。",
+          "regime": "TBTL 反转未完成",
+          "execution_decision": "继续观察/等待",
+          "risk": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        },
+        "scenarios": [
+          "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。"
+        ],
+        "refs": [
+          "C0-foundations.md",
+          "C1-market-cycle-and-state.md",
+          "S0-daily-bias.md",
+          "quotes/Q1-context.md"
+        ],
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "running_narrative": "EURUSD 当前仍只能按失真/冻结环境继续观察，未获得足够新证据推翻上一轮结论。",
+        "brooks_filter": {
+          "category": "tbtl_incomplete",
+          "label": "TBTL 反转未完成",
+          "summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "max_status": "pre_signal",
+          "allow_executable": false,
+          "stage_family": "wait_acceptance",
+          "preferred_style": "反转试探",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        }
+      },
+      "GBPUSD": {
+        "status": "watching",
+        "stage": "SCAN_ONLY",
+        "consecutive_watching": 5,
+        "daily_bias": "偏空",
+        "trade": {
+          "status": "watch_only",
+          "side": "NONE",
+          "style": "Scalp"
+        },
+        "thesis": "GBPUSD 当前同样只能按失真/冻结环境继续观察，未出现足够新证据改变上一轮结论。",
+        "ai_direction": "TR",
+        "market_state": "失真/TR",
+        "market_state_detail": "本轮只有 scan 级缓存，没有新的有效多周期结构输入；结合上一轮已确认的 30m 静止在 1.34、ATR≈0，本轮仍必须优先把它视为失真环境，而不是可执行的 TR 边缘。按 canonical，Context 先于 pattern；在数据不可信时，任何底边、H2、wedge_or_mtr 都不构成交易 authority。",
+        "structure_summary": "本轮没有新的有效K线结构输入；沿用上一轮已确认的静止报价审计结论。",
+        "pre_signal": "frozen_tr_bottom_watch",
+        "key_levels": {
+          "current_price": 1.34,
+          "support": [
+            1.3
+          ],
+          "resistance": [
+            1.345,
+            1.35
+          ]
+        },
+        "entry_idea": {
+          "side": "NONE",
+          "style": "反转试探",
+          "premise": "必须先等报价恢复，再谈底边 test 或 H2。",
+          "filter_summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        },
+        "planned_trade": {
+          "status": "planned_but_not_executable",
+          "entry_zone": null,
+          "entry_price": null,
+          "stop_loss": null,
+          "take_profit": [],
+          "order_type": "MARKET",
+          "style": "反转试探",
+          "candidate": false,
+          "executable": false,
+          "invalid_if": "若后续 ATR 恢复非零并重新形成有效波动，则当前冻结判断失效。",
+          "cancel_if": "若继续缺乏有效行情输入，则取消一切交易解释。",
+          "degrade_to_watch_if": "当前已是观察状态。",
+          "why_wait": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "allow_executable": false,
+          "needs_exact_trigger": false,
+          "brooks_label": "TBTL 反转未完成",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ],
+          "order_type_cn": "市价执行",
+          "execution_semantics": {
+            "candidate_stage": "WATCH",
+            "candidate_stage_cn": "继续观察",
+            "execution_mode": "WATCH_ONLY",
+            "execution_mode_cn": "仅观察，不生成委托",
+            "order_type": "MARKET",
+            "order_type_cn": "市价执行",
+            "style": "反转试探",
+            "allow_executable": false,
+            "needs_exact_trigger": false,
+            "has_entry_price": false,
+            "has_entry_zone": false,
+            "brooks_label": "TBTL 反转未完成",
+            "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+            "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+            "stage_rule_source_refs": [
+              "S4-strategy-match.md",
+              "S6-reversal.md"
+            ],
+            "stage_rule_summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。"
+          }
+        },
+        "evaluation": {
+          "playbook": "WAIT_FOR_DATA_RECOVERY",
+          "style": "Scalp",
+          "p_estimate": 0.0,
+          "r_estimate": 0.0,
+          "pxr": 0.0,
+          "decision": "本轮信息不足且沿用冻结审计，继续不执行。",
+          "regime": "TBTL 反转未完成",
+          "execution_decision": "继续观察/等待",
+          "risk": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        },
+        "scenarios": [
+          "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。"
+        ],
+        "refs": [
+          "C0-foundations.md",
+          "C1-market-cycle-and-state.md",
+          "S0-daily-bias.md",
+          "quotes/Q1-context.md"
+        ],
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "running_narrative": "GBPUSD 当前同样只能按失真/冻结环境继续观察，未出现足够新证据改变上一轮结论。",
+        "brooks_filter": {
+          "category": "tbtl_incomplete",
+          "label": "TBTL 反转未完成",
+          "summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "max_status": "pre_signal",
+          "allow_executable": false,
+          "stage_family": "wait_acceptance",
+          "preferred_style": "反转试探",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        }
+      },
+      "USDJPY": {
+        "status": "candidate",
+        "stage": "FAST_TRACK_EXECUTABLE",
+        "consecutive_watching": 0,
+        "daily_bias": "偏多",
+        "trade": {
+          "direction": "LONG",
+          "style": "Scalp",
+          "intent": "OPEN_ORDER",
+          "status": "executable_pending_confirmation"
+        },
+        "thesis": "USDJPY 仅保留上一轮已确认的顺势 Scalp 多头 executable intent，但本轮缺少新的多周期细节，不能把它推进成新的成交事实或新的强化 authority。",
+        "ai_direction": "AIL",
+        "market_state": "TC 顶边测试中的顺势恢复",
+        "market_state_detail": "这里必须显式处理信息层级：上一轮完整 authority 已确认 USDJPY 属于 TC 顶边顺势恢复，并给出 5m H1@158.58、1h H2@158.63、158.40 结构止损与通过的 P×R；但本轮 analysis_board 退化成 scan-only，ab_context 甚至显示 alignment_score=0、dominant_direction=TR、且没有新的 quick_scan 细节。这种退化更像数据缺失而非结构真实反转，因此按 canonical 不能用本轮空白输入去推翻上一轮完整 authority，也不能据此发明新的升级。最稳妥的处理是保留上一轮 executable intent，同时明确当前仍未确认成交。",
+        "structure_summary": "本轮没有新的有效K线细节可用于重判；仅能保留上一轮已确认的 158.49/158.40 支撑与 158.58/158.63 恢复触发框架。",
+        "pre_signal": "bull_h1_h2_retest_at_top_edge",
+        "key_levels": {
+          "current_price": 158.53,
+          "support": [
+            158.49,
+            158.4
+          ],
+          "resistance": [
+            158.58,
+            158.63,
+            158.9,
+            160.0
+          ]
+        },
+        "entry_idea": {
+          "side": "BUY",
+          "style": "Scalp",
+          "premise": "上一轮已确认的 TC 顶边恢复意图继续有效，但本轮缺少新细节，先保留计划而不夸大执行状态。",
+          "filter_summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "COUNTERTREND_PROBE",
+          "candidate_stage_cn": "反转试探",
+          "execution_mode": "COUNTERTREND_PROBE",
+          "execution_mode_cn": "仅反转试探，不直接做 swing",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        },
+        "planned_trade": {
+          "side": "BUY",
+          "entry_price": 158.58,
+          "entry_zone": "158.53-158.58",
+          "entry_zone_label": "",
+          "stop_loss": 158.4,
+          "take_profit": 158.9,
+          "style": "Scalp",
+          "order_type": "STOP_MARKET",
+          "risk_percent": null,
+          "invalid_if": "若价格重新有效跌破 158.40，则当前顺势恢复 thesis 失效。",
+          "why_wait": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "COUNTERTREND_PROBE",
+          "candidate_stage_cn": "反转试探",
+          "execution_mode": "COUNTERTREND_PROBE",
+          "execution_mode_cn": "仅反转试探，不直接做 swing",
+          "allow_executable": false,
+          "needs_exact_trigger": false,
+          "brooks_label": "40%反转仅够 scalp",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ],
+          "order_type_cn": "止损触发委托",
+          "execution_semantics": {
+            "candidate_stage": "COUNTERTREND_PROBE",
+            "candidate_stage_cn": "反转试探",
+            "execution_mode": "COUNTERTREND_PROBE",
+            "execution_mode_cn": "仅反转试探，不直接做 swing",
+            "order_type": "STOP_MARKET",
+            "order_type_cn": "止损触发委托",
+            "style": "Scalp",
+            "allow_executable": false,
+            "needs_exact_trigger": false,
+            "has_entry_price": true,
+            "has_entry_zone": true,
+            "brooks_label": "40%反转仅够 scalp",
+            "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+            "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+            "stage_rule_source_refs": [
+              "S4-strategy-match.md",
+              "S5-evaluation.md",
+              "S6-reversal.md"
+            ],
+            "stage_rule_summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。"
+          }
+        },
+        "evaluation": {
+          "playbook": "T2/T6 顺势恢复",
+          "style": "Scalp",
+          "p_estimate": 0.58,
+          "r_estimate": 0.74,
+          "pxr": 0.43,
+          "decision": "沿用上一轮已确认的 executable intent；本轮不新增执行强化，也不确认成交。",
+          "regime": "40%反转仅够 scalp",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "反转试探",
+          "execution_mode": "仅反转试探，不直接做 swing",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        },
+        "scenarios": [
+          "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。"
+        ],
+        "refs": [
+          "C0-foundations.md",
+          "C1-market-cycle-and-state.md",
+          "C5-step5-dynamic-timing.md",
+          "S0-daily-bias.md",
+          "quotes/Q1-context.md"
+        ],
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "running_narrative": "USDJPY 仅保留上一轮已确认的顺势 Scalp 多头 executable intent，但本轮缺少新的多周期细节，不能把它推进成新的成交事实或新的强化 authority。",
+        "brooks_filter": {
+          "category": "forty_percent_reversal_scalp_only",
+          "label": "40%反转仅够 scalp",
+          "summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "max_status": "entry_ready_blocked",
+          "allow_executable": false,
+          "stage_family": "countertrend_probe",
+          "preferred_style": "Scalp",
+          "preferred_order_type": "STOP_MARKET",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        }
+      }
+    }
+  },
+  "execution_results": [
+    {
+      "type": "LOG_ONLY",
+      "symbol": "EURUSD",
+      "dry_run": false,
+      "started_at": "2026-03-11T14:02:01.835818+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "[AUDIT] DATA_DISTORTION EURUSD 本轮只有 scan 级缓存，缺少新的多周期价格行为细节；结合上一轮已确认的 ATR≈0 与 O/H/L/C 冻结，当前仍应先按数据失真环境处理，而不是把任何 TR/H1/H2 标签升级为交易 authority。"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "GBPUSD",
+      "dry_run": false,
+      "started_at": "2026-03-11T14:02:01.835898+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "[AUDIT] DATA_DISTORTION GBPUSD 本轮只有 scan 级缓存，缺少新的多周期价格行为细节；结合上一轮已确认的 30m 静止与 ATR≈0，当前仍应先按数据失真环境处理，而不是把底边、H2 或 wedge_or_mtr 当成真实 Brooks authority。"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "USDJPY",
+      "dry_run": false,
+      "started_at": "2026-03-11T14:02:01.836387+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "[PASS-WAIT] USDJPY 上一轮已确认的顺势 Scalp executable intent 继续保留，但本轮 analysis_board 退化为 scan-only，缺少新的多周期价格行为与执行确认，不能据此夸大成新的成交或新的强化 authority；因此本轮以保留计划、等待完整确认为主。"
+    }
+  ],
+  "next_scan": {
+    "next_scan_at": "2026-03-11T14:06:05.976226+00:00",
+    "in_seconds": 240,
+    "requested_seconds": 120,
+    "model_suggested_seconds": 120,
+    "model_suggested_reason": "当前属于信息降级后的高频守候窗口：USDJPY 仍有未确认的 executable intent，需要下一轮完整结构确认是否继续或失效；EURUSD/GBPUSD 仍需等报价恢复。因此继续 120 秒而不是放慢。",
+    "reason_code": "ACTIVE_CONTEXT",
+    "reason_text": "当前有持仓、预信号、候选单或反转试探未完成，按 4 分钟继续跟踪。",
+    "bucket_rule": "P2：有持仓 / 有 pre_signal / 候选单 / 反转试探未完成 → 4 分钟",
+    "bucket_source_refs": [
+      "SKILL.md#Step 2",
+      "SKILL.md#Step 4",
+      "SKILL.md#Step 5",
+      "C5-step5-dynamic-timing.md",
+      "S4-strategy-match.md",
+      "S6-reversal.md",
+      "S7-management.md"
+    ],
+    "derived_from_cycle": "cycle_20260311_220201",
+    "interruptible": true
+  },
+  "render_status": {
+    "cycle_card": {
+      "ok": true,
+      "skipped": false
+    },
+    "pre_signal": [
+      {
+        "symbol": "EURUSD",
+        "ok": true,
+        "skipped": false
+      },
+      {
+        "symbol": "GBPUSD",
+        "ok": true,
+        "skipped": false
+      },
+      {
+        "symbol": "USDJPY",
+        "ok": true,
+        "skipped": false
+      }
+    ],
+    "housekeeping": {
+      "ok": true,
+      "skipped": true,
+      "reason": "not_due"
+    }
+  },
+  "push_status": {
+    "cycle_card": {
+      "action": "send",
+      "channel": "telegram",
+      "dryRun": false,
+      "handledBy": "plugin",
+      "payload": {
+        "ok": true,
+        "messageId": "3878",
+        "chatId": "-1003512657369"
+      }
+    },
+    "pre_signal": [
+      {
+        "symbol": "EURUSD",
+        "action": "send",
+        "channel": "telegram",
+        "dryRun": false,
+        "handledBy": "plugin",
+        "payload": {
+          "ok": true,
+          "messageId": "3879",
+          "chatId": "-1003512657369"
+        },
+        "photo": {
+          "ok": false,
+          "skipped": true,
+          "reason": "photo_missing"
+        }
+      },
+      {
+        "symbol": "GBPUSD",
+        "action": "send",
+        "channel": "telegram",
+        "dryRun": false,
+        "handledBy": "plugin",
+        "payload": {
+          "ok": true,
+          "messageId": "3880",
+          "chatId": "-1003512657369"
+        },
+        "photo": {
+          "ok": false,
+          "skipped": true,
+          "reason": "photo_missing"
+        }
+      },
+      {
+        "symbol": "USDJPY",
+        "action": "send",
+        "channel": "telegram",
+        "dryRun": false,
+        "handledBy": "plugin",
+        "payload": {
+          "ok": true,
+          "messageId": "3881",
+          "chatId": "-1003512657369"
+        },
+        "photo": {
+          "ok": false,
+          "skipped": true,
+          "reason": "photo_missing"
+        }
+      }
+    ],
+    "housekeeping": null
+  }
+}

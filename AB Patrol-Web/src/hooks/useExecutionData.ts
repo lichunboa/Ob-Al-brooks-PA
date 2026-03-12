@@ -14,6 +14,7 @@ import type {
   EvolutionSummary,
   PatrolStatus,
   AllocationUpdate,
+  ExecutionAccountOverview,
 } from '@/lib/executionApi';
 
 export function useExecutionData() {
@@ -30,6 +31,11 @@ export function useExecutionData() {
   const [botSummaries, setBotSummaries] = useState<Record<string, BotSummary>>({});
   const [botEvolutions, setBotEvolutions] = useState<Record<string, EvolutionSummary>>({});
   const [patrolStatus, setPatrolStatus] = useState<PatrolStatus | null>(null);
+  const [accountsOverview, setAccountsOverview] = useState<{
+    generated_at: string;
+    primary: ExecutionAccountOverview;
+    secondary: ExecutionAccountOverview | null;
+  } | null>(null);
 
   const refresh = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -54,6 +60,7 @@ export function useExecutionData() {
         configData,
         tradingData,
         patrolData,
+        accountsData,
         summariesArr,
         evolutionsArr,
       ] = await Promise.all([
@@ -63,6 +70,7 @@ export function useExecutionData() {
         api.getConfig().catch(() => null),
         api.getTradingStatus().catch(() => null),
         api.getPatrolStatus().catch(() => null),
+        api.getExecutionAccounts().catch(() => null),
         Promise.all(BOT_IDS.map((id) => api.getBotSummary(id).catch(() => null))),
         Promise.all(BOT_IDS.map((id) => api.getEvolutionSummary(id).catch(() => null))),
       ]);
@@ -73,6 +81,7 @@ export function useExecutionData() {
       setConfig(configData);
       setTradingStatus(tradingData);
       setPatrolStatus(patrolData);
+      setAccountsOverview(accountsData);
 
       const sMap: Record<string, BotSummary> = {};
       const eMap: Record<string, EvolutionSummary> = {};
@@ -131,6 +140,7 @@ export function useExecutionData() {
     botSummaries,
     botEvolutions,
     patrolStatus,
+    accountsOverview,
     refresh,
     toggleTrading,
     syncFromBinance,

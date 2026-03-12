@@ -1,0 +1,862 @@
+{
+  "cycle_id": "cycle_20260311_091644",
+  "phase": "BOOTSTRAP",
+  "time_utc": "2026-03-11T01:16:44.707164+00:00",
+  "trigger": null,
+  "quick_scan_events": {
+    "USDJPY": {
+      "5m": [
+        "state:BO",
+        "cached_pre_signal"
+      ]
+    }
+  },
+  "phase_plan": {
+    "phase": "BOOTSTRAP",
+    "summary": "冷启动或缓存过期，执行全刷新并重建 daily bias / structure / scenarios。",
+    "full_refresh": true,
+    "full_refresh_reason": "post_trade_refresh",
+    "focus_symbols": [
+      "EURUSD",
+      "GBPUSD",
+      "USDJPY"
+    ],
+    "manage_symbols": [],
+    "prompt_references": [
+      "S0-daily-bias.md",
+      "S1-reading.md",
+      "S2-direction.md",
+      "S3-market-state.md",
+      "S3b-key-levels.md",
+      "S4-strategy-match.md",
+      "S5-evaluation.md",
+      "S6-common.md",
+      "S6-bo.md",
+      "S6-channel.md",
+      "S6-tr.md",
+      "S7-management.md"
+    ],
+    "trigger_symbol": null
+  },
+  "knowledge_loading": {},
+  "analysis_board": {
+    "EURUSD": {
+      "symbol": "EURUSD",
+      "analysis_mode": "scan",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 1,
+        "daily_bias": "偏空"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": null,
+        "dominant_direction": null,
+        "best_signal": null,
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": null
+    },
+    "GBPUSD": {
+      "symbol": "GBPUSD",
+      "analysis_mode": "scan",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 1,
+        "daily_bias": "偏空"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {}
+    },
+    "USDJPY": {
+      "symbol": "USDJPY",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "candidate",
+        "stage": "FAST_TRACK_PASS",
+        "consecutive_watching": 0,
+        "daily_bias": "偏多",
+        "market_state": "BO",
+        "market_state_detail": "5m=AIL+TC 触发 H1@158.30，15m=AIL+BO 触发 H2@158.22，1h 仍为 AIL+TC；这是顺势恢复而非反转试探。",
+        "structure_summary": "本轮最关键的变化是 15m 不再只是 TR 顶边，而是明确给出 H2@158.22 且 state:BO；5m 也同步出现 H1@158.30，1h 继续保留 H1@158.22。根据 S4/S6-bo，这已经从单纯的顶边观察，升级成顺势 BO-PB 恢复后的快通道场景。前几轮不能做，是因为低周期仍卡在 158.13/158.19 阻力簇下且止损只能放在结构内侧；现在 30m 最新 bull bar 已把收盘推到 158.19，说明上方磁体首次被有效测试并基本贴住。虽然 1d/4h/30m 仍处高位、tr_edge:top 标签还在，意味着不能把它...",
+        "running_narrative": "USDJPY 已从前几轮的顶边受压，升级为多周期顺势恢复后的可执行 scalp。",
+        "pre_signal": "已触发，不再只是观察。",
+        "pre_signal_meta": {
+          "timeframe": "15m",
+          "created_at": "2026-03-11T01:12:03.487688+00:00",
+          "expires_at": "2026-03-11T01:57:03.487688+00:00",
+          "extended_once": false
+        },
+        "key_levels": {
+          "support": [
+            158.19,
+            158.13,
+            157.99
+          ],
+          "resistance": [
+            158.22,
+            158.3,
+            158.33
+          ]
+        },
+        "thesis": "USDJPY 已从前几轮的顶边受压，升级为多周期顺势恢复后的可执行 scalp。",
+        "trade": {
+          "style": "Scalp",
+          "side": "LONG",
+          "intent": "OPEN_ORDER",
+          "entry_price": 158.23,
+          "stop_loss": 158.17,
+          "take_profit": [
+            158.33
+          ],
+          "order_type": "STOP_MARKET",
+          "risk_percent": 0.3,
+          "confidence": "中等偏高",
+          "rationale": "15m H2@158.22 + 5m H1@158.30 + 1h AIL 同向恢复。"
+        }
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {},
+      "chart_context": {
+        "chart_files": [
+          "USDJPY_1d.png",
+          "USDJPY_1h_091115.png",
+          "USDJPY_15m_091115.png",
+          "USDJPY_5m_091114.png"
+        ],
+        "chart_paths": [
+          "daily/USDJPY_1d.png",
+          "2026-03-11/USDJPY_1h_091115.png",
+          "2026-03-11/USDJPY_15m_091115.png",
+          "2026-03-11/USDJPY_5m_091114.png"
+        ],
+        "chart_api_paths": [
+          "/api/charts?path=daily/USDJPY_1d.png",
+          "/api/charts?path=2026-03-11/USDJPY_1h_091115.png",
+          "/api/charts?path=2026-03-11/USDJPY_15m_091115.png",
+          "/api/charts?path=2026-03-11/USDJPY_5m_091114.png"
+        ],
+        "primary_chart_file": "USDJPY_1d.png",
+        "primary_chart_path": "daily/USDJPY_1d.png",
+        "primary_chart_api_path": "/api/charts?path=daily/USDJPY_1d.png",
+        "latest_generated_at": "2026-03-11T09:11:16.030746+08:00",
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    }
+  },
+  "positions": [],
+  "position_summaries": [],
+  "decision": {
+    "phase": "BOOTSTRAP",
+    "market_summary": "规则引擎执行路径：识别到 0 个可执行交易。",
+    "focus_symbols": [
+      "EURUSD",
+      "GBPUSD",
+      "USDJPY"
+    ],
+    "symbols": {
+      "EURUSD": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 1,
+        "daily_bias": "偏空",
+        "priority": 9,
+        "signal": null,
+        "ai_direction": null,
+        "market_state": null,
+        "thesis": null,
+        "running_narrative": null,
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "WAIT",
+          "filter_summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "继续观察",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "scenarios": [
+          "当前结构还不足以升级为候选单，继续观察并等待新证据。"
+        ],
+        "trade": null,
+        "brooks_filter": {
+          "category": "watch_only",
+          "label": "继续观察",
+          "summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "max_status": "watching",
+          "allow_executable": false,
+          "stage_family": "watch_only",
+          "preferred_style": "WAIT",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        }
+      },
+      "GBPUSD": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 1,
+        "daily_bias": "偏空",
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "ai_direction": "TR",
+        "market_state": null,
+        "thesis": null,
+        "running_narrative": null,
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "WAIT",
+          "filter_summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "继续观察",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "scenarios": [
+          "当前结构还不足以升级为候选单，继续观察并等待新证据。"
+        ],
+        "trade": null,
+        "brooks_filter": {
+          "category": "watch_only",
+          "label": "继续观察",
+          "summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "max_status": "watching",
+          "allow_executable": false,
+          "stage_family": "watch_only",
+          "preferred_style": "WAIT",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        }
+      },
+      "USDJPY": {
+        "status": "candidate",
+        "stage": "FAST_TRACK_PASS",
+        "consecutive_watching": 0,
+        "daily_bias": "偏多",
+        "trade": {
+          "style": "Scalp",
+          "side": "LONG",
+          "intent": "OPEN_ORDER",
+          "entry_price": 158.23,
+          "stop_loss": 158.17,
+          "take_profit": [
+            158.33
+          ],
+          "order_type": "STOP_MARKET",
+          "risk_percent": 0.3,
+          "confidence": "中等偏高",
+          "rationale": "15m H2@158.22 + 5m H1@158.30 + 1h AIL 同向恢复。"
+        },
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "ai_direction": "TR",
+        "market_state": null,
+        "event_tags": [
+          "state:BO",
+          "cached_pre_signal"
+        ],
+        "thesis": null,
+        "running_narrative": null,
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "WAIT",
+          "filter_summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "继续观察",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "scenarios": [
+          "当前结构还不足以升级为候选单，继续观察并等待新证据。"
+        ],
+        "brooks_filter": {
+          "category": "watch_only",
+          "label": "继续观察",
+          "summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "max_status": "watching",
+          "allow_executable": false,
+          "stage_family": "watch_only",
+          "preferred_style": "WAIT",
+          "preferred_order_type": "STOP_MARKET",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        }
+      }
+    },
+    "symbol_updates": {
+      "EURUSD": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 1,
+        "daily_bias": "偏空",
+        "priority": 9,
+        "signal": null,
+        "ai_direction": null,
+        "market_state": null,
+        "thesis": null,
+        "running_narrative": null,
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "WAIT",
+          "filter_summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "继续观察",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "scenarios": [
+          "当前结构还不足以升级为候选单，继续观察并等待新证据。"
+        ],
+        "trade": null,
+        "brooks_filter": {
+          "category": "watch_only",
+          "label": "继续观察",
+          "summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "max_status": "watching",
+          "allow_executable": false,
+          "stage_family": "watch_only",
+          "preferred_style": "WAIT",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        }
+      },
+      "GBPUSD": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 1,
+        "daily_bias": "偏空",
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "ai_direction": "TR",
+        "market_state": null,
+        "thesis": null,
+        "running_narrative": null,
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "WAIT",
+          "filter_summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "继续观察",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "scenarios": [
+          "当前结构还不足以升级为候选单，继续观察并等待新证据。"
+        ],
+        "trade": null,
+        "brooks_filter": {
+          "category": "watch_only",
+          "label": "继续观察",
+          "summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "max_status": "watching",
+          "allow_executable": false,
+          "stage_family": "watch_only",
+          "preferred_style": "WAIT",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        }
+      },
+      "USDJPY": {
+        "status": "candidate",
+        "stage": "FAST_TRACK_PASS",
+        "consecutive_watching": 0,
+        "daily_bias": "偏多",
+        "trade": {
+          "style": "Scalp",
+          "side": "LONG",
+          "intent": "OPEN_ORDER",
+          "entry_price": 158.23,
+          "stop_loss": 158.17,
+          "take_profit": [
+            158.33
+          ],
+          "order_type": "STOP_MARKET",
+          "risk_percent": 0.3,
+          "confidence": "中等偏高",
+          "rationale": "15m H2@158.22 + 5m H1@158.30 + 1h AIL 同向恢复。"
+        },
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "ai_direction": "TR",
+        "market_state": null,
+        "event_tags": [
+          "state:BO",
+          "cached_pre_signal"
+        ],
+        "thesis": null,
+        "running_narrative": null,
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "",
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "WAIT",
+          "filter_summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "WATCH",
+          "candidate_stage_cn": "继续观察",
+          "execution_mode": "WATCH_ONLY",
+          "execution_mode_cn": "仅观察，不生成委托",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "继续观察",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "candidate_stage": "继续观察",
+          "execution_mode": "仅观察，不生成委托",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        },
+        "scenarios": [
+          "当前结构还不足以升级为候选单，继续观察并等待新证据。"
+        ],
+        "brooks_filter": {
+          "category": "watch_only",
+          "label": "继续观察",
+          "summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+          "max_status": "watching",
+          "allow_executable": false,
+          "stage_family": "watch_only",
+          "preferred_style": "WAIT",
+          "preferred_order_type": "STOP_MARKET",
+          "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+          "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md"
+          ]
+        }
+      }
+    },
+    "actions": [
+      {
+        "type": "LOG_ONLY",
+        "symbol": "EURUSD",
+        "reason": "规则引擎: 未识别到可执行交易",
+        "refs": []
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "GBPUSD",
+        "reason": "规则引擎: 未识别到可执行交易",
+        "refs": []
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "USDJPY",
+        "reason": "规则引擎: 未识别到可执行交易",
+        "refs": []
+      }
+    ],
+    "position_management": [],
+    "next_scan_seconds": 120,
+    "next_scan_reason": "规则引擎执行路径：无持仓 2 分钟扫描，有持仓 1 分钟扫描",
+    "state_patch": {
+      "quiet_loops": 0,
+      "last_full_refresh_reason": "post_trade_refresh",
+      "fast_lane_attempted": false,
+      "fast_lane_executed": false,
+      "knowledge_loading": {},
+      "prompt_references": [],
+      "needs_post_trade_refresh": false,
+      "scan_bucket": {
+        "requested_seconds": 120,
+        "in_seconds": 120,
+        "reason_code": "HIGH_EDGE_ACTIVE",
+        "reason_text": "当前处于 fresh BC/SC、TR 边缘、breakout follow-through 或已接近可执行条件，按 2 分钟继续守候。",
+        "bucket_rule": "P1：fresh BC/SC / TR edge / breakout follow-through / executable 候选 → 2 分钟",
+        "bucket_source_refs": [
+          "SKILL.md#Step 5",
+          "C5-step5-dynamic-timing.md",
+          "S4-strategy-match.md",
+          "S6-tr.md",
+          "S6-channel.md",
+          "S6-common.md"
+        ],
+        "bucket_priority": "P1",
+        "cadence_tier": "高频守候",
+        "matched_conditions": [
+          "breakout_followthrough_active"
+        ]
+      }
+    },
+    "explanation": "本轮未触发 LLM，直接使用规则引擎识别交易机会，并用代码化逻辑执行持仓管理。"
+  },
+  "execution_results": [
+    {
+      "type": "LOG_ONLY",
+      "symbol": "EURUSD",
+      "dry_run": false,
+      "started_at": "2026-03-11T01:16:44.704140+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "规则引擎: 未识别到可执行交易"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "GBPUSD",
+      "dry_run": false,
+      "started_at": "2026-03-11T01:16:44.704149+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "规则引擎: 未识别到可执行交易"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "USDJPY",
+      "dry_run": false,
+      "started_at": "2026-03-11T01:16:44.704151+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "规则引擎: 未识别到可执行交易"
+    }
+  ],
+  "next_scan": {
+    "next_scan_at": "2026-03-11T01:18:44.705831+00:00",
+    "in_seconds": 120,
+    "requested_seconds": 120,
+    "model_suggested_seconds": 120,
+    "model_suggested_reason": "规则引擎执行路径：无持仓 2 分钟扫描，有持仓 1 分钟扫描",
+    "reason_code": "HIGH_EDGE_ACTIVE",
+    "reason_text": "当前处于 fresh BC/SC、TR 边缘、breakout follow-through 或已接近可执行条件，按 2 分钟继续守候。",
+    "bucket_rule": "P1：fresh BC/SC / TR edge / breakout follow-through / executable 候选 → 2 分钟",
+    "bucket_source_refs": [
+      "SKILL.md#Step 5",
+      "C5-step5-dynamic-timing.md",
+      "S4-strategy-match.md",
+      "S6-tr.md",
+      "S6-channel.md",
+      "S6-common.md"
+    ],
+    "derived_from_cycle": "cycle_20260311_091644",
+    "interruptible": true
+  },
+  "render_status": {
+    "cycle_card": {
+      "ok": true,
+      "skipped": false
+    },
+    "pre_signal": [],
+    "housekeeping": {
+      "ok": true,
+      "skipped": false
+    }
+  },
+  "push_status": {
+    "cycle_card": {
+      "action": "send",
+      "channel": "telegram",
+      "dryRun": false,
+      "handledBy": "plugin",
+      "payload": {
+        "ok": true,
+        "messageId": "3531",
+        "chatId": "-1003512657369"
+      },
+      "photo": {
+        "mode": "direct_bot_api",
+        "ok": true,
+        "result": {
+          "message_id": 3532,
+          "from": {
+            "id": 8251154620,
+            "is_bot": true,
+            "first_name": "OpenClaw",
+            "username": "chunboClawd_bot"
+          },
+          "chat": {
+            "id": -1003512657369,
+            "title": "OpenClaw",
+            "is_forum": true,
+            "type": "supergroup"
+          },
+          "date": 1773191813,
+          "message_thread_id": 3,
+          "reply_to_message": {
+            "message_id": 3,
+            "from": {
+              "id": 756069822,
+              "is_bot": false,
+              "first_name": "MITCHELL",
+              "last_name": "CB",
+              "username": "MITCHELLCB",
+              "language_code": "zh-hans"
+            },
+            "chat": {
+              "id": -1003512657369,
+              "title": "OpenClaw",
+              "is_forum": true,
+              "type": "supergroup"
+            },
+            "date": 1769987079,
+            "message_thread_id": 3,
+            "forum_topic_created": {
+              "name": "al broos管理系统",
+              "icon_color": 16749490
+            },
+            "is_topic_message": true
+          },
+          "photo": [
+            {
+              "file_id": "AgACAgUAAyEGAATRXuXZAAINummwrwHdLvBNyCRJoXJ8Agtaxh8DAAIXD2sbh6uAVaLBqVinmNaTAQADAgADcwADOgQ",
+              "file_unique_id": "AQADFw9rG4ergFV4",
+              "file_size": 925,
+              "width": 90,
+              "height": 48
+            },
+            {
+              "file_id": "AgACAgUAAyEGAATRXuXZAAINummwrwHdLvBNyCRJoXJ8Agtaxh8DAAIXD2sbh6uAVaLBqVinmNaTAQADAgADbQADOgQ",
+              "file_unique_id": "AQADFw9rG4ergFVy",
+              "file_size": 13787,
+              "width": 320,
+              "height": 169
+            },
+            {
+              "file_id": "AgACAgUAAyEGAATRXuXZAAINummwrwHdLvBNyCRJoXJ8Agtaxh8DAAIXD2sbh6uAVaLBqVinmNaTAQADAgADeAADOgQ",
+              "file_unique_id": "AQADFw9rG4ergFV9",
+              "file_size": 59243,
+              "width": 800,
+              "height": 422
+            },
+            {
+              "file_id": "AgACAgUAAyEGAATRXuXZAAINummwrwHdLvBNyCRJoXJ8Agtaxh8DAAIXD2sbh6uAVaLBqVinmNaTAQADAgADeQADOgQ",
+              "file_unique_id": "AQADFw9rG4ergFV-",
+              "file_size": 132743,
+              "width": 1280,
+              "height": 675
+            },
+            {
+              "file_id": "AgACAgUAAyEGAATRXuXZAAINummwrwHdLvBNyCRJoXJ8Agtaxh8DAAIXD2sbh6uAVaLBqVinmNaTAQADAgADdwADOgQ",
+              "file_unique_id": "AQADFw9rG4ergFV8",
+              "file_size": 141770,
+              "width": 1400,
+              "height": 738
+            }
+          ],
+          "caption": "📈 PA交易 Multi-Asset｜USDJPY 图表\n• 轮次: cycle_20260311_091644\n• 阶段: 初始化扫描",
+          "is_topic_message": true
+        }
+      }
+    },
+    "pre_signal": [],
+    "housekeeping": {
+      "action": "send",
+      "channel": "telegram",
+      "dryRun": false,
+      "handledBy": "plugin",
+      "payload": {
+        "ok": true,
+        "messageId": "3533",
+        "chatId": "-1003512657369"
+      }
+    }
+  }
+}

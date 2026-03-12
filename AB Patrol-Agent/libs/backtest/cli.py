@@ -19,12 +19,8 @@
 """
 
 import argparse
-import sys
-from datetime import datetime, timedelta
-from pathlib import Path
 
-from .runner import BacktestRunner, BacktestConfig
-
+from .runner import BacktestConfig, BacktestRunner
 
 DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
 
@@ -44,7 +40,7 @@ def main():
     parser.add_argument("--days", type=int, default=30,
                         help="回测最近N天 (默认: 30)")
     parser.add_argument("--threshold", type=int, default=80,
-                        help="评分阈值 (默认: 80)")
+                        help="全局引擎 signal_threshold (默认: 80)")
     parser.add_argument("--timeframes", type=str, default="5m",
                         help="检测周期，逗号分隔 (默认: 5m)")
     parser.add_argument("--max-hold", type=int, default=48,
@@ -97,7 +93,7 @@ def main():
     # 多币种汇总
     if len(symbols) > 1:
         print(f"\n{'='*60}")
-        print(f"  多币种汇总")
+        print("  多币种汇总")
         print(f"{'='*60}")
 
 

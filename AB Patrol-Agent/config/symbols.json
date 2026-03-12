@@ -2,15 +2,7 @@
   "binance": {
     "crypto": [
       "BTCUSDT",
-      "ETHUSDT",
-      "BNBUSDT",
-      "SOLUSDT",
-      "XRPUSDT",
-      "ADAUSDT",
-      "DOGEUSDT",
-      "AVAXUSDT",
-      "DOTUSDT",
-      "MATICUSDT"
+      "SOLUSDT"
     ]
   },
   "okx": {
@@ -43,11 +35,11 @@
       "XAGUSD"
     ],
     "indices": [
-      "US30",
-      "US500",
-      "NAS100",
-      "GER40",
-      "UK100"
+      "US 30",
+      "US 500",
+      "US TECH 100",
+      "GERMANY 40",
+      "UK 100"
     ]
   }
 }

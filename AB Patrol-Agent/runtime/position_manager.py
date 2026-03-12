@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from utils import safe_float
+from utils import safe_float, build_target_magnets, resolve_target_path
 
 
 def _get_position_attr(position: Any, key: str, default: Any = None) -> Any:
@@ -156,18 +156,40 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
 
     # 5. 目标路径检查
     tp1 = safe_float(_get_position_attr(position, "tp1"), 0)
-
-    # 从 ab_sr 获取最近的支撑/阻力
-    if side == "BUY":
-        nearest_resistance = safe_float(ab_sr.get("nearest_resistance"), 0)
-        path_clear = not nearest_resistance or nearest_resistance > tp1 or nearest_resistance > current_price * 1.01
+    ab_mm = market_data.get("ab_mm", {}) if isinstance(market_data.get("ab_mm"), dict) else {}
+    key_levels = market_data.get("key_levels", {}) if isinstance(market_data.get("key_levels"), dict) else {}
+    ab_ema = market_data.get("ab_ema", {}) if isinstance(market_data.get("ab_ema"), dict) else {}
+    entry_stop = safe_float(_get_position_attr(position, "stop_loss"), 0)
+    magnets = build_target_magnets(
+        side,
+        current_price or entry_price,
+        ab_sr=ab_sr,
+        ab_mm=ab_mm,
+        key_levels=key_levels,
+        ema20=safe_float(ab_ema.get("ema20"), 0.0),
+    )
+    target_plan = resolve_target_path(
+        side,
+        current_price or entry_price,
+        tp1,
+        stop_loss=entry_stop,
+        market_state=str(ab_state.get("state", "") or ""),
+        route_style=str(_get_position_attr(position, "management_style", "") or ""),
+        magnets=magnets,
+    )
+    path_clear = bool(target_plan.get("path_clear", True))
+    primary = target_plan.get("primary_magnet") if isinstance(target_plan.get("primary_magnet"), dict) else {}
+    blocker = target_plan.get("blocking_magnet") if isinstance(target_plan.get("blocking_magnet"), dict) else {}
+    if blocker:
+        target_reason = f"路径受阻，最近磁体 {blocker.get('kind', '-')}: {safe_float(blocker.get('price'), 0.0):.2f}"
+    elif primary:
+        target_reason = f"首要目标 {primary.get('kind', '-')}: {safe_float(primary.get('price'), 0.0):.2f}"
     else:
-        nearest_support = safe_float(ab_sr.get("nearest_support"), 0)
-        path_clear = not nearest_support or nearest_support < tp1 or nearest_support < current_price * 0.99
+        target_reason = "无明显阻挡磁体"
 
     checks["target_path"] = {
         "pass": path_clear,
-        "reason": "路径通畅" if path_clear else "路径受阻"
+        "reason": "路径通畅" if path_clear else target_reason
     }
 
     # 6. 风险指标检查
@@ -207,6 +229,22 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
             "checks": checks,
             "action": "CLOSE",
             "reason": "信号 K 线被否定"
+        }
+
+    if not checks["target_path"]["pass"]:
+        return {
+            "valid": False,
+            "checks": checks,
+            "action": "REDUCE",
+            "reason": "目标路径受阻，先减仓保护利润"
+        }
+
+    if not checks["follow_through"]["pass"]:
+        return {
+            "valid": False,
+            "checks": checks,
+            "action": "REDUCE",
+            "reason": "Follow-Through 转弱，先减仓再观察"
         }
 
     if not all_pass:

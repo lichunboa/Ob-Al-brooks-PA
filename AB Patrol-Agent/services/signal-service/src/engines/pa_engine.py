@@ -10,7 +10,7 @@
 策略体系：
 - 急速方案：收线追进、高1低1
 - 回调方案：双重顶底、楔形顶底、均线缺口
-- 区间方案：看衰突破、急赴磁体、突破回调
+- 区间方案：看衰突破、突破回调
 - 反转方案：极速通道、末端旗形
 """
 
@@ -37,13 +37,86 @@ from .pa.analysis import (
     TrendValidator,
     calculate_atr,
     calculate_ema,
-    ema_slope,
 )
 from .pa.models import Candle, MarketState, PASignal
-from .pa.risk import RiskManager
+from .pa.risk import BREAKOUT_CHASE_SIGNALS, TR_LIMIT_FRIENDLY_SIGNALS, RiskManager
 from .pa.strategy_advanced import AdvancedStrategyDetectorMixin
+from .pa.structure_stops import (
+    align_signal_stop_to_structure,
+    build_channel_recovery_stop,
+    build_reversal_structure_stop,
+    build_tr_failed_breakout_stop,
+    build_tr_second_leg_trap_stop,
+    build_trend_pullback_stop,
+)
 
 logger = logging.getLogger(__name__)
+
+
+STRATEGY_LABEL_ALIASES: dict[str, set[str]] = {
+    "收线追进": {"收线追进", "市价追进"},
+    "第一均线缺口": {"第一均线缺口", "首次均线缺口"},
+    "看衰突破": {"看衰突破", "失败突破"},
+    "第二腿陷阱": {"第二腿陷阱", "2nd Leg Trap"},
+    "高1低1": {"高1低1", "高1", "低1"},
+    "高2低2": {"高2低2", "高2", "低2"},
+    "双重顶底": {"双重顶底", "双重顶", "双重底"},
+    "楔形顶底": {"楔形顶底", "楔形顶", "楔形底"},
+    "头肩MTR": {"头肩MTR", "头肩顶MTR", "头肩底MTR"},
+}
+
+
+def _strategy_alias_set(label: str) -> set[str]:
+    """把旧策略名和族名统一映射到可比较的别名集合。"""
+    normalized = str(label or "").strip()
+    if not normalized:
+        return set()
+    for aliases in STRATEGY_LABEL_ALIASES.values():
+        if normalized in aliases:
+            return set(aliases)
+    return {normalized}
+
+
+TREND_PULLBACK_SIGNALS = {
+    "高1",
+    "低1",
+    "高2",
+    "低2",
+    "20均线缺口",
+    "MAG 20/20 Setup",
+    "第一均线缺口",
+    "突破回调",
+}
+
+CHANNEL_FIRST_PULLBACK_SIGNALS = {
+    "高1",
+    "低1",
+}
+
+CHANNEL_RECOVERY_SIGNALS = {
+    "高2",
+    "低2",
+    "突破回调",
+}
+
+EMA_RECOVERY_SIGNALS = {
+    "20均线缺口",
+    "MAG 20/20 Setup",
+    "第一均线缺口",
+}
+
+BROOKS_REVERSAL_SIGNALS = {
+    "双重顶",
+    "双重底",
+    "楔形顶",
+    "楔形底",
+    "头肩顶MTR",
+    "头肩底MTR",
+    "急速通道",
+    "末端旗形",
+    "看衰突破",
+    "第二腿陷阱",
+}
 
 
 # ============ 策略检测器 ============
@@ -162,8 +235,6 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             # 回调不需要触及EMA20——强趋势中EMA可能离价格3-10个ATR
             # EMA接近度是"锦上添花"而非"必要条件"
             # 移除EMA接近度限制，回调只要是下跌棒（prev是弱棒）即可
-            ema_val = ema20[-2]  # 仍然使用，但不做硬性过滤
-
             # --- 2. 回调棒必须是弱棒 ---
             if CandlePatterns.is_strong_bull(prev):
                 return None  # 回调棒不应是强阳线
@@ -197,10 +268,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
             # --- 5. 止损和目标 ---
             # Al Brooks: 止损设在信号棒之外 + 1×ATR 缓冲（加密高波动适配）
-            stop = min(prev.low, prev2.low)
-            if atr > 0:
-                atr_stop = curr.close - 1.0 * atr
-                stop = min(stop, atr_stop)
+            stop = build_trend_pullback_stop("BUY", candles, curr.high, min(prev.low, prev2.low), atr)
             risk = curr.close - stop
             if risk <= 0:
                 return None
@@ -257,10 +325,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 return None  # 不是 Lower High
 
             # Al Brooks: 止损设在信号棒之外 + 1×ATR 缓冲（加密高波动适配）
-            stop = max(prev.high, prev2.high)
-            if atr > 0:
-                atr_stop = curr.close + 1.0 * atr
-                stop = max(stop, atr_stop)
+            stop = build_trend_pullback_stop("SELL", candles, max(prev.high, prev2.high), curr.low, atr)
             risk = stop - curr.close
             if risk <= 0:
                 return None
@@ -308,10 +373,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 return None
 
             # 3. 止损和目标（与趋势H1相同逻辑）
-            stop = min(prev.low, prev2.low)
-            if atr > 0:
-                atr_stop = curr.close - 1.0 * atr
-                stop = min(stop, atr_stop)
+            stop = build_trend_pullback_stop("BUY", candles, curr.high, min(prev.low, prev2.low), atr)
             risk = curr.close - stop
             if risk <= 0:
                 return None
@@ -358,10 +420,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 return None
 
             # 3. 止损和目标
-            stop = max(prev.high, prev2.high)
-            if atr > 0:
-                atr_stop = curr.close + 1.0 * atr
-                stop = max(stop, atr_stop)
+            stop = build_trend_pullback_stop("SELL", candles, max(prev.high, prev2.high), curr.low, atr)
             risk = stop - curr.close
             if risk <= 0:
                 return None
@@ -559,9 +618,26 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             # 原来的 near_ema 条件在强牛市中会杀死几乎所有H2信号
 
             # 止损和目标
-            stop = min(sl1["price"], sl2["price"])
-            if atr > 0:
-                stop = min(stop, stop - atr * 0.3)  # 双底之下加小缓冲
+            # Brooks 更看重结构止损，而不是只放在 signal bar 下方。
+            recent_pullback_low = min(c.low for c in candles[-6:])
+            recent_overlap = CycleIdentifier._overlap_ratio(candles[-10:])
+            stop_anchor = min(sl1["price"], sl2["price"], recent_pullback_low)
+            if recent_overlap >= 0.38:
+                stop = build_channel_recovery_stop(
+                    "BUY",
+                    candles,
+                    curr.high,
+                    stop_anchor,
+                    atr,
+                )
+            else:
+                stop = build_trend_pullback_stop(
+                    "BUY",
+                    candles,
+                    curr.high,
+                    stop_anchor,
+                    atr,
+                )
             risk = curr.close - stop
             if risk <= 0:
                 return None
@@ -644,9 +720,26 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             # 在强空头趋势中，反弹可能远未触及EMA仍是有效L2
 
             # 止损和目标
-            stop = max(sh1["price"], sh2["price"])
-            if atr > 0:
-                stop = max(stop, stop + atr * 0.3)
+            # L2 也使用 swing stop，让回调腿有足够呼吸空间。
+            recent_pullback_high = max(c.high for c in candles[-6:])
+            recent_overlap = CycleIdentifier._overlap_ratio(candles[-10:])
+            stop_anchor = max(sh1["price"], sh2["price"], recent_pullback_high)
+            if recent_overlap >= 0.38:
+                stop = build_channel_recovery_stop(
+                    "SELL",
+                    candles,
+                    stop_anchor,
+                    curr.low,
+                    atr,
+                )
+            else:
+                stop = build_trend_pullback_stop(
+                    "SELL",
+                    candles,
+                    stop_anchor,
+                    curr.low,
+                    atr,
+                )
             risk = stop - curr.close
             if risk <= 0:
                 return None
@@ -677,62 +770,359 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         return None
 
+    def detect_second_leg_trap(self, candles: list[Candle], atr: float = 0.0) -> Optional[PASignal]:
+        """
+        第二腿陷阱 (TR3 2nd Leg Trap)
+
+        按 Brooks 47A/47C：
+        - 交易区间边缘的第二腿看起来最强
+        - 但如果缺少 follow-through，往往反而是最危险的追单点
+        """
+        if len(candles) < 18:
+            return None
+
+        lookback = candles[-18:]
+        curr = lookback[-1]
+        prev = lookback[-2]
+        range_high = max(candle.high for candle in lookback[:-2])
+        range_low = min(candle.low for candle in lookback[:-2])
+        range_size = range_high - range_low
+        if range_size <= 0:
+            return None
+
+        tolerance = max(atr * 0.5, range_size * 0.08, abs(curr.close) * 0.001)
+        local_highs = [
+            (idx, bar.high)
+            for idx, bar in enumerate(lookback[:-1])
+            if 1 <= idx < len(lookback) - 2 and bar.high > lookback[idx - 1].high and bar.high >= lookback[idx + 1].high
+        ]
+        local_lows = [
+            (idx, bar.low)
+            for idx, bar in enumerate(lookback[:-1])
+            if 1 <= idx < len(lookback) - 2 and bar.low < lookback[idx - 1].low and bar.low <= lookback[idx + 1].low
+        ]
+
+        if prev.high >= range_high - tolerance and CandlePatterns.is_bear(curr) and curr.close < prev.low:
+            prior_highs = [(idx, price) for idx, price in local_highs if idx < len(lookback) - 3 and price >= range_high - tolerance * 1.5]
+            if prior_highs:
+                first_idx, first_high = prior_highs[-1]
+                valley_candidates = [(idx, price) for idx, price in local_lows if first_idx < idx < len(lookback) - 2]
+                if valley_candidates:
+                    valley_idx, valley_low = min(valley_candidates, key=lambda item: item[1])
+                    leg2_bars = (len(lookback) - 2) - valley_idx
+                    leg2_strength = prev.high - valley_low
+                    if leg2_bars <= 6 and leg2_strength >= range_size * 0.35:
+                        stop = build_tr_second_leg_trap_stop("SELL", lookback, prev.high, prev.high, prev.low, atr)
+                        target = range_low + range_size * 0.5
+                        return PASignal(
+                            symbol=curr.symbol,
+                            signal_type="第二腿陷阱",
+                            direction="SELL",
+                            strength=80,
+                            message="TR 第二腿冲高到边缘后失败，按 Brooks 反做第二腿",
+                            price=curr.close,
+                            stop_loss=stop,
+                            take_profit=target,
+                            probability=0.62,
+                            cycle="区间",
+                            timeframe=curr.timeframe,
+                            signal_bar_high=prev.high,
+                            signal_bar_low=prev.low,
+                            entry_trigger=curr.low,
+                            entry_type="STOP",
+                            extra={
+                                "playbook_hint": "TR3_SECOND_LEG_TRAP",
+                                "second_leg_extreme": prev.high,
+                                "first_leg_extreme": first_high,
+                                "valley_low": valley_low,
+                            },
+                        )
+
+        if prev.low <= range_low + tolerance and CandlePatterns.is_bull(curr) and curr.close > prev.high:
+            prior_lows = [(idx, price) for idx, price in local_lows if idx < len(lookback) - 3 and price <= range_low + tolerance * 1.5]
+            if prior_lows:
+                first_idx, first_low = prior_lows[-1]
+                peak_candidates = [(idx, price) for idx, price in local_highs if first_idx < idx < len(lookback) - 2]
+                if peak_candidates:
+                    peak_idx, peak_high = max(peak_candidates, key=lambda item: item[1])
+                    leg2_bars = (len(lookback) - 2) - peak_idx
+                    leg2_strength = peak_high - prev.low
+                    if leg2_bars <= 6 and leg2_strength >= range_size * 0.35:
+                        stop = build_tr_second_leg_trap_stop("BUY", lookback, prev.low, prev.high, prev.low, atr)
+                        target = range_high - range_size * 0.5
+                        return PASignal(
+                            symbol=curr.symbol,
+                            signal_type="第二腿陷阱",
+                            direction="BUY",
+                            strength=80,
+                            message="TR 第二腿探底到边缘后失败，按 Brooks 反做第二腿",
+                            price=curr.close,
+                            stop_loss=stop,
+                            take_profit=target,
+                            probability=0.62,
+                            cycle="区间",
+                            timeframe=curr.timeframe,
+                            signal_bar_high=prev.high,
+                            signal_bar_low=prev.low,
+                            entry_trigger=curr.high,
+                            entry_type="STOP",
+                            extra={
+                                "playbook_hint": "TR3_SECOND_LEG_TRAP",
+                                "second_leg_extreme": prev.low,
+                                "first_leg_extreme": first_low,
+                                "peak_high": peak_high,
+                            },
+                        )
+
+        return None
+
     # === 区间方案 ===
+
+    @staticmethod
+    def _count_edge_tests(candles: list[Candle], level: float, direction: str, tolerance: float) -> int:
+        """统计最近一段里对区间边缘的有效测试次数。"""
+        tests: list[int] = []
+        for idx, candle in enumerate(candles):
+            if direction == "SELL":
+                touched = float(candle.high) >= level - tolerance
+            else:
+                touched = float(candle.low) <= level + tolerance
+            if not touched:
+                continue
+            if tests and idx - tests[-1] <= 1:
+                continue
+            tests.append(idx)
+        return len(tests)
+
+    @staticmethod
+    def _strong_follow_through_bars(confirm_bars: list[Candle], breakout_direction: str, level: float) -> int:
+        """统计突破后的强 follow-through 根数。"""
+        count = 0
+        for bar in confirm_bars[:2]:
+            if breakout_direction == "UP":
+                if CandlePatterns.is_strong_bull(bar) and float(bar.close) > level:
+                    count += 1
+            else:
+                if CandlePatterns.is_strong_bear(bar) and float(bar.close) < level:
+                    count += 1
+        return count
+
+    def _detect_failed_breakout_candidate(
+        self,
+        base_window: list[Candle],
+        recent_window: list[Candle],
+        atr: float,
+        direction: str,
+    ) -> Optional[PASignal]:
+        """按 Brooks 47C / 15F 检测 1-3 根内确认的失败突破。"""
+        if len(base_window) < 16 or len(recent_window) < 3:
+            return None
+
+        range_high = max(float(candle.high) for candle in base_window)
+        range_low = min(float(candle.low) for candle in base_window)
+        range_height = max(range_high - range_low, 1e-9)
+        tolerance = atr * 0.15 if atr > 0 else range_height * 0.03
+
+        for breakout_idx in range(len(recent_window) - 1):
+            breakout_bar = recent_window[breakout_idx]
+            confirm_bars = recent_window[breakout_idx + 1 :]
+            if not confirm_bars or len(confirm_bars) > 3:
+                continue
+
+            current = confirm_bars[-1]
+            bars_waited = len(confirm_bars)
+            rejection_bar = False
+            gap_filled = False
+            no_new_extreme = False
+            strong_ft_bars = 0
+            test_count = 0
+
+            if direction == "SELL":
+                breakout_detected = (
+                    float(breakout_bar.high) > range_high + tolerance * 0.15
+                    and max(float(breakout_bar.open), float(breakout_bar.close)) > range_high - tolerance * 0.25
+                )
+                if not breakout_detected:
+                    continue
+                strong_ft_bars = self._strong_follow_through_bars(confirm_bars, "UP", range_high)
+                gap_filled = min(float(bar.low) for bar in confirm_bars) <= range_high + tolerance * 0.25
+                no_new_extreme = max(float(bar.high) for bar in confirm_bars) <= float(breakout_bar.high) + tolerance
+                rejection_bar = CandlePatterns.is_bear(current) and float(current.close) < min(
+                    float(breakout_bar.close),
+                    float(breakout_bar.high) - range_height * 0.20,
+                )
+                back_in_range = float(current.close) < range_high - tolerance * 0.10 or (
+                    float(current.close) < range_high and CandlePatterns.is_bear(current)
+                )
+                if strong_ft_bars >= 2 and not gap_filled and not no_new_extreme:
+                    continue
+                test_count = self._count_edge_tests(base_window[-10:], range_high, "SELL", tolerance) + 1
+                if test_count >= 3 and strong_ft_bars >= 1 and not gap_filled:
+                    continue
+                if not back_in_range or not (gap_filled or no_new_extreme or rejection_bar):
+                    continue
+
+                breakout_extreme = max(float(bar.high) for bar in recent_window[breakout_idx:])
+                stop = build_tr_failed_breakout_stop(
+                    "SELL",
+                    recent_window[breakout_idx:],
+                    breakout_extreme,
+                    float(current.high),
+                    float(current.low),
+                    atr,
+                )
+                target = (range_high + range_low) / 2
+                strength = 74
+                probability = 0.72
+                if gap_filled:
+                    strength += 4
+                    probability += 0.03
+                if no_new_extreme:
+                    strength += 3
+                    probability += 0.02
+                if rejection_bar:
+                    strength += 4
+                    probability += 0.02
+                if strong_ft_bars == 0:
+                    strength += 3
+                message_parts = [
+                    "区间上破后",
+                    f"{bars_waited}根内无有效跟进",
+                ]
+                if gap_filled:
+                    message_parts.append("缺口已回补")
+                if no_new_extreme:
+                    message_parts.append("未能创出新极值")
+                return PASignal(
+                    symbol=current.symbol,
+                    signal_type="看衰突破",
+                    direction="SELL",
+                    strength=min(92, strength),
+                    message="，".join(message_parts) + "，按 Brooks 反做做空",
+                    price=float(current.close),
+                    stop_loss=stop,
+                    take_profit=target,
+                    probability=min(0.84, probability),
+                    cycle="区间",
+                    timeframe=current.timeframe,
+                    signal_bar_high=float(current.high),
+                    signal_bar_low=float(current.low),
+                    entry_trigger=float(current.low),
+                    entry_type="STOP",
+                    extra={
+                        "failed_bo_bars_waited": bars_waited,
+                        "failed_bo_gap_filled": gap_filled,
+                        "failed_bo_no_new_extreme": no_new_extreme,
+                        "failed_bo_strong_ft_bars": strong_ft_bars,
+                        "failed_bo_edge_tests": test_count,
+                        "playbook_hint": "TR2_FAILED_BO_FADE",
+                        "breakout_extreme": breakout_extreme,
+                    },
+                )
+
+            else:
+                breakout_detected = (
+                    float(breakout_bar.low) < range_low - tolerance * 0.15
+                    and min(float(breakout_bar.open), float(breakout_bar.close)) < range_low + tolerance * 0.25
+                )
+                if not breakout_detected:
+                    continue
+                strong_ft_bars = self._strong_follow_through_bars(confirm_bars, "DOWN", range_low)
+                gap_filled = max(float(bar.high) for bar in confirm_bars) >= range_low - tolerance * 0.25
+                no_new_extreme = min(float(bar.low) for bar in confirm_bars) >= float(breakout_bar.low) - tolerance
+                rejection_bar = CandlePatterns.is_bull(current) and float(current.close) > max(
+                    float(breakout_bar.close),
+                    float(breakout_bar.low) + range_height * 0.20,
+                )
+                back_in_range = float(current.close) > range_low + tolerance * 0.10 or (
+                    float(current.close) > range_low and CandlePatterns.is_bull(current)
+                )
+                if strong_ft_bars >= 2 and not gap_filled and not no_new_extreme:
+                    continue
+                test_count = self._count_edge_tests(base_window[-10:], range_low, "BUY", tolerance) + 1
+                if test_count >= 3 and strong_ft_bars >= 1 and not gap_filled:
+                    continue
+                if not back_in_range or not (gap_filled or no_new_extreme or rejection_bar):
+                    continue
+
+                breakout_extreme = min(float(bar.low) for bar in recent_window[breakout_idx:])
+                stop = build_tr_failed_breakout_stop(
+                    "BUY",
+                    recent_window[breakout_idx:],
+                    breakout_extreme,
+                    float(current.high),
+                    float(current.low),
+                    atr,
+                )
+                target = (range_high + range_low) / 2
+                strength = 74
+                probability = 0.72
+                if gap_filled:
+                    strength += 4
+                    probability += 0.03
+                if no_new_extreme:
+                    strength += 3
+                    probability += 0.02
+                if rejection_bar:
+                    strength += 4
+                    probability += 0.02
+                if strong_ft_bars == 0:
+                    strength += 3
+                message_parts = [
+                    "区间下破后",
+                    f"{bars_waited}根内无有效跟进",
+                ]
+                if gap_filled:
+                    message_parts.append("缺口已回补")
+                if no_new_extreme:
+                    message_parts.append("未能创出新极值")
+                return PASignal(
+                    symbol=current.symbol,
+                    signal_type="看衰突破",
+                    direction="BUY",
+                    strength=min(92, strength),
+                    message="，".join(message_parts) + "，按 Brooks 反做做多",
+                    price=float(current.close),
+                    stop_loss=stop,
+                    take_profit=target,
+                    probability=min(0.84, probability),
+                    cycle="区间",
+                    timeframe=current.timeframe,
+                    signal_bar_high=float(current.high),
+                    signal_bar_low=float(current.low),
+                    entry_trigger=float(current.high),
+                    entry_type="STOP",
+                    extra={
+                        "failed_bo_bars_waited": bars_waited,
+                        "failed_bo_gap_filled": gap_filled,
+                        "failed_bo_no_new_extreme": no_new_extreme,
+                        "failed_bo_strong_ft_bars": strong_ft_bars,
+                        "failed_bo_edge_tests": test_count,
+                        "playbook_hint": "TR2_FAILED_BO_FADE",
+                        "breakout_extreme": breakout_extreme,
+                    },
+                )
+
+        return None
 
     def detect_fade_breakout(self, candles: list[Candle], ema20: list[float], cycle: str, atr: float = 0.0) -> Optional[PASignal]:
         """
         看衰突破 (Fade Breakout)
-        条件：区间中突破后立即失败（80/20 规则）
+        条件：区间中突破后 1-3 根内失败（Brooks 47C / 15F）
         """
-        if cycle != "区间" or len(candles) < 20:
+        if cycle != "区间" or len(candles) < 24:
             return None
 
-        # 找到区间高低点
-        lookback = candles[-20:]
-        range_high = max(c.high for c in lookback[:-2])
-        range_low = min(c.low for c in lookback[:-2])
+        base_window = candles[-24:-4]
+        recent_window = candles[-4:]
 
-        curr = candles[-1]
-        prev = candles[-2]
+        sell_signal = self._detect_failed_breakout_candidate(base_window, recent_window, atr, "SELL")
+        if sell_signal:
+            return sell_signal
 
-        # 上方突破失败
-        if prev.close > range_high and curr.close < range_high:
-            # 止损：前高 + 1 ATR
-            stop = prev.high + (atr if atr > 0 else prev.high * 0.002)
-            target = (range_high + range_low) / 2  # 目标区间中点
-
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="看衰突破",
-                direction="SELL",
-                strength=75, # 反转策略 75 分
-                message="区间上方突破失败，看衰做空（80/20规则）",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.8,  # 80% 概率区间突破失败
-                cycle=cycle,
-                timeframe=curr.timeframe,
-            )
-
-        # 下方突破失败
-        if prev.close < range_low and curr.close > range_low:
-            stop = prev.low - (atr if atr > 0 else prev.low * 0.002)
-            target = (range_high + range_low) / 2
-
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="看衰突破",
-                direction="BUY",
-                strength=75, # 反转策略 75 分
-                message="区间下方突破失败，看衰做多（80/20规则）",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.8,
-                cycle=cycle,
-                timeframe=curr.timeframe,
-            )
+        buy_signal = self._detect_failed_breakout_candidate(base_window, recent_window, atr, "BUY")
+        if buy_signal:
+            return buy_signal
 
         return None
 
@@ -778,7 +1168,9 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         # 首次触及 EMA
         if cycle == "趋势多":
             if curr.low <= ema20[-1] * 1.003 and curr.close > ema20[-1]:
-                stop = curr.low - 1.0 * atr if atr > 0 else curr.low * 0.998
+                # EMA gap 用 pullback 结构低点做 swing stop，而不是只贴当前 signal bar。
+                pullback_low = min(c.low for c in candles[-5:])
+                stop = build_channel_recovery_stop("BUY", candles, curr.high, pullback_low, atr)
                 target = curr.close + (curr.close - stop) * rr_mult
 
                 return PASignal(
@@ -797,7 +1189,8 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         elif cycle == "趋势空":
             if curr.high >= ema20[-1] * 0.997 and curr.close < ema20[-1]:
-                stop = curr.high + 1.0 * atr if atr > 0 else curr.high * 1.002
+                pullback_high = max(c.high for c in candles[-5:])
+                stop = build_channel_recovery_stop("SELL", candles, pullback_high, curr.low, atr)
                 target = curr.close - (stop - curr.close) * rr_mult
 
                 return PASignal(
@@ -852,7 +1245,14 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     range_size = max_high - min_low
                     pullback = max_high - lookback[max_idx + 1].low if max_idx + 1 < len(lookback) else 0
                     if range_size > 0 and pullback / range_size >= 0.4:
-                        stop = max(curr.high, max_high) + 0.5 * atr if atr > 0 else curr.high * 1.002
+                        stop = build_reversal_structure_stop(
+                            "SELL",
+                            candles,
+                            curr.high,
+                            curr.low,
+                            atr,
+                            reference_levels=[max_high],
+                        )
                         risk = stop - curr.close
                         # Al Brooks: 双重顶是趋势末端反转，目标3R（成功则大利润）
                         target = curr.close - risk * 3.0
@@ -879,7 +1279,14 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     range_size = max_high - min_low
                     pullback = lookback[min_idx + 1].high - min_low if min_idx + 1 < len(lookback) else 0
                     if range_size > 0 and pullback / range_size >= 0.4:
-                        stop = min(curr.low, min_low) - 0.5 * atr if atr > 0 else curr.low * 0.998
+                        stop = build_reversal_structure_stop(
+                            "BUY",
+                            candles,
+                            curr.high,
+                            curr.low,
+                            atr,
+                            reference_levels=[min_low],
+                        )
                         risk = curr.close - stop
                         # Al Brooks: 双重底是趋势末端反转，目标3R
                         target = curr.close + risk * 3.0
@@ -938,7 +1345,14 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     quality = "好楔形（动能强衰竭）" if is_good_wedge else "普通楔形"
                     reversal = CandlePatterns.is_reversal_bar(curr, prev)
                     if reversal == "空头反转" or CandlePatterns.is_strong_bear(curr):
-                        stop = recent_highs[2][1] + 0.5 * atr if atr > 0 else recent_highs[2][1] * 1.002
+                        stop = build_reversal_structure_stop(
+                            "SELL",
+                            candles,
+                            curr.high,
+                            curr.low,
+                            atr,
+                            reference_levels=[recent_highs[0][1], recent_highs[1][1], recent_highs[2][1]],
+                        )
                         target = curr.close - (stop - curr.close) * 2
 
                         return PASignal(
@@ -973,7 +1387,14 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     quality = "好楔形（动能强衰竭）" if is_good_wedge else "普通楔形"
                     reversal = CandlePatterns.is_reversal_bar(curr, prev)
                     if reversal == "多头反转" or CandlePatterns.is_strong_bull(curr):
-                        stop = recent_lows[2][1] - 0.5 * atr if atr > 0 else recent_lows[2][1] * 0.998
+                        stop = build_reversal_structure_stop(
+                            "BUY",
+                            candles,
+                            curr.high,
+                            curr.low,
+                            atr,
+                            reference_levels=[recent_lows[0][1], recent_lows[1][1], recent_lows[2][1]],
+                        )
                         target = curr.close + (curr.close - stop) * 2
 
                         return PASignal(
@@ -1089,7 +1510,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         # 从 K 线时间戳推算昨日高低点
         # crypto 24/7，以 UTC 0 点为日间分界
-        from datetime import timezone, timedelta
+        from datetime import timedelta, timezone
         try:
             curr_ts = curr.timestamp
             # 找当日 0 点（UTC+8 北京时间）
@@ -1283,7 +1704,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 breakout_height = highest_after_breakout - range_high
 
                 if breakout_height > 0 and pullback_depth < breakout_height * 0.5:
-                    stop = range_high - (atr if atr > 0 else range_high * 0.002)
+                    stop = build_channel_recovery_stop("BUY", candles, curr.high, curr.low, atr)
                     target = curr.close + (curr.close - stop) * 2
 
                     return PASignal(
@@ -1319,7 +1740,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 breakout_height = range_low - lowest_after_breakout
 
                 if breakout_height > 0 and pullback_depth < breakout_height * 0.5:
-                    stop = range_low + (atr if atr > 0 else range_low * 0.002)
+                    stop = build_channel_recovery_stop("SELL", candles, curr.high, curr.low, atr)
                     target = curr.close - (stop - curr.close) * 2
 
                     return PASignal(
@@ -1376,7 +1797,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
             if body_shrinking or reversal == "空头反转":
                 # 止损：磁铁位上方 1 ATR
-                stop = range_high + (atr if atr > 0 else range_high * 0.002)
+                stop = build_reversal_structure_stop("SELL", candles, curr.high, curr.low, atr, reference_levels=[range_high])
                 target = range_low + range_size * 0.5  # 目标区间中点
 
                 return PASignal(
@@ -1405,7 +1826,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             reversal = CandlePatterns.is_reversal_bar(curr, prev)
 
             if body_shrinking or reversal == "多头反转":
-                stop = range_low - (atr if atr > 0 else range_low * 0.002)
+                stop = build_reversal_structure_stop("BUY", candles, curr.high, curr.low, atr, reference_levels=[range_low])
                 target = range_high - range_size * 0.5
 
                 return PASignal(
@@ -1447,36 +1868,37 @@ class PASignalEngine(BaseEngine):
         self.cooldown_seconds = COOLDOWN_SECONDS
         self._cooldown_storage = get_cooldown_storage()
 
-        # 周期配置（信号阈值: 1m/5m 最严85, 15m 保守75, 1h 波段70）
+        # 周期配置。
+        # 这里保留“质量阈值”，但不再用过高默认值把大量合法 Brooks setup 卡死在引擎层。
         self.timeframe_config = {
             "1m": {
-                "signal_threshold": 85,
+                "signal_threshold": 80,
                 "allowed_strategies": ["市价追进", "高1低1", "急速通道"],
-                "cooldown_multiplier": 0.5,  # 更短冷却
+                "cooldown_multiplier": 0.5,
             },
             "5m": {
-                "signal_threshold": 85,
+                "signal_threshold": 80,
                 "allowed_strategies": "all",
                 "cooldown_multiplier": 1.0,
             },
             "15m": {
-                "signal_threshold": 75,
-                "allowed_strategies": ["20均线缺口", "突破回调", "首次均线缺口", "双重顶底", "失败突破", "急赴磁体", "楔形顶底", "急速通道", "末端旗形", "ii突破", "头肩MTR"],
-                "cooldown_multiplier": 2.0,  # 更长冷却
+                "signal_threshold": 72,
+                "allowed_strategies": ["20均线缺口", "突破回调", "首次均线缺口", "双重顶底", "失败突破", "第二腿陷阱", "楔形顶底", "急速通道", "末端旗形", "ii突破", "头肩MTR"],
+                "cooldown_multiplier": 2.0,
             },
             "30m": {
-                "signal_threshold": 75,
+                "signal_threshold": 70,
                 "allowed_strategies": [
                     "20均线缺口", "突破回调", "首次均线缺口",
-                    "双重顶底", "失败突破", "急赴磁体",
+                    "双重顶底", "失败突破", "第二腿陷阱",
                     "楔形顶底", "急速通道", "末端旗形",
                     "ii突破", "头肩MTR",
                 ],
                 "cooldown_multiplier": 3.0,
             },
             "1h": {
-                "signal_threshold": 70,
-                "allowed_strategies": ["楔形顶底", "末端旗形", "急赴磁体", "头肩MTR"],
+                "signal_threshold": 68,
+                "allowed_strategies": ["楔形顶底", "末端旗形", "头肩MTR"],
                 "cooldown_multiplier": 4.0,
             },
         }
@@ -1489,6 +1911,264 @@ class PASignalEngine(BaseEngine):
             "signals": 0,
             "errors": 0,
         }
+
+    @staticmethod
+    def _dynamic_cooldown_multiplier(
+        signal: PASignal,
+        market_state: MarketState,
+        base_multiplier: float,
+    ) -> float:
+        """
+        按 Brooks 上下文调整冷却，而不是简单用固定周期倍数。
+
+        原则：
+        - TR / Broad Channel / limit order 环境需要更频繁地重新评估；
+        - breakout chase 仍要更克制，避免短时间重复追单；
+        - 趋势回调单可以适度缩短冷却，但不应像 TR fade 一样激进。
+        """
+        multiplier = float(base_multiplier or 1.0)
+        signal_type = str(getattr(signal, "signal_type", "") or "")
+        timeframe = str(getattr(signal, "timeframe", "") or "5m")
+        entry_type = str(getattr(signal, "entry_type", "STOP") or "STOP").upper()
+        cycle = str(getattr(signal, "cycle", "") or "")
+        channel_type = str(getattr(market_state, "channel_type", "") or "")
+
+        if cycle == "区间" or entry_type == "LIMIT":
+            multiplier *= 0.70
+        elif channel_type == "broad":
+            multiplier *= 0.85
+        elif signal_type in TR_LIMIT_FRIENDLY_SIGNALS:
+            multiplier *= 0.90
+        elif signal_type in BREAKOUT_CHASE_SIGNALS:
+            multiplier *= 1.10
+
+        if timeframe == "1m":
+            multiplier *= 0.85
+
+        return max(0.35, multiplier)
+
+    @staticmethod
+    def _build_range_snapshot(market_state: MarketState, candles: list[Candle], price: float) -> dict[str, float | str]:
+        """给信号补一个最小可用的区间位置快照。"""
+        range_low = float(getattr(market_state, "range_low", 0.0) or 0.0)
+        range_high = float(getattr(market_state, "range_high", 0.0) or 0.0)
+        if range_high <= range_low and candles:
+            range_low = min(candle.low for candle in candles[-20:])
+            range_high = max(candle.high for candle in candles[-20:])
+
+        range_span = max(range_high - range_low, 0.0)
+        range_position = 0.5
+        if range_span > 0:
+            range_position = (float(price or 0.0) - range_low) / range_span
+        range_position = max(0.0, min(1.0, range_position))
+
+        if range_position <= 0.33:
+            range_edge = "bottom"
+        elif range_position >= 0.67:
+            range_edge = "top"
+        else:
+            range_edge = "middle"
+
+        if range_position <= 0.22:
+            range_zone = "deep_bottom"
+        elif range_position <= 0.38:
+            range_zone = "bottom_advantage"
+        elif range_position < 0.45:
+            range_zone = "lower_origin"
+        elif range_position <= 0.55:
+            range_zone = "middle"
+        elif range_position < 0.62:
+            range_zone = "upper_origin"
+        elif range_position < 0.78:
+            range_zone = "top_advantage"
+        else:
+            range_zone = "deep_top"
+
+        return {
+            "range_low": range_low,
+            "range_high": range_high,
+            "range_position": range_position,
+            "range_edge": range_edge,
+            "range_zone": range_zone,
+        }
+
+    @staticmethod
+    def _range_edge_matches_direction(range_edge: str, direction: str) -> bool:
+        """判断当前方向是否位于 Brooks 有利边缘。"""
+        if direction == "BUY":
+            return range_edge == "bottom"
+        if direction == "SELL":
+            return range_edge == "top"
+        return False
+
+    @staticmethod
+    def _advantage_zone_matches_direction(range_zone: str, direction: str) -> bool:
+        """判断是否仍处于更有利的边缘优势区。"""
+        if direction == "BUY":
+            return range_zone in {"deep_bottom", "bottom_advantage"}
+        if direction == "SELL":
+            return range_zone in {"deep_top", "top_advantage"}
+        return False
+
+    @staticmethod
+    def _origin_half_matches_direction(range_position: float, direction: str) -> bool:
+        """判断是否仍在本方向的有利半区。"""
+        pos = max(0.0, min(1.0, float(range_position or 0.5)))
+        if direction == "BUY":
+            return pos <= 0.5
+        if direction == "SELL":
+            return pos >= 0.5
+        return False
+
+    @staticmethod
+    def _resolve_playbook_id(signal_type: str, market_key: str) -> str:
+        """按当前状态给信号打一个最小 Brooks playbook 标签。"""
+        if signal_type == "第二腿陷阱":
+            return "TR3_SECOND_LEG_TRAP"
+        if signal_type == "看衰突破":
+            return "TR2_FAILED_BO_FADE"
+        if market_key == "tight_range":
+            if signal_type in CHANNEL_FIRST_PULLBACK_SIGNALS:
+                return "T6_TR_LEG_FIRST_PULLBACK"
+            if signal_type in CHANNEL_RECOVERY_SIGNALS:
+                return "T6_TR_LEG_CHANNEL_RECOVERY"
+            if signal_type in EMA_RECOVERY_SIGNALS:
+                return "T6_TR_LEG_EMA_RECOVERY"
+            if signal_type in BROOKS_REVERSAL_SIGNALS:
+                return "R2_TR_EDGE_REVERSAL"
+            return "TR1_BLSHS"
+        if market_key == "broad_range":
+            if signal_type in BROOKS_REVERSAL_SIGNALS:
+                return "R2_TR_EDGE_REVERSAL"
+            if signal_type in CHANNEL_FIRST_PULLBACK_SIGNALS:
+                return "T6_TR_LEG_FIRST_PULLBACK"
+            if signal_type in CHANNEL_RECOVERY_SIGNALS:
+                return "T6_TR_LEG_CHANNEL_RECOVERY"
+            if signal_type in EMA_RECOVERY_SIGNALS:
+                return "T6_TR_LEG_EMA_RECOVERY"
+            if signal_type in BREAKOUT_CHASE_SIGNALS:
+                return "T5_BREAKOUT_CHASE"
+        if market_key in {"weak_trend_bull", "weak_trend_bear"}:
+            if signal_type in BROOKS_REVERSAL_SIGNALS:
+                return "R1_BROAD_CHANNEL_REVERSAL"
+            if signal_type in CHANNEL_FIRST_PULLBACK_SIGNALS:
+                return "T1_FIRST_PULLBACK"
+            if signal_type in CHANNEL_RECOVERY_SIGNALS:
+                return "T2_BROAD_CHANNEL_RECOVERY"
+            if signal_type in EMA_RECOVERY_SIGNALS:
+                return "T3_BROAD_CHANNEL_EMA"
+            if signal_type in BREAKOUT_CHASE_SIGNALS:
+                return "T5_BREAKOUT_CHASE"
+        if signal_type in CHANNEL_FIRST_PULLBACK_SIGNALS:
+            return "T1_FIRST_PULLBACK"
+        if signal_type in CHANNEL_RECOVERY_SIGNALS:
+            return "T2_TREND_H2"
+        if signal_type in EMA_RECOVERY_SIGNALS:
+            return "T3_TREND_EMA"
+        if signal_type in BREAKOUT_CHASE_SIGNALS:
+            return "T5_BREAKOUT_CHASE"
+        if signal_type in BROOKS_REVERSAL_SIGNALS:
+            return "R0_FIRST_REVERSAL_PROBE"
+        return "UNCLASSIFIED"
+
+    def _annotate_state_first_context(
+        self,
+        signal: PASignal,
+        market_state: MarketState,
+        market_key: str,
+        candles: list[Candle],
+    ) -> dict[str, float | str]:
+        """把 Brooks 路由判断需要的最小上下文提前写入信号。"""
+        snapshot = self._build_range_snapshot(market_state, candles, float(getattr(signal, "price", 0.0) or candles[-1].close))
+        extra = dict(getattr(signal, "extra", {}) or {})
+        extra["market_state"] = market_key
+        extra["follow_through"] = bool(getattr(market_state, "follow_through", False))
+        extra["channel_type"] = str(getattr(market_state, "channel_type", "") or "")
+        extra["pullback_ratio"] = float(getattr(market_state, "pullback_ratio", 0.0) or 0.0)
+        extra["range_position"] = snapshot["range_position"]
+        extra["range_edge"] = snapshot["range_edge"]
+        extra["range_zone"] = snapshot["range_zone"]
+        extra["range_low"] = snapshot["range_low"]
+        extra["range_high"] = snapshot["range_high"]
+        extra["playbook_id"] = self._resolve_playbook_id(str(getattr(signal, "signal_type", "") or ""), market_key)
+        signal.extra = extra
+        return snapshot
+
+    def _state_first_generation_allowed(
+        self,
+        signal: PASignal,
+        market_state: MarketState,
+        market_key: str,
+        snapshot: dict[str, float | str],
+    ) -> tuple[bool, str]:
+        """
+        在真实引擎生成层提前做 Brooks 状态路由。
+
+        目的不是再叠一层评分系统，而是避免先生成大量不该出现的 trend playbook，
+        再靠后置过滤把它们裁掉。
+        """
+        signal_type = str(getattr(signal, "signal_type", "") or "")
+        direction = str(getattr(signal, "direction", "") or "")
+        entry_type = str(getattr(signal, "entry_type", "STOP") or "STOP").upper()
+        follow_through = bool(getattr(market_state, "follow_through", False))
+        pullback_ratio = float(getattr(market_state, "pullback_ratio", 0.0) or 0.0)
+        range_edge = str(snapshot.get("range_edge", "") or "")
+        range_zone = str(snapshot.get("range_zone", "") or "")
+        range_position = float(snapshot.get("range_position", 0.5) or 0.5)
+
+        edge_match = self._range_edge_matches_direction(range_edge, direction)
+        advantage_match = self._advantage_zone_matches_direction(range_zone, direction)
+        origin_half_match = self._origin_half_matches_direction(range_position, direction)
+
+        is_reversal = signal_type in BROOKS_REVERSAL_SIGNALS
+        is_breakout_chase = signal_type in BREAKOUT_CHASE_SIGNALS
+        is_trend_pullback = signal_type in TREND_PULLBACK_SIGNALS
+
+        if market_key == "tight_range":
+            if range_zone == "middle":
+                return False, "紧密区间中部不预生成 setup"
+            if is_breakout_chase and signal_type != "看衰突破":
+                return False, "紧密区间不预生成突破追单"
+            if is_trend_pullback and not (edge_match or advantage_match):
+                return False, "紧密区间只预生成边缘 BLSHS"
+            if is_reversal and not (edge_match or advantage_match):
+                return False, "紧密区间反转先等到边缘优势区"
+
+        if market_key == "broad_range":
+            if (is_reversal or signal_type in {"看衰突破", "第二腿陷阱"}) and range_zone == "middle":
+                return False, "宽区间中部不预生成 fade 或反转"
+            if is_breakout_chase and not follow_through:
+                return False, "宽区间里弱突破不预生成"
+            if is_trend_pullback:
+                if not (advantage_match or origin_half_match):
+                    return False, "宽区间顺势恢复先回到有利半区"
+                if signal_type in {"高1", "低1"} and not edge_match:
+                    return False, "宽区间第一腿回调只在边缘做"
+                if entry_type == "STOP" and pullback_ratio > 0.5 and not follow_through:
+                    return False, "宽区间 stop 回调缺少接受"
+
+        if market_key in {"weak_trend_bull", "weak_trend_bear"}:
+            aligned = (
+                market_key == "weak_trend_bull" and direction == "BUY"
+            ) or (
+                market_key == "weak_trend_bear" and direction == "SELL"
+            )
+            if is_breakout_chase and not follow_through:
+                return False, "弱趋势里弱突破不预生成"
+            if not aligned and is_trend_pullback and not edge_match:
+                return False, "弱趋势里逆势 H1/H2/L1/L2 先等到边缘"
+            if aligned and signal_type in {"高1", "低1"} and pullback_ratio > 0.45 and not follow_through:
+                return False, "宽通道第一腿回调缺少 follow-through"
+            if (
+                aligned
+                and signal_type in {"高2", "低2", "20均线缺口", "第一均线缺口", "突破回调"}
+                and pullback_ratio > 0.66
+                and not follow_through
+                and not origin_half_match
+            ):
+                return False, "宽通道深回调恢复先等回到有利半区"
+
+        return True, ""
 
     def _get_conn(self):
         """获取数据库连接"""
@@ -1628,7 +2308,11 @@ class PASignalEngine(BaseEngine):
             """检查策略是否在当前周期允许"""
             if allowed_strategies == "all":
                 return True
-            return strategy_name in allowed_strategies
+            requested = _strategy_alias_set(strategy_name)
+            for allowed in allowed_strategies:
+                if requested & _strategy_alias_set(str(allowed)):
+                    return True
+            return False
 
         # ============================================================
         # Al Brooks 四状态策略许可矩阵
@@ -1744,11 +2428,23 @@ class PASignalEngine(BaseEngine):
                     sig.timeframe = timeframe
                     signals.append(sig)
 
-        # --- Trading Range: Fade + 反转 + 顺EMA方向H1 ---
+        # --- Trading Range: BLSHS + Fade + 反转 ---
         if cycle == "区间":
-            # 区间内顺EMA方向的H1（急速后整理阶段最常见的5m加密场景）
+            # Brooks: TR means BLSHS。区间中部不预生成，优先在边缘找 second entry。
+            # 这里不再把 H1/L1 直接砍掉，避免生成层过早漏掉合法 setup；
+            # 真正的边缘/优势区判断仍由 state-first 与回测路由统一处理。
             if is_allowed("高1低1"):
                 sig = self.detector.detect_high1_low1(candles, ema20, cycle, atr)
+                if sig:
+                    sig.timeframe = timeframe
+                    signals.append(sig)
+            if is_allowed("高2低2"):
+                sig = self.detector.detect_h2_l2(candles, ema20, cycle, atr)
+                if sig:
+                    sig.timeframe = timeframe
+                    signals.append(sig)
+            if is_allowed("第二腿陷阱"):
+                sig = self.detector.detect_second_leg_trap(candles, atr)
                 if sig:
                     sig.timeframe = timeframe
                     signals.append(sig)
@@ -1784,12 +2480,8 @@ class PASignalEngine(BaseEngine):
                 sig.timeframe = timeframe
                 signals.append(sig)
 
-        # 急赴磁体: 区间 + Broad Channel 边界
-        if (cycle == "区间" or ch_type == "broad") and is_allowed("急赴磁体"):
-            sig = self.detector.detect_rush_to_magnet(candles, ema20, atr)
-            if sig:
-                sig.timeframe = timeframe
-                signals.append(sig)
+        # 急赴磁体是 Brooks 的上下文，不是当前版本里足够稳定的独立可执行 setup。
+        # 它保留在 detector 中作为后续 target/magnet 证据来源，但不再直接生成订单信号。
 
         # HOY/LOY 突破: 全状态均可触发，昨日高低点是最关键日内 S/R
         if is_allowed("HOY突破") or is_allowed("LOY突破"):
@@ -1828,16 +2520,40 @@ class PASignalEngine(BaseEngine):
                     sig.strength = max(50, sig.strength - 5)
                     sig.message = f"{sig.message} (⚠️ Stairs趋势衰竭)"
 
+        # 生成层先按 Brooks 状态做 playbook 预筛选，避免 TR / Broad Channel
+        # 先生成趋势单，再全部扔给后置路由去裁掉。
+        state_first_signals: list[PASignal] = []
+        for sig in signals:
+            snapshot = self._annotate_state_first_context(sig, market_state, v5_market_state, candles)
+            allowed, reject_reason = self._state_first_generation_allowed(sig, market_state, v5_market_state, snapshot)
+            if not allowed:
+                logger.debug(f"State-first 预筛掉 {symbol} {timeframe} {sig.signal_type}: {reject_reason}")
+                continue
+            state_first_signals.append(sig)
+        signals = state_first_signals
+
+        # 把止损尽量放到 Brooks 结构位外，避免回调单和反转单因为止损过紧被提前筛掉。
+        for sig in signals:
+            align_signal_stop_to_structure(sig, candles, atr)
+
         # 过滤: Always In 方向 + 冷却 + 风控 + 多周期验证
         filtered = []
-        cooldown_multiplier = tf_config.get("cooldown_multiplier", 1.0)
+        base_cooldown_multiplier = tf_config.get("cooldown_multiplier", 1.0)
         ai_dir = market_state.always_in  # "long" / "short" / "neutral"
 
         for sig in signals:
             # Al Brooks: 趋势策略方向必须与 Always In 一致
             # 反转策略可以逆 Always In (但降分)
-            _trend_strats = {"收线追进", "高1", "低1", "高2", "低2",
-                             "20均线缺口", "突破回调", "首次均线缺口"}
+            _trend_strats = {
+                "收线追进",
+                "高1",
+                "低1",
+                "高2",
+                "低2",
+                "20均线缺口",
+                "突破回调",
+                "第一均线缺口",
+            }
             is_trend_strat = sig.signal_type in _trend_strats
 
             if ai_dir == "long" and sig.direction == "SELL" and is_trend_strat:
@@ -1888,19 +2604,17 @@ class PASignalEngine(BaseEngine):
                 sig.extra["reversal_from"] = old_direction
                 sig.message = f"{sig.message} [反向信号: 建议平{old_direction}仓]"
 
-            # 冷却检查（根据周期调整冷却时间）
+            # 冷却检查（根据周期与 playbook 动态调整，避免固定冷却压掉合法 setup）
             signal_key = f"pa:{sig.symbol}_{sig.signal_type}_{sig.direction}_{timeframe}"
+            cooldown_multiplier = self._dynamic_cooldown_multiplier(sig, market_state, base_cooldown_multiplier)
             effective_cooldown = self.cooldown_seconds * cooldown_multiplier
             if self._is_cooled_down(signal_key, effective_cooldown):
                 if self._set_cooldown(signal_key):
-                    # V3.7: 方向偏差检测 — 连续同方向信号降分
+                    # 连续同方向信号仅做观测，不再直接降分。
                     bias_key = f"bias:{sig.symbol}"
                     bias_state = self.cooldowns.get(bias_key, None)
                     if isinstance(bias_state, dict) and bias_state.get("dir") == sig.direction:
                         bias_state["count"] = bias_state.get("count", 0) + 1
-                        if bias_state["count"] >= 5:
-                            sig.strength -= 10
-                            sig.message += f" [方向偏差: 连续{bias_state['count']}次{sig.direction}]"
                     else:
                         bias_state = {"dir": sig.direction, "count": 1}
                     self.cooldowns[bias_key] = bias_state
@@ -1908,6 +2622,8 @@ class PASignalEngine(BaseEngine):
                     # V5.0: 注入市场状态到信号
                     sig.extra['market_state'] = v5_market_state
                     sig.extra['strategy_recommendation'] = v5_recommendation
+                    sig.extra["cooldown_multiplier"] = cooldown_multiplier
+                    sig.extra["direction_streak"] = int(bias_state.get("count", 1))
 
                     # 记录到风控系统
                     self.risk_manager.record_signal(sig)

@@ -13,9 +13,7 @@
 import os
 import re
 import sys
-from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
 
@@ -26,6 +24,21 @@ class DataLoader:
     SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
     HF_DATASET = "123olp/binance-futures-ohlcv-2018-2026"
     CSV_GZ_FILE = "candles_1m.csv.gz"
+
+    @staticmethod
+    def _normalize_bound_timestamp(raw: str | None) -> pd.Timestamp | None:
+        """统一边界时间为无时区 UTC 时间戳。"""
+        if not raw:
+            return None
+        ts = pd.Timestamp(raw)
+        if ts.tzinfo is not None:
+            ts = ts.tz_convert("UTC").tz_localize(None)
+        return ts
+
+    @staticmethod
+    def _normalize_timestamp_series(series: pd.Series) -> pd.Series:
+        """统一时间列为无时区 UTC 序列。"""
+        return pd.to_datetime(series, utc=True).dt.tz_localize(None)
 
     @staticmethod
     def load(symbol: str, start_date: str = None, end_date: str = None,
@@ -59,10 +72,12 @@ class DataLoader:
                 if "open_time" in df.columns and "timestamp" not in df.columns:
                     df = df.rename(columns={"open_time": "timestamp"})
                 df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True).dt.tz_localize(None)
-                if start_date:
-                    df = df[df["timestamp"] >= pd.Timestamp(start_date)]
-                if end_date:
-                    df = df[df["timestamp"] <= pd.Timestamp(end_date)]
+                start_ts = DataLoader._normalize_bound_timestamp(start_date)
+                end_ts = DataLoader._normalize_bound_timestamp(end_date)
+                if start_ts is not None:
+                    df = df[df["timestamp"] >= start_ts]
+                if end_ts is not None:
+                    df = df[df["timestamp"] <= end_ts]
                 df = df.sort_values("timestamp").reset_index(drop=True)
                 print(f"  {len(df):,} 根 1m K线 ({df['timestamp'].min()} ~ {df['timestamp'].max()})")
                 return df
@@ -81,7 +96,6 @@ class DataLoader:
 
         # 方式2: TimescaleDB 导出（Docker 运行时）
         try:
-            import psycopg
             df = DataLoader.load_from_timescaledb(symbol, start_date, end_date)
             if not df.empty:
                 if cache_path:
@@ -104,10 +118,12 @@ class DataLoader:
         # 方式4: Binance API 下载（需 VPN）
         df = DataLoader.download_from_binance(symbol, days=90, cache_dir=cache_dir)
         if not df.empty:
-            if start_date:
-                df = df[df["timestamp"] >= pd.Timestamp(start_date)]
-            if end_date:
-                df = df[df["timestamp"] <= pd.Timestamp(end_date)]
+            start_ts = DataLoader._normalize_bound_timestamp(start_date)
+            end_ts = DataLoader._normalize_bound_timestamp(end_date)
+            if start_ts is not None:
+                df = df[df["timestamp"] >= start_ts]
+            if end_ts is not None:
+                df = df[df["timestamp"] <= end_ts]
             return df
 
         # 方式5: datasets 库 streaming（最慢）
@@ -119,13 +135,13 @@ class DataLoader:
         symbol: str,
         start_date: str | None,
         end_date: str | None,
-    ) -> Optional[Path]:
+    ) -> Path | None:
         """查找覆盖当前时间窗的已有 Parquet 缓存。"""
         if not cache_dir.exists():
             return None
         pattern = re.compile(rf"^{re.escape(symbol)}_(\d{{4}}-\d{{2}}-\d{{2}})_(\d{{4}}-\d{{2}}-\d{{2}})\.parquet$")
-        start_ts = pd.Timestamp(start_date) if start_date else None
-        end_ts = pd.Timestamp(end_date) if end_date else None
+        start_ts = DataLoader._normalize_bound_timestamp(start_date)
+        end_ts = DataLoader._normalize_bound_timestamp(end_date)
         candidates: list[tuple[pd.Timestamp, pd.Timestamp, Path]] = []
         for path in cache_dir.glob(f"{symbol}_*.parquet"):
             match = pattern.match(path.name)
@@ -144,7 +160,7 @@ class DataLoader:
         return candidates[0][2]
 
     @staticmethod
-    def _find_csv_gz(cache_dir: str = None) -> Optional[Path]:
+    def _find_csv_gz(cache_dir: str = None) -> Path | None:
         """查找已下载的 CSV.gz 文件"""
         search_paths = []
         if cache_dir:
@@ -162,8 +178,8 @@ class DataLoader:
     def _stream_csv_gz(filepath: Path, symbol: str,
                        start_date: str = None, end_date: str = None) -> pd.DataFrame:
         """从 CSV.gz 流式读取并过滤"""
-        start_ts = pd.Timestamp(start_date) if start_date else None
-        end_ts = pd.Timestamp(end_date) if end_date else None
+        start_ts = DataLoader._normalize_bound_timestamp(start_date)
+        end_ts = DataLoader._normalize_bound_timestamp(end_date)
 
         chunks = []
         total = 0
@@ -171,10 +187,10 @@ class DataLoader:
             chunk = chunk[chunk["symbol"] == symbol]
             if chunk.empty:
                 continue
-            chunk["timestamp"] = pd.to_datetime(chunk["bucket_ts"])
-            if start_ts:
+            chunk["timestamp"] = DataLoader._normalize_timestamp_series(chunk["bucket_ts"])
+            if start_ts is not None:
                 chunk = chunk[chunk["timestamp"] >= start_ts]
-            if end_ts:
+            if end_ts is not None:
                 chunk = chunk[chunk["timestamp"] <= end_ts]
             if not chunk.empty:
                 chunks.append(chunk[["timestamp", "open", "high", "low", "close", "volume"]])
@@ -205,6 +221,8 @@ class DataLoader:
         ds = load_dataset(DataLoader.HF_DATASET, split="train", streaming=True)
         rows = []
         count = 0
+        start_ts = DataLoader._normalize_bound_timestamp(start_date)
+        end_ts = DataLoader._normalize_bound_timestamp(end_date)
         for row in ds:
             if row.get("symbol") != symbol:
                 continue
@@ -215,10 +233,12 @@ class DataLoader:
                 ts = pd.Timestamp(ts)
             elif isinstance(ts, (int, float)):
                 ts = pd.Timestamp(ts, unit="ms")
+            if ts.tzinfo is not None:
+                ts = ts.tz_convert("UTC").tz_localize(None)
 
-            if start_date and ts < pd.Timestamp(start_date):
+            if start_ts is not None and ts < start_ts:
                 continue
-            if end_date and ts > pd.Timestamp(end_date):
+            if end_ts is not None and ts > end_ts:
                 if count > 0:
                     break
                 continue
@@ -258,10 +278,12 @@ class DataLoader:
         if "bucket_ts" in df.columns:
             df = df.rename(columns={"bucket_ts": "timestamp"})
         df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True).dt.tz_localize(None)
-        if start_date:
-            df = df[df["timestamp"] >= pd.Timestamp(start_date)]
-        if end_date:
-            df = df[df["timestamp"] <= pd.Timestamp(end_date)]
+        start_ts = DataLoader._normalize_bound_timestamp(start_date)
+        end_ts = DataLoader._normalize_bound_timestamp(end_date)
+        if start_ts is not None:
+            df = df[df["timestamp"] >= start_ts]
+        if end_ts is not None:
+            df = df[df["timestamp"] <= end_ts]
         df = df.sort_values("timestamp").reset_index(drop=True)
         return df
 
@@ -274,8 +296,9 @@ class DataLoader:
         需要网络可访问 fapi.binance.com（可能需要 VPN）
         下载后自动保存为 Parquet 缓存
         """
-        import requests
         import time as _time
+
+        import requests
 
         interval = "1m"
         limit = 1000
@@ -416,9 +439,8 @@ class DataLoader:
 
         parquet_dir: 存放 shard_*.parquet 的目录
         """
-        import pyarrow.parquet as pq
-        import pyarrow.compute as pc
         import pyarrow as pa
+        import pyarrow.parquet as pq
 
         if not parquet_dir:
             parquet_dir = os.path.join(
@@ -461,14 +483,10 @@ class DataLoader:
             df[c] = df[c].astype(float)
 
         if start_date:
-            ts_start = pd.Timestamp(start_date)
-            if df["timestamp"].dt.tz is not None and ts_start.tzinfo is None:
-                ts_start = ts_start.tz_localize("UTC")
+            ts_start = DataLoader._normalize_bound_timestamp(start_date)
             df = df[df["timestamp"] >= ts_start]
         if end_date:
-            ts_end = pd.Timestamp(end_date)
-            if df["timestamp"].dt.tz is not None and ts_end.tzinfo is None:
-                ts_end = ts_end.tz_localize("UTC")
+            ts_end = DataLoader._normalize_bound_timestamp(end_date)
             df = df[df["timestamp"] <= ts_end]
 
         df = df.sort_values("timestamp").drop_duplicates(subset=["timestamp"]).reset_index(drop=True)

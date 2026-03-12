@@ -73,6 +73,8 @@ interface ThemeItem {
 }
 
 interface RuntimeData {
+  runtimeKey: string;
+  runtimeLabel: string;
   source: 'query-service' | 'fallback';
   queryUrl: string | null;
   health: {
@@ -86,6 +88,7 @@ interface RuntimeData {
   };
   runtime: {
     botId: string;
+    exchange: string;
     marketProfile: string;
     phase: string;
     focusSymbols: string[];
@@ -114,6 +117,8 @@ interface RuntimeData {
     promptReferences: string[];
   };
   execution: {
+    exchange: string;
+    accountAsset: string;
     canTrade: boolean | null;
     canTradeReason: string;
     positionsCount: number;
@@ -162,6 +167,13 @@ interface RuntimeData {
   };
 }
 
+interface RuntimeBundle {
+  generatedAt: string;
+  primary: RuntimeData | null;
+  secondary: RuntimeData | null;
+  runtimes: RuntimeData[];
+}
+
 function cn(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(' ');
 }
@@ -195,6 +207,30 @@ function timeAgo(value: string | null): string {
 function formatNumber(value: number | null, suffix = ''): string {
   if (value === null || Number.isNaN(value)) return '-';
   return `${value}${suffix}`;
+}
+
+function marketTitle(profile: string, exchange: string): string {
+  const normalizedProfile = profile.toLowerCase();
+  const normalizedExchange = exchange.toLowerCase();
+  if (normalizedExchange === 'ctrader' || normalizedProfile.includes('multi')) {
+    return 'PA交易 Multi-Asset';
+  }
+  if (normalizedExchange === 'okx' || normalizedProfile.includes('swap')) {
+    return 'PA交易 OKX';
+  }
+  return 'PA交易 Crypto';
+}
+
+function marketSubtitle(profile: string, exchange: string, asset: string): string {
+  const normalizedExchange = exchange.toLowerCase();
+  const normalizedProfile = profile.toLowerCase();
+  if (normalizedExchange === 'ctrader' || normalizedProfile.includes('multi')) {
+    return `cTrader ${asset || 'USD'} · 外汇 / 指数 / 贵金属`;
+  }
+  if (normalizedExchange === 'okx' || normalizedProfile.includes('swap')) {
+    return `OKX ${asset || 'USDT'} · 永续合约`;
+  }
+  return `Binance ${asset || 'USDT'} · 合约`;
 }
 
 function statusLabel(value: string): string {
@@ -254,7 +290,8 @@ function Panel({
 }
 
 export default function PABotPage() {
-  const [data, setData] = useState<RuntimeData | null>(null);
+  const [bundle, setBundle] = useState<RuntimeBundle | null>(null);
+  const [selectedRuntimeKey, setSelectedRuntimeKey] = useState('primary');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -267,9 +304,14 @@ export default function PABotPage() {
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
-        const payload = (await response.json()) as RuntimeData;
+        const payload = (await response.json()) as RuntimeBundle;
         if (!cancelled) {
-          setData(payload);
+          setBundle(payload);
+          setSelectedRuntimeKey((current) =>
+            payload.runtimes.some((item) => item.runtimeKey === current)
+              ? current
+              : payload.runtimes[0]?.runtimeKey || 'primary',
+          );
           setError('');
         }
       } catch (loadError) {
@@ -290,6 +332,13 @@ export default function PABotPage() {
       window.clearInterval(timer);
     };
   }, []);
+
+  const runtimes = bundle?.runtimes ?? [];
+  const data =
+    runtimes.find((item) => item.runtimeKey === selectedRuntimeKey) ||
+    bundle?.primary ||
+    runtimes[0] ||
+    null;
 
   if (loading) {
     return (
@@ -316,9 +365,72 @@ export default function PABotPage() {
   const healthSub = `${data.health.freshnessLabel} / ${data.execution.healthStatus || '执行状态未知'}`;
   const queryConnectedText = data.health.queryLive ? '已连接' : '未连接';
   const recentDecision = data.recentDecisions[0];
+  const currentExchange = data.execution.exchange || data.runtime.exchange || 'binance';
+  const currentAsset = data.execution.accountAsset || 'USDT';
+  const title = marketTitle(data.runtime.marketProfile, currentExchange);
+  const subtitle = marketSubtitle(data.runtime.marketProfile, currentExchange, currentAsset);
+  const lastAggregatedAt = bundle?.generatedAt ? formatDateTime(bundle.generatedAt) : '-';
 
   return (
     <div className="space-y-6">
+      {runtimes.length > 1 ? (
+        <section className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+          {runtimes.map((item) => {
+            const exchange = item.execution.exchange || item.runtime.exchange || 'binance';
+            const asset = item.execution.accountAsset || 'USDT';
+            const selected = item.runtimeKey === data.runtimeKey;
+            return (
+              <button
+                key={item.runtimeKey}
+                type="button"
+                onClick={() => setSelectedRuntimeKey(item.runtimeKey)}
+                className={cn(
+                  'rounded-[24px] border p-5 text-left transition',
+                  selected
+                    ? 'border-amber-400/40 bg-amber-400/8 shadow-[0_18px_45px_rgba(245,158,11,0.12)]'
+                    : 'border-white/10 bg-slate-950/60 hover:border-white/20 hover:bg-slate-900/80',
+                )}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.28em] text-slate-500">{item.runtimeLabel}</div>
+                    <div className="mt-2 text-2xl font-semibold text-white">
+                      {marketTitle(item.runtime.marketProfile, exchange)}
+                    </div>
+                    <div className="mt-2 text-sm text-slate-400">
+                      {marketSubtitle(item.runtime.marketProfile, exchange, asset)}
+                    </div>
+                  </div>
+                  <div className={cn('text-sm font-medium', healthTone(item.health.overall))}>
+                    {item.health.overall}
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-300">
+                  <div>
+                    <div className="text-slate-500">当前阶段</div>
+                    <div className="mt-1">{item.runtime.phase || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">持仓 / 挂单</div>
+                    <div className="mt-1">{item.execution.positionsCount} / {item.execution.ordersCount}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">焦点品种</div>
+                    <div className="mt-1">{item.runtime.focusSymbols.join(' / ') || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">交易状态</div>
+                    <div className="mt-1">
+                      {item.execution.canTrade === null ? '待确认' : item.execution.canTrade ? '可以' : '等待'}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </section>
+      ) : null}
+
       <section className="overflow-hidden rounded-[30px] border border-blue-900/45 bg-[radial-gradient(circle_at_top_left,rgba(27,74,188,0.28),rgba(8,15,35,0.96)_48%,rgba(2,6,18,0.98)_100%)] p-6 shadow-[0_30px_120px_rgba(0,0,0,0.45)] md:p-8">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-5xl">
@@ -327,8 +439,11 @@ export default function PABotPage() {
                 <Bot className="h-7 w-7 text-amber-300" />
               </div>
               <div>
-                <div className="text-xs uppercase tracking-[0.34em] text-amber-300/90">AB PATROL-AGENT</div>
-                <h1 className="mt-2 text-4xl font-semibold text-white">PA交易 Crypto</h1>
+                <div className="text-xs uppercase tracking-[0.34em] text-amber-300/90">
+                  AB PATROL-AGENT · {data.runtimeLabel} · {data.runtime.botId}
+                </div>
+                <h1 className="mt-2 text-4xl font-semibold text-white">{title}</h1>
+                <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
               </div>
             </div>
 
@@ -376,6 +491,8 @@ export default function PABotPage() {
                 <ArrowRight className="h-4 w-4" />
               </a>
             ) : null}
+
+            <div className="text-xs text-slate-500">聚合刷新: {lastAggregatedAt}</div>
           </div>
         </div>
 

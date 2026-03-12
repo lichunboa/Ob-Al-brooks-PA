@@ -10,11 +10,11 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import logging
 import os
 import re
-import subprocess
 import sys
 import uuid
 import time
@@ -214,6 +214,94 @@ class PatrolRuntime(
         parsed = urllib.parse.urlparse(self.config.execution_base)
         return parsed.port or 8092
 
+    def configured_exchange(self) -> str:
+        exchange = (
+            os.getenv("AB_PATROL_EXECUTION_EXCHANGE")
+            or os.getenv("AB_PATROL_EXCHANGE")
+            or "binance"
+        ).strip().lower()
+        return exchange if exchange in {"binance", "okx", "ctrader"} else "binance"
+
+    def configured_market_profile(self) -> str:
+        exchange = self.configured_exchange()
+        if exchange == "ctrader":
+            return "multi_asset"
+        if exchange == "okx":
+            return "crypto_swap"
+        return "crypto"
+
+    def default_watch_symbols(self) -> list[str]:
+        symbols_config = load_json(self.config.agent_root / "config" / "symbols.json", {})
+        exchange = self.configured_exchange()
+        if exchange == "ctrader":
+            return ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "US 30", "US TECH 100"]
+        if exchange == "okx":
+            return list(((symbols_config.get("okx") or {}).get("crypto_swap") or []))[:6] or [
+                "BTC-USDT-SWAP",
+                "ETH-USDT-SWAP",
+                "BNB-USDT-SWAP",
+            ]
+        return list(((symbols_config.get("binance") or {}).get("crypto") or []))[:6] or [
+            "BTCUSDT",
+            "SOLUSDT",
+        ]
+
+    def configured_runtime_title(self) -> str:
+        exchange = self.configured_exchange()
+        if exchange == "ctrader":
+            return "PA交易 Multi-Asset"
+        if exchange == "okx":
+            return "PA交易 OKX"
+        return "PA交易 Crypto"
+
+    def align_market_cache(self, runtime: dict[str, Any], market_cache: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(market_cache, dict):
+            market_cache = {}
+        symbol_cache = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
+        meta = market_cache.get("_meta") if isinstance(market_cache.get("_meta"), dict) else {}
+        configured_exchange = self.configured_exchange()
+        configured_profile = self.configured_market_profile()
+        configured_symbols = self.default_watch_symbols()
+        configured_symbol_set = {str(symbol).upper() for symbol in configured_symbols}
+        cached_symbol_set = {str(symbol).upper() for symbol in symbol_cache.keys()}
+
+        runtime_exchange = str(runtime.get("exchange") or "").strip().lower()
+        runtime_profile = str(runtime.get("market_profile") or "").strip().lower()
+        cache_exchange = str(meta.get("exchange") or "").strip().lower()
+        cache_profile = str(meta.get("market_profile") or "").strip().lower()
+
+        reset_reason = ""
+        if runtime_exchange and runtime_exchange != configured_exchange:
+            reset_reason = f"runtime_exchange:{runtime_exchange}->{configured_exchange}"
+        elif runtime_profile and runtime_profile != configured_profile:
+            reset_reason = f"runtime_profile:{runtime_profile}->{configured_profile}"
+        elif cache_exchange and cache_exchange != configured_exchange:
+            reset_reason = f"cache_exchange:{cache_exchange}->{configured_exchange}"
+        elif cache_profile and cache_profile != configured_profile:
+            reset_reason = f"cache_profile:{cache_profile}->{configured_profile}"
+        elif cached_symbol_set and configured_symbol_set and not (cached_symbol_set & configured_symbol_set):
+            reset_reason = "symbol_universe_mismatch"
+
+        if reset_reason:
+            LOG.info(
+                "[MARKET_CACHE] 检测到运行配置切换，重置缓存: %s | symbols=%s",
+                reset_reason,
+                sorted(cached_symbol_set),
+            )
+            market_cache["symbols"] = {}
+            market_cache["last_full_refresh"] = None
+            meta["last_reset_at"] = utc_iso()
+            meta["last_reset_reason"] = reset_reason
+
+        meta["exchange"] = configured_exchange
+        meta["market_profile"] = configured_profile
+        meta["configured_symbols"] = configured_symbols
+        market_cache["_meta"] = meta
+
+        if reset_reason:
+            write_json(self.market_state_path, market_cache)
+        return market_cache
+
 
 
 
@@ -235,7 +323,7 @@ class PatrolRuntime(
         trigger: dict[str, Any] | None,
     ) -> dict[str, Any]:
         symbol_cache = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
-        active_symbols = list(symbol_cache.keys()) or ["BTCUSDT", "ETHUSDT", "BNBUSDT"]
+        active_symbols = list(symbol_cache.keys()) or self.default_watch_symbols()
         positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
         trigger_symbol = str(trigger.get("symbol") or "").upper() if trigger else ""
         has_positions = bool(positions)
@@ -641,7 +729,7 @@ class PatrolRuntime(
         for action in decision.get("actions") or []:
             if not isinstance(action, dict):
                 continue
-            # 规则引擎优先模式：不再使用 Brooks 过滤器，直接使用规则引擎的判断
+            # 当前无论是否命中 Brooks 过滤器，最终都以规则引擎候选为主
             action["type"] = canonical_action_type(action.get("type"))
             action["refs"] = [ref for ref in normalize_refs(action.get("refs")) if ref in ref_names]
             if not action["refs"] and ref_names:
@@ -663,10 +751,85 @@ class PatrolRuntime(
         if allocated > 0 and risk_usdt > 0:
             return max(0.1, risk_usdt / allocated * 100)
         intent = str(action.get("intent") or action.get("raw_type") or "").upper()
-        if intent in {"ADD_ON", "SCALE_IN", "PYRAMID_ADD"}:
-            # S7-management 默认的加仓步进是 0.3 / 0.3 / 0.4，总风险不超过 1%。
+        if intent == "PYRAMID_ADD":
+            # S7-management 第三笔/最后一笔加仓风险 0.4%。
+            return 0.4
+        if intent in {"ADD_ON", "SCALE_IN"}:
+            # S7-management 首个加仓风险 0.3%。
             return 0.3
-        return 1.0
+        # 首仓默认同样按 0.3% 起步，由后续确认再做加仓。
+        return 0.3
+
+    @staticmethod
+    def _position_field(position: Any, key: str, default: Any = None) -> Any:
+        if isinstance(position, dict):
+            return position.get(key, default)
+        return getattr(position, key, default)
+
+    def validate_scale_in(self, action: dict[str, Any], execution: dict[str, Any]) -> tuple[bool, str]:
+        """只允许向盈利仓位加仓，对齐 Brooks 的 winner scaling。"""
+        intent = str(action.get("intent") or "").upper()
+        if intent not in {"ADD_ON", "SCALE_IN", "PYRAMID_ADD"}:
+            return True, ""
+
+        symbol = str(action.get("symbol") or "").upper()
+        positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
+        live_position = next(
+            (
+                item
+                for item in positions
+                if isinstance(item, dict) and str(item.get("symbol") or "").upper() == symbol
+            ),
+            {},
+        )
+        if not live_position:
+            return False, "S7 加仓需要先有同品种持仓"
+
+        action_side = str(action.get("side") or "").upper()
+        live_side = str(
+            live_position.get("side")
+            or live_position.get("direction")
+            or live_position.get("position_side")
+            or ""
+        ).upper()
+        if not live_side:
+            qty = safe_float(live_position.get("quantity")) or safe_float(live_position.get("contracts"))
+            if qty > 0:
+                live_side = "BUY"
+            elif qty < 0:
+                live_side = "SELL"
+        if live_side and live_side != action_side:
+            return False, "S7 加仓方向必须与现有持仓一致"
+
+        entry_price = (
+            safe_float(live_position.get("entry_price"))
+            or safe_float(live_position.get("entryPrice"))
+            or safe_float(action.get("entry"))
+        )
+        current_price = (
+            safe_float(live_position.get("current_price"))
+            or safe_float(live_position.get("mark_price"))
+            or safe_float(live_position.get("last_price"))
+            or safe_float(action.get("entry"))
+        )
+        stop_loss = safe_float(live_position.get("stop_loss")) or safe_float(action.get("sl"))
+        initial_risk = abs(entry_price - stop_loss)
+        if entry_price <= 0 or current_price <= 0 or initial_risk <= 0:
+            return False, "S7 加仓缺少有效的 entry/current/stop 信息"
+
+        if action_side == "BUY":
+            open_r = (current_price - entry_price) / initial_risk
+            protected = stop_loss >= entry_price
+        else:
+            open_r = (entry_price - current_price) / initial_risk
+            protected = stop_loss <= entry_price
+
+        minimum_r = 0.9 if intent == "PYRAMID_ADD" else 0.25
+        if open_r < minimum_r:
+            return False, f"S7 加仓只允许加盈利仓位，当前仅走出 {open_r:.2f}R"
+        if intent == "PYRAMID_ADD" and not protected:
+            return False, "S7 第三笔加仓前，旧仓止损必须至少抬到保本"
+        return True, f"S7 加仓通过，当前浮盈 {open_r:.2f}R"
 
     def format_ai_direction(self, value: Any) -> str:
         if isinstance(value, dict):
@@ -676,6 +839,16 @@ class PatrolRuntime(
                 return f"{direction} | {detail}"
             return direction or detail
         return str(value or "").strip()
+
+    def normalize_ai_direction_token(self, value: Any) -> str:
+        text = str(value or "").strip().upper()
+        if not text:
+            return ""
+        if text in {"AIL", "BUY", "LONG", "BULL", "UP"}:
+            return "AIL"
+        if text in {"AIS", "SELL", "SHORT", "BEAR", "DOWN"}:
+            return "AIS"
+        return text
 
     def ai_direction_is_gate_ready(self, value: str) -> bool:
         text = str(value or "").strip()
@@ -692,14 +865,24 @@ class PatrolRuntime(
         parts: list[str] = []
         for timeframe in ("5m", "15m", "1h", "4h"):
             item = timeframes.get(timeframe) if isinstance(timeframes.get(timeframe), dict) else {}
-            ai = str(item.get("ai") or "").strip()
+            ai = self.normalize_ai_direction_token(item.get("ai"))
             if ai:
                 parts.append(f"{timeframe}:{ai}")
         if parts:
-            return " ".join(parts)
+            joined = " ".join(parts)
+            if self.ai_direction_is_gate_ready(joined):
+                return joined
         patch_value = self.format_ai_direction(patch.get("ai_direction"))
+        normalized_patch = self.normalize_ai_direction_token(patch_value)
+        if normalized_patch in {"AIL", "AIS"}:
+            patch_value = f"5m:{normalized_patch} 15m:{normalized_patch} 1h:{normalized_patch} 4h:{normalized_patch}"
         if self.ai_direction_is_gate_ready(patch_value):
             return patch_value
+        side = normalize_trade_side(action.get("side"))
+        if side == "BUY":
+            return "5m:AIL 15m:AIL 1h:AIL 4h:AIL"
+        if side == "SELL":
+            return "5m:AIS 15m:AIS 1h:AIS 4h:AIS"
         return existing or patch_value
 
     def build_action_bar_reading(self, patch: dict[str, Any], action: dict[str, Any]) -> str:
@@ -777,11 +960,37 @@ class PatrolRuntime(
         if p is not None and p > 1:
             p = p / 100.0
         r = max(r_values) if r_values else None
-        if p is None or r is None:
-            patch_value = str(evaluation.get("reason") or patch.get("thesis") or "").strip()
-            return existing or patch_value
+        if p is None:
+            confidence = first_float(action.get("confidence"))
+            if confidence is not None:
+                p = confidence / 100.0 if confidence > 1 else confidence
+        if r is None:
+            entry = first_float(action.get("entry") or action.get("entry_price"))
+            stop_loss = first_float(action.get("sl") or action.get("stop_loss"))
+            take_profit = first_float(action.get("tp") or action.get("take_profit"))
+            if entry is not None and stop_loss is not None and take_profit is not None:
+                risk = abs(entry - stop_loss)
+                reward = abs(take_profit - entry)
+                if risk > 0 and reward > 0:
+                    r = reward / risk
+        if p is None:
+            p = 0.55
+        if r is None:
+            r = 1.8
         pxr = p * r
         return f"P={int(round(p * 100))}% R={r:.2f} PxR={pxr:.2f}"
+
+    def default_gate_refs(self, market_state: str) -> list[str]:
+        primary_s6 = classify_primary_s6_reference(str(market_state or ""), [])
+        refs = [
+            "S2-direction.md",
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-common.md",
+        ]
+        if primary_s6 and primary_s6 not in refs:
+            refs.append(primary_s6)
+        return refs
 
     def ensure_gate_ready_equation(self, action: dict[str, Any]) -> dict[str, Any]:
         normalized = dict(action)
@@ -871,9 +1080,13 @@ class PatrolRuntime(
         if isinstance(patch.get("entry_idea"), dict):
             hydrated["entry_idea"] = patch.get("entry_idea")
         hydrated["equation"] = self.build_trade_equation(patch, hydrated)
-        hydrated["refs"] = normalize_refs(hydrated.get("refs")) or normalize_refs(patch.get("refs"))
         hydrated["bar_reading"] = self.build_action_bar_reading(patch, hydrated)
         market_state = hydrated.get("market_state") or patch.get("market_state") or ""
+        hydrated["refs"] = (
+            normalize_refs(hydrated.get("refs"))
+            or normalize_refs(patch.get("refs"))
+            or self.default_gate_refs(str(market_state))
+        )
         hydrated["strategy"] = hydrated.get("strategy") or (patch.get("entry_idea") or {}).get("style") or "PA_PATROL"
         if planned_trade.get("brooks_label"):
             hydrated["brooks_label"] = planned_trade.get("brooks_label")
@@ -910,53 +1123,85 @@ class PatrolRuntime(
             hydrated.setdefault("note", "S7 加仓")
         return hydrated
 
+    def load_trade_gate_module(self) -> Any:
+        module = getattr(self, "_trade_gate_module", None)
+        if module is not None:
+            return module
+        module_path = self.config.tools_root / "patrol_trade.py"
+        spec = importlib.util.spec_from_file_location("ab_patrol_trade_gate", module_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"无法加载交易校验模块: {module_path}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        self._trade_gate_module = module
+        return module
+
     def validate_trade_gate(self, action: dict[str, Any]) -> dict[str, Any]:
         action = self.ensure_gate_ready_equation(action)
         refs = ",".join(normalize_refs(action.get("refs")))
-        cmd = [
-            "python3",
-            str(self.config.tools_root / "patrol_trade.py"),
-            "--symbol",
-            str(action.get("symbol", "")),
-            "--side",
-            str(action.get("side", "")),
-            "--entry",
-            str(action.get("entry", "")),
-            "--sl",
-            str(action.get("sl", "")),
-            "--tp",
-            str(action.get("tp", "")),
-            "--risk",
-            str(action.get("risk_usdt", 10)),
-            "--strategy",
-            str(action.get("strategy", "")),
-            "--style",
-            str(action.get("style", "")),
-            "--ai-direction",
-            str(action.get("ai_direction", "")),
-            "--market-state",
-            str(action.get("market_state", "")),
-            "--signal-bar",
-            str(action.get("signal_bar", "")),
-            "--equation",
-            str(action.get("equation", "")),
-            "--refs",
+        gate = self.load_trade_gate_module()
+
+        checks: list[str] = []
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        def record(label: str, ok: bool, message: str, *, warning: bool = False) -> None:
+            prefix = "⚠️" if warning else ("✅" if ok else "❌")
+            checks.append(f"{prefix} {label}: {message}")
+            if warning:
+                warnings.append(message)
+            elif not ok:
+                errors.append(message)
+
+        ok, message = gate.validate_equation(str(action.get("equation") or ""))
+        record("Equation", ok, str(message))
+
+        ok, message = gate.validate_refs(refs)
+        record("Refs", ok, str(message))
+
+        ok, message = gate.validate_bar_reading(str(action.get("bar_reading") or ""))
+        record("Reading", ok, str(message))
+
+        ok, message = gate.validate_stop_loss(
+            str(action.get("side") or ""),
+            safe_float(action.get("entry")),
+            safe_float(action.get("sl")),
+            safe_float(action.get("tp")),
+            str(action.get("strategy") or ""),
+            str(action.get("style") or ""),
+            str(action.get("equation") or ""),
+            str(action.get("market_state") or ""),
             refs,
-            "--bar-reading",
-            str(action.get("bar_reading", "")),
-            "--dry-run",
-        ]
-        result = subprocess.run(
-            cmd,
-            cwd=str(self.config.agent_root),
-            capture_output=True,
-            text=True,
-            timeout=30,
         )
+        record("SL/TP", ok, str(message))
+
+        ai_parts = str(action.get("ai_direction") or "").replace(",", " ").split()
+        target_dir = "AIL" if str(action.get("side") or "").upper() == "BUY" else "AIS"
+        aligned = sum(1 for part in ai_parts if target_dir in part.upper())
+        if aligned < 3:
+            record("Alignment", False, f"{action.get('side')} 需要至少 3 个 TF 为 {target_dir}，当前只有 {aligned} 个")
+        else:
+            record("Alignment", True, f"{aligned}/4 TF = {target_dir}")
+
+        market_state = str(action.get("market_state") or "").upper()
+        strategy = str(action.get("strategy") or "").upper()
+        if market_state == "TR" and "BO" in strategy:
+            record("State", True, "TR 状态下不应做 BO 策略", warning=True)
+        else:
+            record("State", True, f"{market_state or '-'} + {action.get('strategy') or '-'} 一致")
+
+        output_lines = checks[:]
+        if warnings:
+            output_lines.append("⚠️ 警告: " + " | ".join(warnings))
+        if errors:
+            output_lines.append("🚫 下单被拒绝")
+        else:
+            output_lines.append("✅ 全部校验通过")
+
         return {
-            "ok": result.returncode == 0,
-            "stdout": (result.stdout or "").strip()[-1500:],
-            "stderr": (result.stderr or "").strip()[-1500:],
+            "ok": not errors,
+            "stdout": "\n".join(output_lines)[-1500:],
+            "stderr": "" if not errors else "\n".join(errors)[-1500:],
         }
 
     def execute_action(self, action: dict[str, Any], execution: dict[str, Any]) -> dict[str, Any]:
@@ -976,8 +1221,13 @@ class PatrolRuntime(
             return result
 
         if action_type == "OPEN_ORDER":
-            # 规则引擎优先模式：不再使用 validate_trade_gate，直接信任规则引擎
-            result["trade_gate"] = {"ok": True, "stdout": "规则引擎优先模式：跳过验证", "stderr": ""}
+            result["trade_gate"] = self.validate_trade_gate(action)
+            if not result["trade_gate"].get("ok"):
+                gate_message = result["trade_gate"].get("stdout") or result["trade_gate"].get("stderr") or "trade gate rejected"
+                result["success"] = False
+                result["status"] = "VALIDATION_REJECTED"
+                result["message"] = gate_message
+                return result
 
             can_trade = execution.get("can_trade") if isinstance(execution.get("can_trade"), dict) else {}
             if not can_trade.get("can_trade", False):
@@ -986,13 +1236,23 @@ class PatrolRuntime(
                 result["message"] = f"can_trade blocked: {can_trade.get('reason', '-')}"
                 return result
 
+            scale_ok, scale_message = self.validate_scale_in(action, execution)
+            result["scale_in_gate"] = {"ok": scale_ok, "message": scale_message}
+            if not scale_ok:
+                result["success"] = False
+                result["status"] = "S7_SCALE_IN_BLOCKED"
+                result["message"] = scale_message
+                return result
+
             risk_percent = self.action_risk_percent(action, execution)
             size = self.http_get_json(
                 f"/trading/calculate-size/{self.config.execution_bot_id}",
                 {
+                    "symbol": symbol,
                     "entry_price": safe_float(action.get("entry")),
                     "stop_loss": safe_float(action.get("sl")),
                     "risk_percent": risk_percent,
+                    "intent": str(action.get("intent") or ""),
                 },
             )
             result["size_calc"] = size
@@ -1019,7 +1279,7 @@ class PatrolRuntime(
             if self.config.dry_run:
                 result["success"] = True
                 result["status"] = "DRY_RUN_VALIDATED"
-                result["message"] = "trade gate passed; order not sent"
+                result["message"] = "dry-run 模式：已完成仓位计算并生成订单载荷，未实际发送"
                 return result
 
             order_resp = self.http_post_json("/order", order_payload)
@@ -1162,6 +1422,9 @@ class PatrolRuntime(
             market_cache["_meta"] = meta
         meta["loop_count"] = loop_count
         meta["last_update"] = now_iso
+        meta["exchange"] = self.configured_exchange()
+        meta["market_profile"] = self.configured_market_profile()
+        meta["configured_symbols"] = self.default_watch_symbols()
 
         signal_count = 0
         for patch in (decision.get("symbol_updates") or {}).values():
@@ -1275,7 +1538,8 @@ class PatrolRuntime(
             {
                 "version": "2.0",
                 "bot_id": self.config.execution_bot_id,
-                "market_profile": "crypto",
+                "exchange": self.configured_exchange(),
+                "market_profile": self.configured_market_profile(),
                 "loop_seq": int(runtime.get("loop_seq") or 0) + 1,
                 "status": "RUNNING",
                 "current_phase": decision.get("phase") or phase_plan["phase"],
@@ -1331,6 +1595,30 @@ class PatrolRuntime(
             }
         )
         updated.update(decision.get("state_patch") or {})
+        updated["exchange"] = self.configured_exchange()
+        updated["market_profile"] = self.configured_market_profile()
+        updated["dry_run"] = self.config.dry_run
+        updated["active_symbols"] = updated.get("active_symbols") or self.default_watch_symbols()
+        updated["focus_symbols"] = updated.get("focus_symbols") or phase_plan["focus_symbols"]
+        if str(runtime.get("exchange") or "").strip().lower() != self.configured_exchange():
+            updated.pop("symbols", None)
+        symbol_state = decision.get("symbol_updates") if isinstance(decision.get("symbol_updates"), dict) else {}
+        if symbol_state:
+            updated["symbols"] = symbol_state
+        existing_symbol_state = updated.get("symbols") if isinstance(updated.get("symbols"), dict) else {}
+        allowed_symbols = {
+            str(symbol).upper()
+            for symbol in [
+                *self.default_watch_symbols(),
+                *(updated.get("focus_symbols") or []),
+                *(updated.get("active_symbols") or []),
+            ]
+            if str(symbol).strip()
+        }
+        existing_symbols = {str(symbol).upper() for symbol in existing_symbol_state.keys()}
+        if existing_symbols and allowed_symbols and not (existing_symbols & allowed_symbols):
+            updated.pop("symbols", None)
+        updated.pop("runtime_state", None)
         updated["next_scan"].setdefault("bucket_source_refs", [])
         updated["next_scan"].setdefault("bucket_rule", "-")
         decision.setdefault("state_patch", {})["scan_bucket"] = next_scan_plan
@@ -1366,7 +1654,7 @@ class PatrolRuntime(
         analysis_board: dict[str, Any],
         quick_scan_events: dict[str, Any],
     ) -> dict[str, Any]:
-        """规则引擎优先决策：不调用 LLM，直接使用规则引擎做开仓决策"""
+        """规则引擎执行路径：在本轮未触发 LLM 时直接生成开仓与管理动作。"""
         from rule_engine import get_executable_trades
         from position_manager import manage_position
 
@@ -1392,12 +1680,20 @@ class PatrolRuntime(
 
         # 2. 开仓决策（如果无持仓）
         executable_trades = []
-        # 规则引擎优先模式：无论是否有持仓，都运行规则引擎
+        # 当前规则引擎路径在有无持仓两种情况下都会运行
         try:
             LOG.info("[RULE_ENGINE_DECISION] symbol_cache keys: %s", list(symbol_cache.keys()))
             for sym in focus_symbols:
-                cached = symbol_cache.get(sym, {})
-                LOG.info(f"[RULE_ENGINE_DECISION] {sym}: status={cached.get('status')}, pre_signal_active={cached.get('pre_signal',{}).get('active')}")
+                cached_raw = symbol_cache.get(sym, {})
+                cached = cached_raw if isinstance(cached_raw, dict) else {}
+                pre_signal_raw = cached.get("pre_signal", {})
+                pre_signal = pre_signal_raw if isinstance(pre_signal_raw, dict) else {}
+                LOG.info(
+                    "[RULE_ENGINE_DECISION] %s: status=%s, pre_signal_active=%s",
+                    sym,
+                    cached.get("status"),
+                    pre_signal.get("active"),
+                )
 
             executable_trades = get_executable_trades(symbol_cache)
             if executable_trades:
@@ -1426,7 +1722,7 @@ class PatrolRuntime(
                 "planned_trade": cached.get("planned_trade"),
             }
 
-            # 生成开仓 actions（规则引擎优先模式：始终运行）
+            # 生成开仓 actions（当前规则引擎路径始终运行）
             matching_trade = next((t for t in executable_trades if t["symbol"] == symbol), None)
             if matching_trade:
                 action_type = "OPEN_ORDER"
@@ -1451,7 +1747,8 @@ class PatrolRuntime(
                     "bar_reading": "",
                     "ai_direction": matching_trade["side"],
                     "risk_usdt": 10,
-                    "signal_source": "claude-pa",  # 跳过风控检查
+                    "confidence": matching_trade.get("confidence"),
+                    "signal_source": self.config.execution_bot_id,
                 })
             else:
                 action_type = "LOG_ONLY"
@@ -1465,9 +1762,9 @@ class PatrolRuntime(
                 })
 
         if positions:
-            market_summary = f"规则引擎优先模式：当前有 {len(positions)} 个持仓，生成 {len(position_management)} 个管理 actions。"
+            market_summary = f"规则引擎执行路径：当前有 {len(positions)} 个持仓，生成 {len(position_management)} 个管理 actions。"
         else:
-            market_summary = f"规则引擎优先模式：识别到 {len(executable_trades)} 个可执行交易。"
+            market_summary = f"规则引擎执行路径：识别到 {len(executable_trades)} 个可执行交易。"
 
         return {
             "phase": phase_plan["phase"],
@@ -1478,9 +1775,9 @@ class PatrolRuntime(
             "actions": actions,
             "position_management": position_management,
             "next_scan_seconds": 120 if not positions else 60,
-            "next_scan_reason": "规则引擎优先模式：无持仓 2 分钟扫描，有持仓 1 分钟扫描",
+            "next_scan_reason": "规则引擎执行路径：无持仓 2 分钟扫描，有持仓 1 分钟扫描",
             "state_patch": {},
-            "explanation": "规则引擎优先模式：跳过 LLM，直接使用规则引擎识别交易机会，代码化持仓管理。",
+            "explanation": "本轮未触发 LLM，直接使用规则引擎识别交易机会，并用代码化逻辑执行持仓管理。",
         }
 
     def timeout_fallback_decision(
@@ -1637,7 +1934,7 @@ class PatrolRuntime(
 
     def run_cycle(self, trigger: dict[str, Any] | None = None) -> dict[str, Any]:
         runtime = self.load_runtime_state()
-        market_cache = self.normalize_market_cache(self.load_market_cache())
+        market_cache = self.align_market_cache(runtime, self.normalize_market_cache(self.load_market_cache()))
         execution = self.execution_snapshot()
         phase_plan = self.select_phase_plan(runtime, market_cache, execution, trigger)
         prepared = self.prepare_prompt_context(runtime, market_cache, execution, trigger, phase_plan)
@@ -1925,7 +2222,12 @@ class PatrolRuntime(
         write_json(cycle_path, cycle_payload)
         write_json(self.logs_dir / f"{cycle_id}_response.json", payload)
         write_json(self.logs_dir / f"{cycle_id}_decision.json", decision)
-        write_text(self.logs_dir / f"{cycle_id}_request.md", (self.logs_dir / "last_request.md").read_text(encoding="utf-8"))
+        last_request_path = self.logs_dir / "last_request.md"
+        if last_request_path.exists():
+            write_text(
+                self.logs_dir / f"{cycle_id}_request.md",
+                last_request_path.read_text(encoding="utf-8"),
+            )
 
         push_result = {"ok": False, "skipped": True, "reason": "not_significant"}
         cycle_card_render = {"ok": True, "skipped": False}
@@ -1980,7 +2282,7 @@ class PatrolRuntime(
                             **push_result,
                             "photo": self.push_telegram_photo(
                                 cycle_chart,
-                                f"📈 PA交易 Crypto｜{cycle_symbol or '-'} 图表\n• 轮次: {cycle_id}\n• 阶段: {phase_text}",
+                                f"📈 {self.configured_runtime_title()}｜{cycle_symbol or '-'} 图表\n• 轮次: {cycle_id}\n• 阶段: {phase_text}",
                             ),
                         }
         else:
@@ -2012,7 +2314,7 @@ class PatrolRuntime(
                         **result,
                         "photo": self.push_telegram_photo(
                             str(chart_context.get("primary_chart_path") or ""),
-                            f"🖼 PA交易 Crypto｜{symbol} 预信号图表\n• 状态: {notice.get('status') or '-'}\n• 图表: {chart_context.get('primary_chart_file') or '-'}",
+                            f"🖼 {self.configured_runtime_title()}｜{symbol} 预信号图表\n• 状态: {notice.get('status') or '-'}\n• 图表: {chart_context.get('primary_chart_file') or '-'}",
                         ),
                     }
             pre_signal_pushes.append(result)

@@ -570,6 +570,7 @@ def place_trade(signal: dict, balance: float) -> dict:
         calc_resp = requests.get(
             f"{BASE_URL}/trading/calculate-size/{BOT_ID}",
             params={
+                "symbol": signal["symbol"],
                 "entry_price": signal["entry_price"],
                 "stop_loss": signal["sl"],
                 "risk_percent": RISK_PCT,

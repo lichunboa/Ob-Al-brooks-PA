@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Load AB Patrol-Agent local env files."""
+"""加载 AB Patrol-Agent 本地环境变量。"""
 
 from __future__ import annotations
 
@@ -8,9 +8,15 @@ from pathlib import Path
 
 
 def load_agent_env(agent_root: Path) -> None:
-    """Load agent-local .env files once without overriding existing env vars."""
+    """按项目本地 `.env` 覆盖式加载环境变量。"""
     if os.environ.get("AB_PATROL_ENV_LOADED") == "1":
         return
+    respect_existing = os.environ.get("AB_PATROL_RESPECT_EXISTING_ENV", "0").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     candidates = [
         agent_root / "config" / ".env",
         agent_root / ".env",
@@ -25,5 +31,7 @@ def load_agent_env(agent_root: Path) -> None:
             key, value = line.split("=", 1)
             key = key.strip()
             value = value.strip().strip('"').strip("'")
-            os.environ.setdefault(key, value)
+            if respect_existing and os.environ.get(key, "").strip() != "":
+                continue
+            os.environ[key] = value
     os.environ["AB_PATROL_ENV_LOADED"] = "1"

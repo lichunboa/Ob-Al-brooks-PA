@@ -556,6 +556,7 @@ async def get_multi_klines(symbol: str):
 @app.get("/trading/calculate-size/{bot_id}")
 async def calculate_size(
     bot_id: str,
+    symbol: str | None = Query(None),
     entry_price: float = Query(...),
     stop_loss: float = Query(...),
     risk_percent: float = Query(1.0),
@@ -571,6 +572,7 @@ async def calculate_size(
 
     return {
         "bot_id": bot_id,
+        "symbol": symbol,
         "quantity": round(quantity, 4),
         "explanation": f"余额${sim_state.balance:.0f} × 风险{risk_percent}% = ${risk_amount:.2f}风险 / {sl_pct:.2f}%SL = {quantity:.4f}",
         "entry_price": entry_price,

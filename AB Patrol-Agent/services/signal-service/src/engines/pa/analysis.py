@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from .models import Candle, MarketState
 
 
@@ -79,7 +77,7 @@ class MeasuredMoveCalculator:
         lows = [(i, c.low) for i, c in enumerate(lookback)]
 
         max_idx, max_high = max(highs, key=lambda x: x[1])
-        lows_after = [(i, l) for i, l in lows if i > max_idx]
+        lows_after = [(i, low_value) for i, low_value in lows if i > max_idx]
         if not lows_after:
             return (0.0, 0.0)
         _, min_low = min(lows_after, key=lambda x: x[1])
@@ -198,7 +196,7 @@ class CandlePatterns:
         return CandlePatterns.body_ratio(candle) < threshold
 
     @staticmethod
-    def is_reversal_bar(curr: Candle, prev: Candle) -> Optional[str]:
+    def is_reversal_bar(curr: Candle, prev: Candle) -> str | None:
         if CandlePatterns.is_bear(prev) and CandlePatterns.is_bull(curr) and curr.close > prev.high:
             return "多头反转"
         if CandlePatterns.is_bull(prev) and CandlePatterns.is_bear(curr) and curr.close < prev.low:
@@ -299,6 +297,26 @@ class CycleIdentifier:
     """Al Brooks 四状态市场周期识别器。"""
 
     @staticmethod
+    def context_range(candles: list[Candle]) -> dict[str, float | int]:
+        """提取更贴近 Brooks 的可见区间边界，而不是固定最近 20 根。"""
+        if not candles:
+            return {
+                "range_high": 0.0,
+                "range_low": 0.0,
+                "window_size": 0,
+                "overlap_ratio": 0.0,
+                "swing_count": 0,
+            }
+        window = CycleIdentifier._select_context_window(candles)
+        return {
+            "range_high": max(c.high for c in window),
+            "range_low": min(c.low for c in window),
+            "window_size": len(window),
+            "overlap_ratio": CycleIdentifier._overlap_ratio(window),
+            "swing_count": len(CycleIdentifier._find_swings(window)),
+        }
+
+    @staticmethod
     def identify(candles: list[Candle], ema20: list[float]) -> MarketState:
         """Al Brooks 四状态识别主函数。"""
         default = MarketState("neutral", "观望", 0.0)
@@ -310,12 +328,16 @@ class CycleIdentifier:
         ema_val = ema20[-1]
         above_ema = price > ema_val
 
-        swings_local = CycleIdentifier._find_swings(candles[-20:])
+        context_meta = CycleIdentifier.context_range(candles)
+        context_size = int(context_meta["window_size"] or 20)
+        context_window = candles[-context_size:] if context_size > 0 else candles[-20:]
+        swings_local = CycleIdentifier._find_swings(context_window[-40:] if len(context_window) >= 40 else context_window)
         structure_local = CycleIdentifier._classify_structure(swings_local)
         swings_global = CycleIdentifier._find_swings(candles)
         structure_global = CycleIdentifier._classify_structure(swings_global)
         overlap_10 = CycleIdentifier._overlap_ratio(candles[-10:])
         overlap_20 = CycleIdentifier._overlap_ratio(candles[-20:])
+        overlap_context = float(context_meta["overlap_ratio"] or overlap_20)
 
         recent5 = candles[-5:]
         bulls = sum(1 for c in recent5 if CandlePatterns.is_strong_bull(c))
@@ -323,19 +345,19 @@ class CycleIdentifier:
 
         bars_from = 0
         for candle in reversed(candles[-20:]):
-            if above_ema and candle.low > ema_val:
-                bars_from += 1
-            elif not above_ema and candle.high < ema_val:
+            if (above_ema and candle.low > ema_val) or (not above_ema and candle.high < ema_val):
                 bars_from += 1
             else:
                 break
 
-        recent20 = candles[-20:]
-        rng_high = max(c.high for c in recent20)
-        rng_low = min(c.low for c in recent20)
+        rng_high = float(context_meta["range_high"] or 0.0)
+        rng_low = float(context_meta["range_low"] or 0.0)
 
-        pb_ratio = CycleIdentifier._measure_pullback_ratio(candles[-20:], swings_local)
-        gaps_open = CycleIdentifier._check_gaps_open(candles[-10:], ema_val)
+        pb_ratio = CycleIdentifier._measure_pullback_ratio(context_window, swings_local)
+        gaps_open = CycleIdentifier._check_gaps_open(
+            context_window[-20:] if len(context_window) >= 20 else context_window,
+            ema_val,
+        )
         follow_through = CycleIdentifier._check_follow_through(candles[-6:])
 
         always_in = CycleIdentifier._determine_always_in(
@@ -407,11 +429,11 @@ class CycleIdentifier:
                 pullback_ratio=pb_ratio,
             )
 
-        is_ttr = CycleIdentifier._detect_ttr(candles[-20:])
+        is_ttr = CycleIdentifier._detect_ttr(context_window[-20:] if len(context_window) >= 20 else context_window)
         is_range = (
-            (overlap_20 > 0.50 and abs(slope) < 0.10)
-            or (structure_local == "mixed" and overlap_10 > 0.45)
-            or (abs(slope) < 0.03 and overlap_10 > 0.40)
+            (overlap_context > 0.50 and abs(slope) < 0.10)
+            or (structure_local == "mixed" and max(overlap_10, overlap_context) > 0.45)
+            or (abs(slope) < 0.03 and max(overlap_10, overlap_context) > 0.40)
         )
 
         if is_range:
@@ -513,6 +535,45 @@ class CycleIdentifier:
         if bear_score >= 4 and bear_score > bull_score + 1:
             return "short"
         return "neutral"
+
+    @staticmethod
+    def _select_context_window(candles: list[Candle]) -> list[Candle]:
+        """优先保留最近仍然有效的 TR / Broad Channel 结构记忆。"""
+        if len(candles) <= 20:
+            return candles
+
+        selected = candles[-20:]
+        for size in (30, 40, 60):
+            if len(candles) < size:
+                continue
+            window = candles[-size:]
+            swings = CycleIdentifier._find_swings(window)
+            alternating = CycleIdentifier._alternating_swing_count(swings[-8:] if len(swings) >= 8 else swings)
+            overlap = CycleIdentifier._overlap_ratio(window)
+            avg_bar_range = sum(max(c.high - c.low, 0.0) for c in window) / len(window)
+            if avg_bar_range <= 0:
+                continue
+            range_height = max(c.high for c in window) - min(c.low for c in window)
+            compression = range_height / avg_bar_range
+            looks_range_like = overlap >= 0.34 or (alternating >= 5 and overlap >= 0.24)
+            looks_broad_channel_like = alternating >= 6 and compression <= max(10.0, size * 0.42)
+            if looks_range_like or looks_broad_channel_like:
+                selected = window
+        return selected
+
+    @staticmethod
+    def _alternating_swing_count(swings: list[dict]) -> int:
+        """统计最近 swing 是否高低交替，辅助识别区间与宽通道。"""
+        if not swings:
+            return 0
+        count = 1
+        last_type = str(swings[0].get("type") or "")
+        for swing in swings[1:]:
+            current_type = str(swing.get("type") or "")
+            if current_type and current_type != last_type:
+                count += 1
+                last_type = current_type
+        return count
 
     @staticmethod
     def _measure_pullback_ratio(candles: list[Candle], swings: list[dict]) -> float:

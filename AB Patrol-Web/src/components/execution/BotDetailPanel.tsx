@@ -66,13 +66,22 @@ export function BotDetailPanel({ botId, summary, evolution }: BotDetailPanelProp
 
       {/* 名义价值 (V3.0) */}
       {summary.notional && (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           <div className="bg-slate-900/50 rounded px-3 py-2">
             <div className="flex items-center gap-1 text-xs text-slate-400 mb-1">
               <DollarSign className="w-3 h-3" />
               单仓名义
             </div>
             <p className="text-sm font-medium text-slate-200">${summary.notional.max_per_position.toFixed(0)}</p>
+          </div>
+          <div className="bg-slate-900/50 rounded px-3 py-2">
+            <p className="text-xs text-slate-400 mb-1">单笔成本</p>
+            <p className="text-sm font-medium text-slate-200">
+              ${summary.notional.max_cost_per_order?.toFixed(2) ?? '0.00'}
+              <span className="ml-1 text-xs text-slate-500">
+                ({summary.notional.max_cost_pct_per_order ?? 0}%)
+              </span>
+            </p>
           </div>
           <div className="bg-slate-900/50 rounded px-3 py-2">
             <p className="text-xs text-slate-400 mb-1">总名义容量</p>

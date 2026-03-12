@@ -33,10 +33,10 @@
 - 规范层 canonical：`AB Patrol-Agent/knowledge/patrol-l1/canonical/`
 - 完整 skill: `AB Patrol-Agent/knowledge/patrol-l1/SKILL.md`
 - 完整 S 文件目录: `AB Patrol-Agent/knowledge/patrol-l1/references/`
-- 运行维护说明：`AB Patrol-Agent/docs/SKILL_RUNTIME_REFERENCE_20260309.md`
-- `S0-S7 -> C/Q/运行说明` 迁移映射：`AB Patrol-Agent/docs/S0_S7_RUNTIME_MAP_20260309.md`
-- runtime 策略实现审计：`AB Patrol-Agent/docs/RUNTIME_STRATEGY_AUDIT_20260309.md`
-- 知识入口索引：`AB Patrol-Agent/knowledge/patrol-l1/KNOWLEDGE_INDEX_20260309.md`
+- 当前运行维护入口：`AB Patrol-Agent/docs/README.md`
+- 当前运行链说明：`AB Patrol-Agent/docs/RUNTIME_FLOW.md`
+- 历史审计与迁移说明：`docs/archive/patrol-agent/README.md`
+- 当前项目级交易链说明：`docs/CURRENT_TRADING_FLOW.md`
 
 这两处是当前 Al Brooks patrol 的完整权威知识副本，对应原始来源：
 
@@ -147,8 +147,8 @@ runtime 现在会同时写出两层 Step 5 信息：
 
 更细的映射可以看：
 
-- `AB Patrol-Agent/docs/S0_S7_RUNTIME_MAP_20260309.md`
-- `AB Patrol-Agent/docs/RUNTIME_STRATEGY_AUDIT_20260309.md`
+- `AB Patrol-Agent/docs/README.md`
+- `docs/archive/patrol-agent/README.md`
 
 ## 当前没有做的事
 

@@ -312,6 +312,11 @@ cd $(shell_quote "$ROOT")
 export PATH=$(shell_quote "$launchd_path")
 export HOME=$(shell_quote "$HOME")
 export PYTHONUNBUFFERED=1
+if [[ -f $(shell_quote "$ENV_FILE") ]]; then
+  set -a
+  source $(shell_quote "$ENV_FILE")
+  set +a
+fi
 EOF
   local arg
   local line=""
@@ -340,6 +345,11 @@ export PYTHONUNBUFFERED=1
 printf '\\033]0;${title}\\007'
 STOP_FILE=$(shell_quote "$stop_file")
 rm -f "\$STOP_FILE"
+if [[ -f $(shell_quote "$ENV_FILE") ]]; then
+  set -a
+  source $(shell_quote "$ENV_FILE")
+  set +a
+fi
 EOF
   local arg
   local line=""
@@ -746,10 +756,23 @@ start_execution() {
     echo "检测到 8092 已被未托管进程占用 (PID: $live_pid)，正在替换"
     terminate_pid "$live_pid"
   fi
-  local exec_exchange="${AB_PATROL_EXECUTION_EXCHANGE:-binance}"
-  local exec_mode="${AB_PATROL_EXECUTION_MODE:-demo}"
+  local exec_exchange="${AB_PATROL_EXECUTION_EXCHANGE:-${AB_PATROL_EXCHANGE:-binance}}"
+  local exec_mode="${AB_PATROL_EXECUTION_MODE:-}"
+  if [[ -z "$exec_mode" ]]; then
+    case "$exec_exchange" in
+      ctrader)
+        exec_mode="$([[ "${AB_PATROL_CTRADER_DEMO:-1}" == "0" ]] && echo mainnet || echo demo)"
+        ;;
+      okx)
+        exec_mode="$([[ "${AB_PATROL_OKX_TESTNET:-0}" == "1" ]] && echo demo || echo mainnet)"
+        ;;
+      *)
+        exec_mode="$([[ "${AB_PATROL_BINANCE_TESTNET:-1}" == "0" ]] && echo mainnet || echo demo)"
+        ;;
+    esac
+  fi
   local binance_mode="${AB_PATROL_BINANCE_MODE:-$exec_mode}"
-  nohup bash -lc "cd '$EXECUTION_ROOT' && export EXCHANGE='$exec_exchange' EXCHANGE_MODE='$exec_mode' BINANCE_MODE='$binance_mode' && exec '$exec_python' -m src --port 8092" </dev/null >>"$EXECUTION_LOG_FILE" 2>&1 &
+  nohup bash -lc "cd '$EXECUTION_ROOT' && export PYTHONPATH='$ROOT${PYTHONPATH:+:$PYTHONPATH}' ENV_FILE='$ENV_FILE' EXCHANGE='$exec_exchange' EXCHANGE_MODE='$exec_mode' BINANCE_MODE='$binance_mode' && exec '$exec_python' -m src --port 8092" </dev/null >>"$EXECUTION_LOG_FILE" 2>&1 &
   echo $! > "$EXECUTION_PID_FILE"
   sleep 4
   if is_execution_running; then

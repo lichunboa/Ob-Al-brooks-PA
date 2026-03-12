@@ -14,6 +14,15 @@ BALANCE_SYNC_INTERVAL = 60  # 1 分钟同步余额
 NOTE_SYNC_INTERVAL = 300  # 5 分钟同步笔记+订单
 
 
+def _pick_cash_balance(balances: list[Any]) -> Any:
+    """优先取 USDT / USD 现金余额，不存在则回退到首个条目。"""
+    for asset in ("USDT", "USD"):
+        matched = next((balance for balance in balances if getattr(balance, "asset", None) == asset), None)
+        if matched:
+            return matched
+    return balances[0] if balances else None
+
+
 async def periodic_sync(
     *,
     executor: Any,
@@ -21,17 +30,29 @@ async def periodic_sync(
     position_patrol: Any,
     note_sync: Any,
     order_tracker: Any,
+    exchange: str = "binance",
 ) -> None:
     """定时任务：余额同步、持仓巡检、笔记同步、订单追踪。"""
+    if executor and trading_state:
+        trading_state.set_account_context(
+            asset=getattr(executor, "account_asset", "USDT"),
+            exchange=getattr(executor, "exchange_name", exchange),
+        )
     await asyncio.sleep(30)
     tick = 0
     while True:
         try:
             if executor and trading_state:
                 balances = await executor.get_balance()
-                usdt = next((balance for balance in balances if balance.asset == "USDT"), None)
-                if usdt:
-                    trading_state.sync_balance(usdt.balance, usdt.available, usdt.unrealized_pnl)
+                balance = _pick_cash_balance(balances)
+                if balance:
+                    trading_state.sync_balance(
+                        balance.balance,
+                        balance.available,
+                        balance.unrealized_pnl,
+                        asset=getattr(balance, "asset", "USDT"),
+                        exchange=exchange,
+                    )
 
             if position_patrol:
                 await position_patrol.patrol()
@@ -58,11 +79,23 @@ async def periodic_sync(
 async def sync_startup_balance(*, executor: Any, trading_state: Any) -> None:
     """启动时同步余额。"""
     try:
+        exchange = getattr(executor, "exchange_name", "binance")
+        trading_state.set_account_context(
+            asset=getattr(executor, "account_asset", "USDT"),
+            exchange=exchange,
+            reset_snapshot_on_change=True,
+        )
         balances = await executor.get_balance()
-        usdt = next((balance for balance in balances if balance.asset == "USDT"), None)
-        if usdt:
-            trading_state.sync_balance(usdt.balance, usdt.available, usdt.unrealized_pnl)
-            logger.info("启动同步完成: 余额 $%.2f", usdt.balance)
+        balance = _pick_cash_balance(balances)
+        if balance:
+            trading_state.sync_balance(
+                balance.balance,
+                balance.available,
+                balance.unrealized_pnl,
+                asset=getattr(balance, "asset", "USDT"),
+                exchange=exchange,
+            )
+            logger.info("启动同步完成: 余额 $%.2f", balance.balance)
     except Exception as exc:
         logger.warning("启动同步失败: %s", exc)
 

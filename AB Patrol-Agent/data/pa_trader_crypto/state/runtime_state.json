@@ -1,0 +1,357 @@
+{
+  "version": "2.0",
+  "bot_id": "al-brooks",
+  "exchange": "binance",
+  "market_profile": "crypto",
+  "loop_seq": 171,
+  "status": "DEGRADED",
+  "current_phase": "SCALP_FAST",
+  "last_run_at": "2026-03-11T13:39:55.107822+00:00",
+  "last_success_at": "2026-03-11T13:39:55.107824+00:00",
+  "next_scan": {
+    "next_scan_at": "2026-03-11T13:41:55.107803+00:00",
+    "in_seconds": 120,
+    "requested_seconds": 120,
+    "model_suggested_seconds": 120,
+    "model_suggested_reason": "ETHUSDT 刚进入可执行后的高敏感窗口；若继续上攻 2100/2160 或重新跌回 2038.99/2023.4 下方，premise 都会很快改变。",
+    "reason_code": "HIGH_EDGE_ACTIVE",
+    "reason_text": "当前处于 fresh BC/SC、TR 边缘、breakout follow-through 或已接近可执行条件，按 2 分钟继续守候。",
+    "bucket_rule": "P1：fresh BC/SC / TR edge / breakout follow-through / executable 候选 → 2 分钟",
+    "bucket_source_refs": [
+      "SKILL.md#Step 5",
+      "C5-step5-dynamic-timing.md",
+      "S4-strategy-match.md",
+      "S6-tr.md",
+      "S6-channel.md",
+      "S6-common.md"
+    ],
+    "derived_from_cycle": "cycle_20260311_213955",
+    "interruptible": true
+  },
+  "active_symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT"
+  ],
+  "focus_symbols": [
+    "ETHUSDT"
+  ],
+  "open_positions": [],
+  "pending_pre_signals": [],
+  "risk_mode": "NORMAL",
+  "host_mode": "OPENCLAW",
+  "degraded": true,
+  "last_trigger": null,
+  "last_cycle_id": "cycle_20260311_213955",
+  "quiet_loops": 0,
+  "full_refresh": false,
+  "needs_post_trade_refresh": false,
+  "model_timeout": false,
+  "last_full_refresh_at": "2026-03-11T13:25:27.228009+00:00",
+  "last_scan_decision": "ETHUSDT 本轮通过 Scalp 快速通道。与此前 21:20 和 21:33 的顶边观察不同，这一轮低周期与中周期语义已明显推进：5m 出现 H1@2160.0，15m 出现 H2@2160.0，1h 也给出 H1@2160.0；5m/15m 的主导方向已经回到 AIL，30m 连续两根从 2020.0→2034.05→2066.69 抬升，说明这不再只是顶边阻力带里的静态拉锯，而是恢复后的继续上冲。按三项快检，方向一致成立，止损可放在 2023.4/2020.0 一带结构外侧，且从 2066.69 向 2160.0 的回报在扣费后通过 P×R，因此本轮唯一合法动作是顺势 Scalp 多头 OPEN_ORDER。",
+  "trade_readiness": "can_trade_true",
+  "best_candidate": "ETHUSDT",
+  "best_candidate_status": "candidate",
+  "openclaw_runtime_agent": "ab-patrol-loop",
+  "openclaw_runtime_session_id": "patrol-loop-b1aee4aa4dab",
+  "openclaw_operator_agent": "ab-patrol-runtime-crypto",
+  "openclaw_session_id": null,
+  "llm_provider": "openclaw",
+  "decision_requested_provider": "openclaw",
+  "decision_fallback_provider": "openclaw",
+  "decision_model": "openai-codex/gpt-5.4",
+  "decision_session_id": "patrol-loop-b1aee4aa4dab",
+  "openclaw_agent": "ab-patrol-runtime-crypto",
+  "query_service_base": "http://127.0.0.1:8086",
+  "dry_run": false,
+  "last_full_refresh_reason": "anti_stale_cycle",
+  "fast_lane_attempted": true,
+  "fast_lane_executed": true,
+  "knowledge_loading": {
+    "budget_chars": 65000,
+    "knowledge_chars": 40043,
+    "over_budget": false,
+    "skill_mode": "full_sections",
+    "skill_sections": [
+      "你是 Al Brooks",
+      "操作铁律",
+      "Step 1: 获取全局数据 + Daily 偏置",
+      "1a. 运行快照（每轮必做）",
+      "1b. Daily 偏置（条件化）",
+      "Step 3: 扫描新机会（两阶段扫描）",
+      "Phase A: Quick Scan（3 品种 × 3 周期，不读 S 文件）",
+      "Scalp 快速通道（不进 Phase B，< 30 秒决策）",
+      "Phase B: 深分析（仅有事件的品种）",
+      "3d. 快速放弃条件（详见 S5 评估 + S6-channel / S6-bo 入场）",
+      "3d-2. PASS 分类 + 反恐惧硬检查",
+      "3d-3. SL 打掉后重新入场",
+      "3e. 自我验证（下单前必做，10 项全过）",
+      "3f. 执行开仓与计划委托",
+      "Step 5: 定时器（智能动态间隔）",
+      "强制全刷新（Anti-Stale 机制）",
+      "pre_signal 超时（按周期区分）"
+    ],
+    "reference_modes": {
+      "S4-strategy-match.md": "full",
+      "S3b-key-levels.md": "full",
+      "S5-evaluation.md": "full",
+      "S6-common.md": "full",
+      "S6-channel.md": "full"
+    },
+    "full_reference_count": 5
+  },
+  "prompt_references": [
+    "S4-strategy-match.md",
+    "S3b-key-levels.md",
+    "S5-evaluation.md",
+    "S6-common.md",
+    "S6-channel.md"
+  ],
+  "symbols": {
+    "ETHUSDT": {
+      "status": "candidate",
+      "stage": "FAST_TRACK_EXECUTABLE",
+      "consecutive_watching": 0,
+      "daily_bias": "震荡偏空",
+      "trade": {
+        "direction": "LONG",
+        "style": "Scalp",
+        "intent": "OPEN_ORDER"
+      },
+      "thesis": "ETHUSDT 已从此前的 TR 顶边观察推进为短线顺势恢复可执行。5m H1@2160.0、15m H2@2160.0、1h H1@2160.0 同时出现，说明恢复不再只是单一 5m trigger，而是跨周期顺势上冲。",
+      "ai_direction": "AIL",
+      "market_state": "TC/BC 顶边测试中的顺势恢复",
+      "market_state_detail": "这里要遵守 Brooks 的 trigger/context 纪律：H1/H2 本身不是 authority，但本轮 authority 已经不是孤立 trigger，而是 5m/15m/1h 同步恢复。虽然 4h/1d 仍保留 TR 背景，因此这只能先按 Scalp 管，而不能包装成 Swing；但 scalp 本来就允许从 minor reversal 开始，只要恢复被接受并且数学成立即可。当前结构也不是 bad wedge 反转，而是顶边恢复后的顺势继续。",
+      "structure_summary": "30m 最近四根 2023.67→2020.0→2034.05→2066.69。最新 30m 强阳上探 2160.0 后仍收在 2066.69，较上一根继续抬高，说明上行恢复仍在延续。",
+      "pre_signal": "bull_h1_h2_breakout_resume",
+      "key_levels": {
+        "current_price": 2066.69,
+        "support": [
+          2038.99,
+          2031.27,
+          2023.4,
+          2020.0
+        ],
+        "resistance": [
+          2050.0,
+          2100.0,
+          2160.0
+        ],
+        "entry_zone": "2066.69-2067.0",
+        "entry_price": 2066.69,
+        "stop_loss": 2023.4,
+        "take_profit": [
+          2100.0,
+          2160.0
+        ],
+        "order_type": "STOP_MARKET",
+        "style": "Scalp"
+      },
+      "entry_idea": {
+        "direction": "BUY",
+        "style": "Scalp",
+        "premise": "顶边恢复已被 5m/15m/1h 同步接受，先按顺势 scalp 多头处理；若重新跌回 2023.4 下方，则恢复 thesis 失效。",
+        "filter_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+        "candidate_stage": "EXECUTABLE_STOP",
+        "candidate_stage_cn": "规则通过可执行单（止损触发）",
+        "execution_mode": "STOP_TRIGGER",
+        "execution_mode_cn": "止损触发委托",
+        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
+        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "source_refs": [
+          "S4-strategy-match.md",
+          "S6-common.md",
+          "S5-evaluation.md"
+        ]
+      },
+      "planned_trade": {
+        "side": "",
+        "entry_price": 2066.69,
+        "entry_zone": "2066.69-2067.0",
+        "entry_zone_label": "",
+        "stop_loss": 2023.4,
+        "take_profit": 2100.0,
+        "style": "Scalp",
+        "order_type": "STOP_MARKET",
+        "risk_percent": null,
+        "invalid_if": "若价格重新有效跌破 2023.4，则当前顺势恢复 thesis 失效。",
+        "why_wait": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+        "candidate_stage": "EXECUTABLE_STOP",
+        "candidate_stage_cn": "规则通过可执行单（止损触发）",
+        "execution_mode": "STOP_TRIGGER",
+        "execution_mode_cn": "止损触发委托",
+        "allow_executable": true,
+        "needs_exact_trigger": false,
+        "brooks_label": "顺势候选",
+        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
+        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "source_refs": [
+          "S4-strategy-match.md",
+          "S6-common.md",
+          "S5-evaluation.md"
+        ],
+        "order_type_cn": "止损触发委托",
+        "execution_semantics": {
+          "candidate_stage": "EXECUTABLE_STOP",
+          "candidate_stage_cn": "规则通过可执行单（止损触发）",
+          "execution_mode": "STOP_TRIGGER",
+          "execution_mode_cn": "止损触发委托",
+          "order_type": "STOP_MARKET",
+          "order_type_cn": "止损触发委托",
+          "style": "Scalp",
+          "allow_executable": true,
+          "needs_exact_trigger": false,
+          "has_entry_price": true,
+          "has_entry_zone": true,
+          "brooks_label": "顺势候选",
+          "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
+          "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+          "stage_rule_source_refs": [
+            "S4-strategy-match.md",
+            "S6-common.md",
+            "S5-evaluation.md"
+          ],
+          "stage_rule_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
+        }
+      },
+      "evaluation": {
+        "style": "Scalp",
+        "p_estimate": 0.57,
+        "r_estimate": 0.9,
+        "pxr": 0.51,
+        "check_1_direction_aligned": true,
+        "check_2_sl_on_pa_structure": true,
+        "check_3_pxr_pass": true,
+        "regime": "顺势候选",
+        "execution_decision": "可继续执行链",
+        "risk": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+        "candidate_stage": "规则通过可执行单（止损触发）",
+        "execution_mode": "止损触发委托",
+        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "source_refs": [
+          "S4-strategy-match.md",
+          "S6-common.md",
+          "S5-evaluation.md"
+        ]
+      },
+      "scenarios": [
+        "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
+      ],
+      "refs": [
+        "S4-strategy-match.md",
+        "S3b-key-levels.md",
+        "S5-evaluation.md",
+        "S6-common.md",
+        "S6-channel.md"
+      ],
+      "priority": 9,
+      "align_score": 3,
+      "signal": "H1@2160.0",
+      "event_tags": [
+        "signal_trigger:H1@2160.0",
+        "state:TC",
+        "ema_touch",
+        "pb_depth:deep",
+        "hl_signal:H4",
+        "wedge_or_mtr",
+        "anomaly:large_bar",
+        "state_change:TR->TC",
+        "signal_trigger:H2@2160.0",
+        "state:TC",
+        "ema_touch",
+        "tr_edge:top"
+      ],
+      "timeframes": {
+        "5m": {
+          "ai": "AIL",
+          "state": "TC",
+          "signal": "H1@2160.0",
+          "summary": null
+        },
+        "15m": {
+          "ai": "AIL",
+          "state": "TC",
+          "signal": "H2@2160.0",
+          "summary": null
+        },
+        "1h": {
+          "ai": "AIL",
+          "state": "BC",
+          "signal": "H1@2160.0",
+          "summary": null
+        },
+        "1d": {
+          "ai": "TR",
+          "state": "TR",
+          "signal": "",
+          "summary": null
+        }
+      },
+      "running_narrative": "ETHUSDT 已从此前的 TR 顶边观察推进为短线顺势恢复可执行。5m H1@2160.0、15m H2@2160.0、1h H1@2160.0 同时出现，说明恢复不再只是单一 5m trigger，而是跨周期顺势上冲。",
+      "brooks_filter": {
+        "category": "trend_continuation_candidate",
+        "label": "顺势候选",
+        "summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+        "max_status": "entry_ready",
+        "allow_executable": true,
+        "stage_family": "normal_candidate",
+        "preferred_style": "Scalp",
+        "preferred_order_type": "STOP_MARKET",
+        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
+        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "source_refs": [
+          "S4-strategy-match.md",
+          "S6-common.md",
+          "S5-evaluation.md"
+        ]
+      }
+    },
+    "BTCUSDT": {
+      "consecutive_watching": 1
+    },
+    "BNBUSDT": {
+      "consecutive_watching": 2
+    }
+  },
+  "last_failure_at": "2026-03-11T13:45:55.956811+00:00",
+  "last_failure_reason": "'str' object has no attribute 'get'",
+  "last_failure_context": "loop",
+  "fast_lane_candidates": [
+    "ETHUSDT",
+    "BNBUSDT"
+  ],
+  "fast_lane_result": "skip",
+  "last_model_timeout_at": "2026-03-11T13:31:29.104492+00:00",
+  "stage": "SCAN_ONLY",
+  "execution_alignment": "positions_empty_orders_empty",
+  "planned_trade_active": true,
+  "market_regime": "crypto_tr_watch",
+  "planned_trade_active_symbols": [
+    "ETHUSDT",
+    "BNBUSDT"
+  ],
+  "pre_signals": {
+    "BTCUSDT": "tr_mid_to_lower_watch",
+    "ETHUSDT": "tr_top_fade_watch",
+    "BNBUSDT": "tr_reprice_watch"
+  },
+  "status_by_symbol": {
+    "BTCUSDT": "watching",
+    "ETHUSDT": "watching",
+    "BNBUSDT": "watching"
+  },
+  "stage_by_symbol": {
+    "BTCUSDT": "SCAN_ONLY",
+    "ETHUSDT": "SCAN_ONLY",
+    "BNBUSDT": "SCAN_ONLY"
+  },
+  "pre_signal_by_symbol": {
+    "BTCUSDT": "tr_rebound_from_bottom_watch",
+    "ETHUSDT": "tr_top_fade_watch",
+    "BNBUSDT": "tr_reprice_watch"
+  },
+  "phase": "SCAN",
+  "current_market_regime": "top_edge_recovery_breakout_attempt",
+  "scan_bias": "wait_for_edge_and_acceptance",
+  "planned_trade_status": "executable"
+}

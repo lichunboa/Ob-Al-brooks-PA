@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from decimal import Decimal, InvalidOperation
 from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
@@ -11,8 +12,50 @@ logger = logging.getLogger(__name__)
 class KlineAnalyzerMixin:
     """K 线抓取、指标计算与摘要格式化。"""
 
+    @staticmethod
+    def _decimals_from_step(step: float) -> int:
+        """根据最小跳动推断价格精度。"""
+        if step <= 0:
+            return 2
+        try:
+            normalized = Decimal(str(step)).normalize()
+        except (InvalidOperation, ValueError):
+            return 2
+        return max(0, -int(normalized.as_tuple().exponent))
+
+    def _price_precision(self, symbol: str, reference_price: float) -> int:
+        """优先按交易所规格推断价格精度。"""
+        if getattr(self, "exchange_name", "") == "ctrader":
+            try:
+                info = self.get_symbol_info(symbol)
+                tick_size = float(info.get("tick_size") or 0.0)
+            except Exception:
+                tick_size = 0.0
+            if tick_size > 0:
+                return min(8, max(2, self._decimals_from_step(tick_size)))
+            if reference_price >= 1000:
+                return 2
+            if reference_price >= 100:
+                return 3
+            if reference_price >= 1:
+                return 5
+            return 6
+        return 2
+
+    @staticmethod
+    def _round_price(value: float, precision: int) -> float:
+        """按品种精度四舍五入。"""
+        return round(float(value), precision)
+
+    @staticmethod
+    def _format_signed(value: float, precision: int) -> str:
+        """格式化带符号数值。"""
+        return f"{'+' if value >= 0 else ''}{value:.{precision}f}"
+
     def _normalize_symbol_for_ccxt(self, symbol: str) -> str:
         """标准化 symbol 为 ccxt 格式。"""
+        if getattr(self, "exchange_name", "") == "ctrader":
+            return symbol.split(":")[0].replace("/", "").replace("-", "").upper()
         if "/" in symbol:
             return symbol
         raw = symbol.split(":")[0] if ":" in symbol else symbol
@@ -97,8 +140,7 @@ class KlineAnalyzerMixin:
             return description + "，" + "，".join(wick_parts)
         return description
 
-    @staticmethod
-    def _generate_kline_summary(ohlcv: list, ema20: list, atr14: list) -> dict:
+    def _generate_kline_summary(self, ohlcv: list, ema20: list, atr14: list, price_precision: int) -> dict:
         """生成 K 线摘要。"""
         if not ohlcv:
             return {}
@@ -160,19 +202,41 @@ class KlineAnalyzerMixin:
         return {
             "trend": trend,
             "last_pullback": last_pullback,
-            "range": f"{range_low:.1f}-{range_high:.1f} ({range_size:.1f} 点区间)",
+            "range": (
+                f"{range_low:.{price_precision}f}-"
+                f"{range_high:.{price_precision}f} "
+                f"({range_size:.{price_precision}f} 点区间)"
+            ),
             "day_type": day_type,
         }
 
     def fetch_klines(self, symbol: str, interval: str = "1h", limit: int = 50) -> dict:
         """获取 K 线 + EMA20 + ATR14。"""
-        ccxt_symbol = self._normalize_symbol_for_ccxt(symbol)
-        fetch_limit = limit + 30
-        try:
-            ohlcv = self.exchange.fetch_ohlcv(ccxt_symbol, interval, limit=fetch_limit)
-        except Exception as exc:
-            logger.error(f"fetch_ohlcv 失败: {ccxt_symbol} {interval}: {exc}")
-            return {"error": str(exc), "symbol": symbol}
+        if getattr(self, "exchange_name", "") == "ctrader":
+            try:
+                ctrader_bars = self.exchange.get_trendbars(symbol, interval=interval, limit=limit + 30)
+            except Exception as exc:
+                logger.error(f"cTrader trendbars 失败: {symbol} {interval}: {exc}")
+                return {"error": str(exc), "symbol": symbol}
+            ohlcv = [
+                [
+                    int(bar["timestamp"]),
+                    float(bar["open"]),
+                    float(bar["high"]),
+                    float(bar["low"]),
+                    float(bar["close"]),
+                    float(bar["volume"]),
+                ]
+                for bar in ctrader_bars
+            ]
+        else:
+            ccxt_symbol = self._normalize_symbol_for_ccxt(symbol)
+            fetch_limit = limit + 30
+            try:
+                ohlcv = self.exchange.fetch_ohlcv(ccxt_symbol, interval, limit=fetch_limit)
+            except Exception as exc:
+                logger.error(f"fetch_ohlcv 失败: {ccxt_symbol} {interval}: {exc}")
+                return {"error": str(exc), "symbol": symbol}
 
         if not ohlcv:
             return {"error": "无数据", "symbol": symbol}
@@ -184,6 +248,7 @@ class KlineAnalyzerMixin:
         ohlcv = ohlcv[-limit:]
         ema20 = ema20_full[-limit:]
         atr14 = atr14_full[-limit:]
+        price_precision = self._price_precision(symbol, ohlcv[-1][4])
 
         bars = []
         for index, bar in enumerate(ohlcv):
@@ -196,23 +261,23 @@ class KlineAnalyzerMixin:
             time_str = datetime.fromtimestamp(timestamp / 1000, tz=UTC).strftime("%Y-%m-%dT%H:%M")
             entry = {
                 "time": time_str,
-                "O": round(open_price, 2),
-                "H": round(high_price, 2),
-                "L": round(low_price, 2),
-                "C": round(close_price, 2),
+                "O": self._round_price(open_price, price_precision),
+                "H": self._round_price(high_price, price_precision),
+                "L": self._round_price(low_price, price_precision),
+                "C": self._round_price(close_price, price_precision),
                 "vol": round(volume, 2),
-                "body": f"{'+' if body >= 0 else ''}{body:.1f} ({'bull' if body >= 0 else 'bear'})",
-                "upper_wick": round(upper_wick, 2),
-                "lower_wick": round(lower_wick, 2),
+                "body": f"{self._format_signed(body, price_precision)} ({'bull' if body >= 0 else 'bear'})",
+                "upper_wick": self._round_price(upper_wick, price_precision),
+                "lower_wick": self._round_price(lower_wick, price_precision),
                 "bar_type": self._describe_bar(body, upper_wick, lower_wick, bar_range),
             }
 
             if ema20[index] is not None:
                 versus = close_price - ema20[index]
-                entry["ema20"] = round(ema20[index], 2)
-                entry["vs_ema20"] = f"{'+' if versus >= 0 else ''}{versus:.1f}"
+                entry["ema20"] = self._round_price(ema20[index], price_precision)
+                entry["vs_ema20"] = self._format_signed(versus, price_precision)
             if atr14[index] is not None:
-                entry["atr14"] = round(atr14[index], 2)
+                entry["atr14"] = self._round_price(atr14[index], price_precision)
             bars.append(entry)
 
         current_close = ohlcv[-1][4]
@@ -220,14 +285,14 @@ class KlineAnalyzerMixin:
         current_atr = atr14[-1] if atr14[-1] is not None else 0
         versus_pct = (current_close - current_ema) / current_ema * 100 if current_ema else 0
 
-        summary = self._generate_kline_summary(ohlcv, ema20, atr14)
+        summary = self._generate_kline_summary(ohlcv, ema20, atr14, price_precision)
         raw_symbol = symbol.replace("/", "").split(":")[0]
         return {
             "symbol": raw_symbol,
             "interval": interval,
-            "ema20": round(current_ema, 2),
-            "atr14": round(current_atr, 2),
-            "price_vs_ema": f"{'+' if versus_pct >= 0 else ''}{current_close - current_ema:.1f} ({versus_pct:+.2f}%)",
+            "ema20": self._round_price(current_ema, price_precision),
+            "atr14": self._round_price(current_atr, price_precision),
+            "price_vs_ema": f"{self._format_signed(current_close - current_ema, price_precision)} ({versus_pct:+.2f}%)",
             "bars": bars,
             "summary": summary,
         }

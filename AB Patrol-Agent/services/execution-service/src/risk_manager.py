@@ -10,13 +10,14 @@
 import json
 import logging
 import time
-from datetime import datetime, date
+from datetime import date, datetime
 from pathlib import Path
-from typing import Optional
 
 from .config import (
-    MAX_DAILY_LOSS_USDT, MAX_POSITION_SIZE_USDT,
-    MAX_LEVERAGE, WORKSPACE,
+    MAX_DAILY_LOSS_USDT,
+    MAX_LEVERAGE,
+    MAX_POSITION_SIZE_USDT,
+    WORKSPACE,
 )
 from .models import RiskStatus
 
@@ -29,7 +30,7 @@ DEFAULT_STATE_FILE = WORKSPACE / "risk_state.json"
 class RiskManager:
     """风控管理器"""
 
-    def __init__(self, state_file: Optional[Path] = None):
+    def __init__(self, state_file: Path | None = None):
         self.state_file = state_file or DEFAULT_STATE_FILE
         self.emergency_stop = False  # V2.9.0: 永久禁用，Agent不需要冷静期
         self.max_daily_loss = MAX_DAILY_LOSS_USDT
@@ -94,6 +95,7 @@ class RiskManager:
         max_positions: int = 10,
         daily_loss_limit: float = 0,
         bot_id: str = "",
+        max_position_size_override: float | None = None,
     ) -> tuple[bool, str]:
         """检查是否可以开仓
 
@@ -104,28 +106,38 @@ class RiskManager:
         # if self.emergency_stop:
         #     return False, "紧急停止已启用，禁止开仓"
 
-        # 全局日亏损检查
+        # 全局 / per-bot 日亏损只做告警，不再作为硬停手条件。
+        # 当前系统已经按每笔风险预算做仓位控制，不再额外用固定日亏门槛切断交易。
         remaining = self.max_daily_loss + self.daily_pnl
         if remaining <= 0:
-            return (
-                False,
-                f"已达全局每日亏损限制 ${self.max_daily_loss}",
+            logger.warning(
+                "全局日亏预算已耗尽: 当前 %.2f / 限额 %.2f，仅告警不阻止开仓",
+                abs(self.daily_pnl),
+                self.max_daily_loss,
             )
 
-        # per-bot 日亏损检查
+        # per-bot 日亏损同样保留监控值，但不再作为硬阻断。
         if daily_loss_limit > 0 and bot_id:
             bot_pnl = self.bot_daily_pnl.get(bot_id, 0.0)
             if bot_pnl <= -daily_loss_limit:
-                return (
-                    False,
-                    f"Bot {bot_id} 已达日亏限 ${daily_loss_limit:.0f} (当前 ${bot_pnl:.2f})",
+                logger.warning(
+                    "Bot %s 日亏预算已耗尽: 当前 %.2f / 限额 %.2f，仅告警不阻止开仓",
+                    bot_id,
+                    abs(bot_pnl),
+                    daily_loss_limit,
                 )
 
-        if position_size_usdt > self.max_position_size:
+        max_position_size = (
+            float(max_position_size_override)
+            if max_position_size_override is not None and float(max_position_size_override) > 0
+            else self.max_position_size
+        )
+
+        if position_size_usdt > max_position_size:
             return (
                 False,
                 f"仓位 ${position_size_usdt} "
-                f"超过限制 ${self.max_position_size}",
+                f"超过限制 ${max_position_size}",
             )
 
         if current_positions >= max_positions:
@@ -230,7 +242,7 @@ class RiskManager:
         remaining = max(
             0, self.max_daily_loss + self.daily_pnl
         )
-        can_open = remaining > 0  # V2.9.0: 不再检查 emergency_stop
+        can_open = True  # 日亏预算只保留监控，不再对外宣称“禁止开仓”
 
         return RiskStatus(
             emergency_stop=self.emergency_stop,
@@ -309,4 +321,3 @@ class RiskManager:
                 return False, f"相关性暴露过高: {base_asset}系列净暴露 ${net_exposure:.0f} ({ratio*100:.1f}%) > 60%"
 
         return True, "OK"
-

@@ -35,9 +35,9 @@ class RiskManager:
     风控管理器。
 
     - 检查信号方向冲突
-    - 日信号数量限制
-    - 连续同向信号限制
-    - 信号强度过滤
+    - 记录日信号数量
+    - 记录连续同向信号
+    - 最低信号强度兜底
     """
 
     def __init__(self):
@@ -46,8 +46,8 @@ class RiskManager:
         self.consecutive_count: dict[str, int] = {}
         self._last_reset_date: str = ""
 
-        # Brooks 不会用一个粗暴的“每天每品种最多 10 单”硬阈值来裁掉 setup。
-        # 这里保留的是防刷屏与防重复，不再让它主导交易机会数量。
+        # Brooks 不会用一个粗暴的“每天每品种最多几单”硬阈值来裁掉 setup。
+        # 这里保留这些字段，仅用于统计与诊断，不再作为阻止交易的硬门槛。
         self.max_daily_signals_per_timeframe = {
             "1m": 48,
             "5m": 18,
@@ -62,7 +62,9 @@ class RiskManager:
             "30m": 3,
             "1h": 2,
         }
-        self.min_signal_strength = 70
+        # 真实过滤由各周期 signal_threshold 和后续 Brooks 路由负责；
+        # 这里不再额外叠加一个隐藏的硬下限。
+        self.min_signal_strength = 0
 
     @staticmethod
     def _signal_meta(signal: PASignal) -> tuple[str, str, str]:
@@ -156,16 +158,11 @@ class RiskManager:
             if existing != direction:
                 pass
 
-        count = self.daily_signal_count.get(daily_key, 0)
-        daily_limit = self._daily_limit_for(signal)
-        if count >= daily_limit:
-            return False, f"今日 {timeframe} 已发送{count}个信号，达到上限{daily_limit}"
-
-        consecutive = self.consecutive_count.get(direction_key, 0)
-        direction_limit = self._direction_limit_for(signal)
-        if consecutive >= direction_limit:
-            return False, f"{timeframe} 已连续发送{consecutive}个{direction}信号，需等待反向信号"
-
+        # 每日数量和连续同向次数只做软统计，不再直接阻止交易。
+        _ = self.daily_signal_count.get(daily_key, 0)
+        _ = self._daily_limit_for(signal)
+        _ = self.consecutive_count.get(direction_key, 0)
+        _ = self._direction_limit_for(signal)
         return True, ""
 
     def record_signal(self, signal: PASignal):

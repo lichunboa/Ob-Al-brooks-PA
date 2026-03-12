@@ -1,106 +1,80 @@
 # AB Patrol-Agent 文档索引
 
-`AB Patrol-Agent` 是当前项目中独立的 Al Brooks 交易主脑。
-
-当前文档入口统一遵循以下前提：
-
-- 完整 Obsidian Al Brooks 知识库是最高权威
-- `canonical/` 是理论规范层
-- `SKILL/S` 是 agent 的可执行子集
-- 升级期默认观察模式，先做 parity 和回放，再恢复自动交易
+`AB Patrol-Agent` 是当前仓库里的巡逻主脑与后端主目录。
 
 它负责：
 
-- 读取完整知识库回写后的 `canonical + SKILL.md + S0-S7`
-- 基于 Al Brooks 体系做巡逻、分析、候选单判断
-- 通过 `patrol_trade.py` 做执行前安全校验
-- 调用 `execution-service` 执行 Binance demo 交易动作
-- 写入运行态、cycle、journal、预信号与状态卡
+- 读取 `knowledge/patrol-l1/` 中的 canonical / references / `SKILL.md`
+- 运行 `runtime/pa_runtime.py` 主循环
+- 基于规则引擎和触发式 LLM 做决策
+- 通过 `execution-service` 做仓位计算、订单动作和持仓管理
+- 写入 `cycle / journal / runtime_state / next_scan`
+- 通过 `query-service / sync-service / vis-service` 对外提供可见性
 
 它不负责：
 
 - 承载主 Web 站点
-- 承载 Telegram operator 壳
-- Patrol 体系自身的基础设施能力
+- 承载 Obsidian 知识库本体
+- 充当个人工作区或历史资料仓
 
-## 当前真实架构
+## 当前真实模式
 
-- `AB Patrol-Agent` = Al Brooks 决策主脑与当前后端主目录
-- `AB Patrol-Web` = 独立 Web 展示层
-- `AB Console-Obsidian` = 知识库、课程笔记、旧交易样本
+当前真实运行模式是：
 
-## 近期代码结构调整
+- 决策 provider 配置为 `openclaw`
+- LLM 使用智能触发，不是每轮都调用
+- 规则引擎承担大部分巡逻与管理路径
+- `OPEN_ORDER` 先经过运行时内置的确定性 gate 校验，再进入 execution-service
+- 交易执行层支持 `binance / okx / ctrader`
+- 是否真实下单，仍由 Patrol 启动参数里的 `dry_run / --execute` 决定
+- 当前主栈已切到 `ctrader demo / multi_asset`
 
-- `runtime/pa_runtime.py` 已持续拆分为多 mixin 与工具模块
-- `services/signal-service/src/engines/pa_engine.py` 的共享层已抽到 `services/signal-service/src/engines/pa/`
-- `engines/pa/models.py` 负责 PA 数据模型
-- `engines/pa/analysis.py` 负责 K 线/周期/时段分析工具
-- `engines/pa/risk.py` 负责 PA 信号风控
-- `services/execution-service/src/executor.py` 已拆出 `bot_registry.py` 与 `kline_analyzer.py`
-- `services/vis-service/src/templates/registry.py` 现在只保留注册入口与核心模板
-- `services/vis-service/src/templates/vpvr.py` 负责 VPVR / BB Zone 相关图表
-- `services/vis-service/src/templates/intraday.py` 负责日内热力与微结构图表
+对应权威说明：
+
+- 根文档总览：
+  [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/README.md)
+- 当前交易流程：
+  [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/CURRENT_TRADING_FLOW.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/CURRENT_TRADING_FLOW.md)
+- 当前目录结构：
+  [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/FOLDER_STRUCTURE.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/FOLDER_STRUCTURE.md)
+
+## 当前应优先阅读
+
+- `RUNTIME_FLOW.md`
+  - Patrol 主循环、LLM 触发、规则引擎路径、执行链
+- `PROJECT_MEMORY.md`
+  - 已验证的回测经验、回撤经验、Brooks 对齐结论
+- `BROOKS_ARCH_AUDIT_20260312.md`
+  - 当前真实链 / 回测链偏差、非 Brooks 污染层、修正优先级
+- `BROOKS_LOGIC_MAP.md`
+  - 理论步骤、代码模块、当前缺口与后续拆分方向
+- `LLM_TRIGGER_CONFIG.md`
+  - LLM 触发相关配置说明
+- `BINANCE_DEMO_SETUP.md`
+  - Binance Demo 接入说明
+- `CTRADER_SETUP.md`
+  - cTrader 接入说明
+- `MULTI_SYMBOL_SCANNING.md`
+  - 多品种扫描与观察名单说明
+
+## 本轮归档后的边界
+
+当前继续保留在 `AB Patrol-Agent/docs/` 的，是这三类文档：
+
+- 当前运行入口、交易流程、执行链、配置说明
+- 仍会指导接入或操作的交易所说明
+- 仍会指导策略落地的活跃设计文档
+
+已经继续归档到 `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/archive/patrol-agent/` 的，是这几类文档：
+
+- 2026-03-07 ~ 2026-03-10 的审计报告
+- 知识迁移映射、差异分析、目标状态这类阶段性整理文档
+- 不再代表当前目录和当前执行链的历史过程说明
 
 ## 历史文档说明
 
-- 2026-03-10 之前的迁移、隔离、审计文档里，可能仍会提到 `AB Console-Backend`。
-- 这些文档保留是为了追踪迁移决策，不代表当前运行目录仍然存在。
-- 顶层项目里带旧路径的快照文档，已经统一移动到 `docs/archive/`。
-- 当前所有实际代码、命令、脚本路径，以 `AB Patrol-Agent` 和 `AB Patrol-Web` 为准。
-
-当前决策路径是：
-
-1. 完整 Obsidian 知识库
-2. Canonical Rulebook
-3. 原始 `SKILL.md + S0-S7`
-4. `AB Patrol-Agent`
-5. `codex_cli` 长会话
-6. `patrol_trade.py`
-7. `execution-service`
-8. Binance demo
-9. Query Service / Web / TG
-
-升级期间默认策略：
-
-- 保留分析、推送、回放、可观测性
-- 默认暂停自动交易
-- 只有 parity / replay / demo 验证完成后才恢复 `--execute`
-
-`OpenClaw` 当前只负责：
-
-- host / TG operator
-- workspace memory
-- 对话入口
-
-## 当前已修复
-
-- `runtime-brief` 不再作为主知识源
-- `canonical` 已接入运行时知识选择
-- `S5` 交易方程已改回服从原规则
-- `S6` 路由增强，支持多事件补足
-- `S7` 动作已扩展到更多持仓管理动作
-- 执行桥与 Binance demo 时间同步问题已修
-- 决策已切到 `codex_cli` 长会话，而不是每轮冷启动
-
-## 当前未完成
-
-- `codex_cli` 仍可能超时
-- 新架构下首笔自然新单还没稳定出现
-- `S7-management` 还缺 live 持仓闭环验证
-- Step 5 动态扫描规则仍在继续对齐原 Claude 版本
-- 代码中仍有部分流程编排型硬规则，需继续下放给 agent
-
-## 优先阅读
-
-- 总览：
-  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/archive/CURRENT_SYSTEM_OVERVIEW_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/archive/CURRENT_SYSTEM_OVERVIEW_20260308.md)
-- Canonical 升级说明：
-  - `AL_BROOKS_CANONICAL_UPGRADE_20260308.md`
-- 规则偏差审计：
-  - `PARITY_RULE_AUDIT_20260308.md`
-- 硬编码规则矩阵：
-  - `HARDCODED_RULE_MATRIX_20260308.md`
-- 目标状态：
-  - `GOAL_STATUS_20260308.md`
-- 运行流程：
-  - `RUNTIME_FLOW.md`
+- 03-10 那批阶段总结、拆分计划、系统检查、Web 适配和 LLM 优化过程文档，已经统一挪到：
+  `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/archive/patrol-agent/`
+- 本轮又追加归档了 canonical 升级说明、硬编码规则矩阵、交易漏斗、执行提案、旧版 cTrader 集成方案和旧重构计划。
+- 这些归档文档只用于追溯，不再作为当前操作依据。
+- 当前所有实际路径，以 `AB Patrol-Agent/`、`AB Patrol-Web/`、`AB Console-Obsidian/` 为准。

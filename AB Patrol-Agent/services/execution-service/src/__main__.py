@@ -22,7 +22,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from .config import SERVICE_PORT, EXCHANGE, EXCHANGE_MODE, BINANCE_MODE, get_current_config, save_env_config
+from .config import SERVICE_PORT, EXCHANGE, EXCHANGE_MODE, BINANCE_MODE, ACCOUNT_ASSET, get_current_config, save_env_config
 from .models import (
     OrderRequest, OrderResponse, Position, Balance, RiskStatus,
     ConfigStatus, ConfigUpdate, OpenOrder, TradeHistory, AccountSummary
@@ -64,6 +64,16 @@ position_patrol: Optional[PositionPatrol] = None
 _periodic_task: Optional[asyncio.Task] = None
 
 
+def _pick_cash_balance(balances: list[Balance]) -> Optional[Balance]:
+    """优先取当前账户主资金币种，其次回退到首个余额。"""
+    preferred_assets = [ACCOUNT_ASSET, "USDT", "USD"]
+    for asset in preferred_assets:
+        matched = next((balance for balance in balances if balance.asset == asset), None)
+        if matched:
+            return matched
+    return balances[0] if balances else None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期"""
@@ -73,24 +83,33 @@ async def lifespan(app: FastAPI):
     risk_manager = RiskManager()
     executor = BinanceExecutor(risk_manager)
     trading_state = get_trading_state_manager()
-    reconciliation = TradeReconciliation(executor)
-    order_tracker = OrderTracker(executor)
-    note_sync = NoteSync(executor)
+    if EXCHANGE == "ctrader":
+        reconciliation = None
+        order_tracker = None
+        note_sync = None
+        position_patrol = None
+        logger.info("cTrader 模式：已跳过对账 / 订单追踪 / 持仓巡检初始化")
+    else:
+        reconciliation = TradeReconciliation(executor)
+        order_tracker = OrderTracker(executor)
+        note_sync = NoteSync(executor)
+        position_patrol = PositionPatrol(executor, trading_state)
     # V7.0: 进化系统暂停使用，保留文件不删除
     # evolution_mgr = get_evolution_manager()
-    position_patrol = PositionPatrol(executor, trading_state)
 
     # 启动时同步币安数据
     await sync_startup_balance(executor=executor, trading_state=trading_state)
 
     # 启动时自动对账
-    await run_startup_reconciliation(reconciliation=reconciliation)
+    if reconciliation:
+        await run_startup_reconciliation(reconciliation=reconciliation)
 
     # 启动时从币安 open orders + trades history 恢复 bot 映射
     await recover_startup_bot_map(executor=executor)
 
     # 启动时自动获取币安手续费率并更新到 bot allocation
-    sync_startup_fees(executor=executor, trading_state=trading_state)
+    if EXCHANGE != "ctrader":
+        sync_startup_fees(executor=executor, trading_state=trading_state)
 
     # 启动时自动为所有品种设置杠杆（V3.0, V3.6 修复: 取各品种最大杠杆）
     # 币安合约每品种只有一个全局杠杆，多 bot 共享时必须取最大值
@@ -104,6 +123,7 @@ async def lifespan(app: FastAPI):
             position_patrol=position_patrol,
             note_sync=note_sync,
             order_tracker=order_tracker,
+            exchange=EXCHANGE,
         )
     )
     logger.info("定时任务已启动: 余额同步(60s) + 持仓巡检(60s) + 笔记同步+订单追踪(5分钟)")
@@ -148,6 +168,7 @@ async def health():
         "status": "healthy",
         "mode": EXCHANGE_MODE,
         "exchange": EXCHANGE,
+        "account_asset": ACCOUNT_ASSET,
         "service": "execution-service",
         "version": "4.1.0",
         "trading_enabled": trading_state.is_trading_enabled() if trading_state else False,
@@ -252,6 +273,7 @@ async def place_order(request: OrderRequest):
     # 从 bot allocation 获取风控参数
     max_pos = 10
     daily_loss = 0.0
+    position_limit = None
     bot_id = request.bot_id or ""
     if trading_state and bot_id:
         alloc = trading_state.state.allocations.get(bot_id, {})
@@ -263,6 +285,13 @@ async def place_order(request: OrderRequest):
         # 自动应用 bot 配置的杠杆（agent 未传时使用配置值）
         if not request.leverage:
             request.leverage = alloc.get("max_leverage", 1)
+
+        # 单笔成本限制：账户总额 * 百分比，再按杠杆折算为最大名义价值。
+        account_balance = trading_state.get_account_balance()
+        leverage = max(1, int(request.leverage or alloc.get("max_leverage", 1) or 1))
+        cost_pct = float(alloc.get("max_cost_pct_per_order", 1.0) or 0.0)
+        if account_balance > 0 and cost_pct > 0:
+            position_limit = account_balance * cost_pct / 100 * leverage
 
         # V3.5: 开仓前 can_bot_trade 门禁（含累积名义检查）
         if not request.reduce_only:
@@ -288,8 +317,13 @@ async def place_order(request: OrderRequest):
             # 多 bot 同品种共存于同一币安仓位，position_bot_map 以列表追踪
 
             # V7.0: 盈亏比门禁已移除 — 让 agent 自行判断
-
-    return await executor.place_order(request, max_positions=max_pos, daily_loss_limit=daily_loss, bot_id=bot_id)
+    return await executor.place_order(
+        request,
+        max_positions=max_pos,
+        daily_loss_limit=daily_loss,
+        bot_id=bot_id,
+        position_limit=position_limit,
+    )
 
 
 @app.post("/order/{symbol}/close", response_model=OrderResponse)
@@ -511,8 +545,8 @@ async def get_exchange():
 async def switch_exchange(body: dict):
     """切换交易所（需要重启服务生效）"""
     exchange = body.get("exchange", "").lower()
-    if exchange not in ("okx", "binance"):
-        raise HTTPException(status_code=400, detail="exchange must be 'okx' or 'binance'")
+    if exchange not in ("okx", "binance", "ctrader"):
+        raise HTTPException(status_code=400, detail="exchange must be 'okx' / 'binance' / 'ctrader'")
     mode = body.get("mode", "demo")
     success = save_env_config({"EXCHANGE": exchange, "EXCHANGE_MODE": mode})
     if not success:
@@ -543,6 +577,7 @@ class AllocationUpdate(BaseModel):
     allocation_pct: Optional[float] = None
     # V3.0 新增 — 名义价值控制
     max_notional_per_position: Optional[float] = None
+    max_cost_pct_per_order: Optional[float] = None
 
 
 @app.get("/trading/status")
@@ -552,11 +587,38 @@ async def get_trading_status():
         raise HTTPException(status_code=503, detail="服务未就绪")
     # 实时同步余额，确保数据不过时
     if executor:
+        trading_state.set_account_context(
+            asset=getattr(executor, "account_asset", ACCOUNT_ASSET),
+            exchange=EXCHANGE,
+        )
         try:
             balances = await executor.get_balance()
-            usdt = next((b for b in balances if b.asset == "USDT"), None)
-            if usdt:
-                trading_state.sync_balance(usdt.balance, usdt.available, usdt.unrealized_pnl)
+            balance = _pick_cash_balance(balances)
+            if balance:
+                trading_state.sync_balance(
+                    balance.balance,
+                    balance.available,
+                    balance.unrealized_pnl,
+                    asset=balance.asset,
+                    exchange=EXCHANGE,
+                )
+            live_positions = await executor.get_positions()
+            for live_bot_id in trading_state.get_all_allocations().keys():
+                bot_positions = _filter_bot_positions(live_bot_id, live_positions)
+                used_margin = 0.0
+                for pos in bot_positions:
+                    notional = executor.quantity_to_account_notional(
+                        pos.symbol,
+                        pos.quantity,
+                        pos.mark_price,
+                    )
+                    leverage = pos.leverage if pos.leverage > 0 else 1
+                    used_margin += notional / leverage if leverage > 0 else notional
+                trading_state.update_bot_positions(
+                    live_bot_id,
+                    len(bot_positions),
+                    used_margin,
+                )
         except Exception as e:
             logger.warning(f"trading/status 实时同步失败: {e}")
     return trading_state.get_status_summary()
@@ -572,9 +634,15 @@ async def toggle_trading(enabled: bool = Query(..., description="是否开启交
     if enabled:
         try:
             balances = await executor.get_balance()
-            usdt = next((b for b in balances if b.asset == "USDT"), None)
-            if usdt:
-                trading_state.sync_balance(usdt.balance, usdt.available, usdt.unrealized_pnl)
+            balance = _pick_cash_balance(balances)
+            if balance:
+                trading_state.sync_balance(
+                    balance.balance,
+                    balance.available,
+                    balance.unrealized_pnl,
+                    asset=balance.asset,
+                    exchange=EXCHANGE,
+                )
         except Exception as e:
             logger.warning(f"同步余额失败: {e}")
 
@@ -637,15 +705,21 @@ async def sync_from_binance():
         balances = await executor.get_balance()
         positions = await executor.get_positions()
 
-        usdt = next((b for b in balances if b.asset == "USDT"), None)
-        if usdt:
-            trading_state.sync_balance(usdt.balance, usdt.available, usdt.unrealized_pnl)
+        balance = _pick_cash_balance(balances)
+        if balance:
+            trading_state.sync_balance(
+                balance.balance,
+                balance.available,
+                balance.unrealized_pnl,
+                asset=balance.asset,
+                exchange=EXCHANGE,
+            )
 
         return {
             "success": True,
-            "balance": usdt.balance if usdt else 0,
-            "available": usdt.available if usdt else 0,
-            "unrealized_pnl": usdt.unrealized_pnl if usdt else 0,
+            "balance": balance.balance if balance else 0,
+            "available": balance.available if balance else 0,
+            "unrealized_pnl": balance.unrealized_pnl if balance else 0,
             "positions_count": len(positions),
             "last_sync": trading_state.state.last_sync
         }
@@ -657,25 +731,92 @@ async def sync_from_binance():
 @app.get("/trading/calculate-size/{bot_id}")
 async def calculate_position_size(
     bot_id: str,
+    symbol: Optional[str] = Query(None, description="交易品种"),
     entry_price: float = Query(..., description="入场价格"),
     stop_loss: float = Query(..., description="止损价格"),
-    risk_percent: float = Query(1.0, description="风险百分比"),
+    risk_percent: float = Query(0.3, description="风险百分比"),
+    intent: str = Query("", description="交易意图，如 ADD_ON / SCALE_IN / PYRAMID_ADD"),
 ):
     """计算仓位大小"""
     if not trading_state:
         raise HTTPException(status_code=503, detail="服务未就绪")
 
-    quantity, explanation = trading_state.calculate_position_size(
-        bot_id, entry_price, stop_loss, risk_percent
+    bot_positions = []
+    if executor and symbol:
+        all_positions = await executor.get_positions()
+        bot_positions = _filter_bot_positions(bot_id, all_positions)
+
+    details = trading_state.calculate_position_budget(
+        bot_id,
+        entry_price,
+        stop_loss,
+        risk_percent,
+        symbol=symbol,
+        intent=intent,
+        bot_positions=bot_positions,
     )
+    quantity = float(details.get("quantity") or 0.0)
+    effective_notional = float(details.get("effective_notional") or 0.0)
+    max_cost = float(details.get("max_cost") or 0.0)
+    leverage = max(1.0, float(details.get("leverage") or 1.0))
+    margin_cost = effective_notional / leverage if leverage > 0 else effective_notional
+    explanation = str(details.get("explanation") or "")
+    symbol_info = None
+    normalized_symbol = symbol
+
+    if executor and symbol:
+        symbol_info = executor.get_symbol_info(symbol)
+        normalized_symbol = str(symbol_info.get("symbol") or symbol)
+        raw_quantity = executor.account_notional_to_quantity(
+            symbol,
+            effective_notional,
+            entry_price,
+        )
+        snapped_quantity = executor.snap_quantity_to_symbol(symbol, raw_quantity)
+        if snapped_quantity <= 0:
+            quantity = 0.0
+            effective_notional = 0.0
+            margin_cost = 0.0
+            explanation = f"{explanation} | 当前账户成本约束下达不到最小下单单位"
+        else:
+            snapped_notional = executor.quantity_to_account_notional(
+                symbol,
+                snapped_quantity,
+                entry_price,
+            )
+            snapped_margin_cost = snapped_notional / leverage if leverage > 0 else snapped_notional
+            if max_cost > 0 and snapped_margin_cost - max_cost > 1e-9:
+                quantity = 0.0
+                effective_notional = 0.0
+                margin_cost = 0.0
+                explanation = f"{explanation} | 最小下单单位的保证金成本 ${snapped_margin_cost:.2f} 超过上限 ${max_cost:.2f}"
+            else:
+                quantity = snapped_quantity
+                effective_notional = snapped_notional
+                margin_cost = snapped_margin_cost
+                explanation = (
+                    f"{explanation} | 规格贴合后 数量 {quantity:.6f}, "
+                    f"名义 ${effective_notional:.2f}, 保证金成本 ${margin_cost:.2f}"
+                )
 
     return {
         "bot_id": bot_id,
+        "symbol": normalized_symbol,
         "quantity": quantity,
         "explanation": explanation,
         "entry_price": entry_price,
         "stop_loss": stop_loss,
-        "risk_percent": risk_percent
+        "risk_percent": risk_percent,
+        "intent": intent,
+        "account_asset": trading_state.state.account_asset,
+        "effective_notional": effective_notional,
+        "margin_cost": margin_cost,
+        "max_cost": max_cost,
+        "leverage": leverage,
+        "symbol_risk_total": float(details.get("symbol_risk_total") or 0.0),
+        "symbol_risk_used": float(details.get("symbol_risk_used") or 0.0),
+        "symbol_risk_remaining": float(details.get("symbol_risk_remaining") or 0.0),
+        "symbol_info": symbol_info,
     }
 
 
@@ -938,9 +1079,11 @@ async def get_bot_summary(bot_id: str):
     max_positions = alloc.get("max_positions", 3)
     if max_notional <= 0:
         max_notional = (alloc.get("allocated_usdt", 0) / max_positions) * leverage
+    max_cost, max_cost_notional = trading_state.get_per_order_cost_limit(bot_id)
+    effective_notional = min(max_notional, max_cost_notional) if max_cost_notional > 0 else max_notional
 
     # V3.7: 计算当前相关性暴露（供 signal-router 预检）
-    total_balance = trading_state.state.binance_balance or 1
+    total_balance = trading_state.get_account_balance() or 1
     corr_exposure = 0.0
     CORR_ASSETS = {'BTC', 'ETH', 'SOL', 'BNB'}
     for p in bot_positions:
@@ -979,9 +1122,12 @@ async def get_bot_summary(bot_id: str):
             "correlation_exposure_pct": round(abs(corr_exposure) / total_balance * 100, 1),
         },
         "notional": {
-            "max_per_position": max_notional,
-            "total_capacity": max_notional * max_positions,
+            "max_per_position": effective_notional,
+            "configured_max_per_position": max_notional,
+            "total_capacity": effective_notional * max_positions,
             "leverage": leverage,
+            "max_cost_per_order": max_cost,
+            "max_cost_pct_per_order": float(alloc.get("max_cost_pct_per_order", 1.0) or 0.0),
         },
     }
 

@@ -14,6 +14,26 @@ class CycleIdentifier:
     """
 
     @staticmethod
+    def context_range(candles: list[Candle]) -> dict[str, float | int]:
+        """提取更贴近 Brooks 的可见区间边界，而不是机械只看最近 20 根。"""
+        if not candles:
+            return {
+                "range_high": 0.0,
+                "range_low": 0.0,
+                "window_size": 0,
+                "overlap_ratio": 0.0,
+                "swing_count": 0,
+            }
+        window = CycleIdentifier._select_context_window(candles)
+        return {
+            "range_high": max(candle.high for candle in window),
+            "range_low": min(candle.low for candle in window),
+            "window_size": len(window),
+            "overlap_ratio": CycleIdentifier._overlap_ratio(window),
+            "swing_count": len(CycleIdentifier._find_swings(window)),
+        }
+
+    @staticmethod
     def identify(candles: list[Candle], ema20: list[float]) -> MarketState:
         """识别当前市场周期。"""
         default = MarketState("neutral", "观望", 0.0)
@@ -26,14 +46,20 @@ class CycleIdentifier:
         strong_bears = sum(1 for candle in recent if CandlePatterns.is_strong_bear(candle))
 
         recent_twenty = candles[-20:] if len(candles) >= 20 else candles
-        range_high = max(candle.high for candle in recent_twenty)
-        range_low = min(candle.low for candle in recent_twenty)
-        is_ttr = CycleIdentifier._detect_ttr(recent_twenty) if len(candles) >= 20 else False
-        swings = CycleIdentifier._find_swings(candles[-30:] if len(candles) >= 30 else candles)
-        pullback_ratio = CycleIdentifier._measure_pullback_ratio(candles, swings)
-        overlap_ratio = CycleIdentifier._overlap_ratio(recent_twenty)
+        context_meta = CycleIdentifier.context_range(candles)
+        range_high = float(context_meta["range_high"] or 0.0)
+        range_low = float(context_meta["range_low"] or 0.0)
+        context_size = int(context_meta["window_size"] or len(recent_twenty) or 0)
+        context_window = candles[-context_size:] if context_size > 0 else recent_twenty
+        is_ttr = CycleIdentifier._detect_ttr(context_window) if len(context_window) >= 20 else False
+        swings = CycleIdentifier._find_swings(context_window[-40:] if len(context_window) >= 40 else context_window)
+        pullback_ratio = CycleIdentifier._measure_pullback_ratio(context_window, swings)
+        overlap_ratio = float(context_meta["overlap_ratio"] or 0.0)
         follow_through = CycleIdentifier._check_follow_through(candles[-5:])
-        gaps_open = CycleIdentifier._check_gaps_open(recent_twenty, ema20[-1])
+        gaps_open = CycleIdentifier._check_gaps_open(
+            context_window[-20:] if len(context_window) >= 20 else context_window,
+            ema20[-1],
+        )
         structure = CycleIdentifier._classify_structure(swings) if swings else "mixed"
 
         channel_type = "broad"
@@ -177,6 +203,45 @@ class CycleIdentifier:
             )
 
         return default
+
+    @staticmethod
+    def _select_context_window(candles: list[Candle]) -> list[Candle]:
+        """优先保留最近仍然有效的 TR / Broad Channel 结构记忆。"""
+        if len(candles) <= 20:
+            return candles
+
+        selected = candles[-20:]
+        for size in (30, 40, 60):
+            if len(candles) < size:
+                continue
+            window = candles[-size:]
+            swings = CycleIdentifier._find_swings(window)
+            alternating = CycleIdentifier._alternating_swing_count(swings[-8:] if len(swings) >= 8 else swings)
+            overlap = CycleIdentifier._overlap_ratio(window)
+            avg_bar_range = sum(max(candle.high - candle.low, 0.0) for candle in window) / len(window)
+            if avg_bar_range <= 0:
+                continue
+            range_height = max(candle.high for candle in window) - min(candle.low for candle in window)
+            compression = range_height / avg_bar_range
+            looks_range_like = overlap >= 0.34 or (alternating >= 5 and overlap >= 0.24)
+            looks_broad_channel_like = alternating >= 6 and compression <= max(10.0, size * 0.42)
+            if looks_range_like or looks_broad_channel_like:
+                selected = window
+        return selected
+
+    @staticmethod
+    def _alternating_swing_count(swings: list[dict]) -> int:
+        """统计最近 swing 是否呈现高低交替，便于识别区间与宽通道。"""
+        if not swings:
+            return 0
+        count = 1
+        last_type = str(swings[0].get("type") or "")
+        for swing in swings[1:]:
+            current_type = str(swing.get("type") or "")
+            if current_type and current_type != last_type:
+                count += 1
+                last_type = current_type
+        return count
 
     @staticmethod
     def _determine_always_in(

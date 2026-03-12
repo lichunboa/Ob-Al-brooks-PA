@@ -79,8 +79,9 @@ description: "PA 交易 V5.1 — SKILL 只负责编排，S/C/Q 承载交易知�
 命令、端口、API、启动/停止方式、bar 数量和缓存字段定义统一看：
 
 - `knowledge/patrol-l1/README.md`
-- `AB Patrol-Agent/docs/SKILL_RUNTIME_REFERENCE_20260309.md`
-- `AB Patrol-Agent/docs/S0_S7_RUNTIME_MAP_20260309.md`
+- `AB Patrol-Agent/docs/README.md`
+- `AB Patrol-Agent/docs/RUNTIME_FLOW.md`
+- `docs/archive/patrol-agent/README.md`
 
 ## S 系列知识体系（L1+L2 融合）
 
@@ -94,7 +95,8 @@ description: "PA 交易 V5.1 — SKILL 只负责编排，S/C/Q 承载交易知�
 详细矩阵统一看：
 
 - `knowledge/patrol-l1/README.md`
-- `AB Patrol-Agent/docs/S0_S7_RUNTIME_MAP_20260309.md`
+- `AB Patrol-Agent/docs/README.md`
+- `docs/archive/patrol-agent/README.md`
 
 ---
 
@@ -109,7 +111,7 @@ description: "PA 交易 V5.1 — SKILL 只负责编排，S/C/Q 承载交易知�
 - 扫描间隔由 `Step 5` + 当前状态机共同决定
 
 旧的 Claude slash 命令、trigger file、event-driver 启动说明，不再属于本文件。
-运行维护入口统一看 `AB Patrol-Agent/docs/SKILL_RUNTIME_REFERENCE_20260309.md`。
+运行维护入口统一看 `AB Patrol-Agent/docs/README.md`。
 
 ---
 

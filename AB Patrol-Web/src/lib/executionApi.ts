@@ -83,6 +83,7 @@ export interface HealthStatus {
   status: string;
   mode: string;
   exchange?: string;
+  account_asset?: string;
   service: string;
   version?: string;
   trading_enabled?: boolean;
@@ -112,6 +113,7 @@ export interface BotAllocation {
   cooldown_minutes: number;
   // V3.0
   max_notional_per_position?: number;
+  max_cost_pct_per_order?: number;
 }
 
 export interface TradingStatus {
@@ -119,6 +121,10 @@ export interface TradingStatus {
   last_sync: string | null;
   binance_balance: number;
   binance_available: number;
+  account_balance?: number;
+  account_available?: number;
+  account_asset?: string;
+  exchange?: string;
   total_unrealized_pnl: number;
   total_allocated: number;
   total_used: number;
@@ -144,6 +150,7 @@ export interface AllocationUpdate {
   cooldown_minutes?: number;
   // V3.0
   max_notional_per_position?: number;
+  max_cost_pct_per_order?: number;
 }
 
 // ========== V2.6.3 交易历史类型 ==========
@@ -248,7 +255,10 @@ export async function updateConfig(config: ConfigUpdate): Promise<{ success: boo
   return res.json();
 }
 
-export async function switchExchange(exchange: 'okx' | 'binance', mode: string = 'demo'): Promise<{ success: boolean; message: string }> {
+export async function switchExchange(
+  exchange: 'okx' | 'binance' | 'ctrader',
+  mode: string = 'demo',
+): Promise<{ success: boolean; message: string }> {
   const res = await fetch(`${getBaseUrl()}/config/exchange`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -347,18 +357,27 @@ export async function canBotTrade(botId: string): Promise<{
 
 export async function calculatePositionSize(
   botId: string,
+  symbol: string,
   entryPrice: number,
   stopLoss: number,
   riskPercent: number = 1.0
 ): Promise<{
   bot_id: string;
+  symbol?: string | null;
   quantity: number;
   explanation: string;
   entry_price: number;
   stop_loss: number;
   risk_percent: number;
+  account_asset?: string;
+  effective_notional?: number;
+  margin_cost?: number;
+  max_cost?: number;
+  leverage?: number;
+  symbol_info?: Record<string, unknown> | null;
 }> {
   const params = new URLSearchParams({
+    symbol,
     entry_price: entryPrice.toString(),
     stop_loss: stopLoss.toString(),
     risk_percent: riskPercent.toString(),
@@ -468,6 +487,7 @@ export interface BotRiskStatus {
   daily_loss_remaining: number;
   cooldowns: Record<string, number>;
   emergency_stop: boolean;
+  correlation_exposure_pct?: number;
 }
 
 export interface BotSummary {
@@ -483,9 +503,23 @@ export interface BotSummary {
   // V3.0
   notional?: {
     max_per_position: number;
+    configured_max_per_position?: number;
     total_capacity: number;
     leverage: number;
+    max_cost_per_order?: number;
+    max_cost_pct_per_order?: number;
   };
+}
+
+export interface ExecutionAccountOverview {
+  key: string;
+  label: string;
+  base_url: string;
+  healthy: boolean;
+  health: HealthStatus | null;
+  balance: Balance[];
+  positions: Position[];
+  trading_status: TradingStatus | null;
 }
 
 export interface EvolutionStrategy {
@@ -520,6 +554,16 @@ export async function getBotSummary(botId: string): Promise<BotSummary | null> {
   } catch {
     return null;
   }
+}
+
+export async function getExecutionAccounts(): Promise<{
+  generated_at: string;
+  primary: ExecutionAccountOverview;
+  secondary: ExecutionAccountOverview | null;
+}> {
+  const res = await fetch('/api/execution-accounts', { cache: 'no-store' });
+  if (!res.ok) throw new Error('获取账户概览失败');
+  return res.json();
 }
 
 export async function getBotPositions(botId: string): Promise<Position[]> {

@@ -119,7 +119,11 @@ class PositionPatrol:
                 bot_ids = self.executor.get_position_bot_ids(norm_sym)
 
                 leverage = pos.leverage if pos.leverage > 0 else 1
-                position_value = pos.quantity * pos.mark_price
+                position_value = self.executor.quantity_to_account_notional(
+                    norm_sym,
+                    pos.quantity,
+                    pos.mark_price,
+                )
                 # 多 bot 共享时均分保证金
                 margin_per_bot = (position_value / leverage) / max(len(bot_ids), 1)
 

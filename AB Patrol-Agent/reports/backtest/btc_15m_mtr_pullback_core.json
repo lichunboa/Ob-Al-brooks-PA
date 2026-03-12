@@ -1,0 +1,1203 @@
+{
+  "generated_at": "2026-03-11T17:35:46.200638",
+  "config": {
+    "symbols": [
+      "BTCUSDT"
+    ],
+    "timeframes": [
+      "15m"
+    ],
+    "mode": "both",
+    "thresholds": [
+      55,
+      60
+    ],
+    "segments": [
+      {
+        "label": "S1",
+        "start": "2025-12-11",
+        "end": "2026-01-10",
+        "days": 30
+      },
+      {
+        "label": "S2",
+        "start": "2026-01-10",
+        "end": "2026-02-09",
+        "days": 30
+      },
+      {
+        "label": "S3",
+        "start": "2026-02-09",
+        "end": "2026-03-11",
+        "days": 30
+      }
+    ],
+    "max_hold": 48,
+    "fee_rate": 0.0004,
+    "cache_dir": "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/backtest_cache",
+    "parquet": "",
+    "engine_threshold_overrides": {
+      "15m": 70
+    },
+    "strategy_profile": "",
+    "strategy_whitelist": [
+      "头肩底MTR",
+      "突破回调",
+      "头肩顶MTR"
+    ],
+    "strategy_blacklist": [],
+    "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+    "management_profile": "brooks_pdf",
+    "goals": {
+      "win_rate": 85.0,
+      "trades_per_day": 50.0,
+      "profit_factor": 1.5
+    }
+  },
+  "runs": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 55,
+      "segment": "S1",
+      "start": "2025-12-11",
+      "end": "2026-01-10",
+      "days": 30,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "total_trades": 14,
+      "wins": 3,
+      "losses": 11,
+      "scratches": 0,
+      "win_rate": 21.428571428571427,
+      "trades_per_day": 0.4666666666666667,
+      "total_pnl": 0.27035575964736186,
+      "avg_win": 0.4020840993882276,
+      "avg_loss": -0.08508150350157463,
+      "best_trade": 0.5510396368025128,
+      "worst_trade": -0.19083548679671664,
+      "max_drawdown": 0.6558965385173273,
+      "profit_factor": 1.2888735544162484,
+      "signals_generated": 283,
+      "signals_passed": 17,
+      "signals_blocked_bg": 6,
+      "signals_blocked_score": 6,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 240,
+      "by_strategy": {
+        "头肩底MTR": {
+          "trades": 7,
+          "wins": 2,
+          "losses": 5,
+          "scratches": 0,
+          "pnl": 0.3435572822400432,
+          "gross_profit": 0.6935572822400438,
+          "gross_loss": 0.35000000000000053,
+          "win_rate": 28.57142857142857,
+          "profit_factor": 1.9815922349715507
+        },
+        "头肩顶MTR": {
+          "trades": 7,
+          "wins": 1,
+          "losses": 6,
+          "scratches": 0,
+          "pnl": -0.07320152259268131,
+          "gross_profit": 0.5126950159246391,
+          "gross_loss": 0.5858965385173204,
+          "win_rate": 14.285714285714285,
+          "profit_factor": 0.8750606672332861
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 55,
+      "segment": "S2",
+      "start": "2026-01-10",
+      "end": "2026-02-09",
+      "days": 30,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "total_trades": 14,
+      "wins": 1,
+      "losses": 13,
+      "scratches": 0,
+      "win_rate": 7.142857142857142,
+      "trades_per_day": 0.4666666666666667,
+      "total_pnl": -3.8819317946048995,
+      "avg_win": 0.4833592231733838,
+      "avg_loss": -0.3357916167521756,
+      "best_trade": 0.4833592231733838,
+      "worst_trade": -1.5670320409311267,
+      "max_drawdown": 3.881931794604899,
+      "profit_factor": 0.11072783491520566,
+      "signals_generated": 284,
+      "signals_passed": 14,
+      "signals_blocked_bg": 4,
+      "signals_blocked_score": 17,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 238,
+      "by_strategy": {
+        "头肩顶MTR": {
+          "trades": 5,
+          "wins": 1,
+          "losses": 4,
+          "scratches": 0,
+          "pnl": -0.07695684541047293,
+          "gross_profit": 0.4833592231733838,
+          "gross_loss": 0.5603160685838567,
+          "win_rate": 20.0,
+          "profit_factor": 0.8626545806459313
+        },
+        "头肩底MTR": {
+          "trades": 9,
+          "wins": 0,
+          "losses": 9,
+          "scratches": 0,
+          "pnl": -3.8049749491944267,
+          "gross_profit": 0.0,
+          "gross_loss": 3.8049749491944267,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 55,
+      "segment": "S3",
+      "start": "2026-02-09",
+      "end": "2026-03-11",
+      "days": 30,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "total_trades": 9,
+      "wins": 4,
+      "losses": 5,
+      "scratches": 0,
+      "win_rate": 44.44444444444444,
+      "trades_per_day": 0.3,
+      "total_pnl": 5.405252722624687,
+      "avg_win": 2.1200722246634616,
+      "avg_loss": -0.615007235205832,
+      "best_trade": 3.1798171541127678,
+      "worst_trade": -1.2311290754090776,
+      "max_drawdown": 1.2311290754090776,
+      "profit_factor": 2.7577850838830034,
+      "signals_generated": 280,
+      "signals_passed": 13,
+      "signals_blocked_bg": 3,
+      "signals_blocked_score": 11,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 240,
+      "by_strategy": {
+        "头肩底MTR": {
+          "trades": 6,
+          "wins": 3,
+          "losses": 3,
+          "scratches": 0,
+          "pnl": 5.03365119478522,
+          "gross_profit": 7.0623012327502614,
+          "gross_loss": 2.028650037965042,
+          "win_rate": 50.0,
+          "profit_factor": 3.48128119714257
+        },
+        "头肩顶MTR": {
+          "trades": 3,
+          "wins": 1,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": 0.3716015278394674,
+          "gross_profit": 1.417987665903585,
+          "gross_loss": 1.0463861380641175,
+          "win_rate": 33.33333333333333,
+          "profit_factor": 1.3551284887307038
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": true
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 60,
+      "segment": "S1",
+      "start": "2025-12-11",
+      "end": "2026-01-10",
+      "days": 30,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "total_trades": 5,
+      "wins": 0,
+      "losses": 5,
+      "scratches": 0,
+      "win_rate": 0.0,
+      "trades_per_day": 0.16666666666666666,
+      "total_pnl": -0.5158965385173208,
+      "avg_win": 0,
+      "avg_loss": -0.10317930770346415,
+      "best_trade": -0.06999999999999351,
+      "worst_trade": -0.19083548679671664,
+      "max_drawdown": 0.5158965385173208,
+      "profit_factor": 0.0,
+      "signals_generated": 283,
+      "signals_passed": 6,
+      "signals_blocked_bg": 6,
+      "signals_blocked_score": 17,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 240,
+      "by_strategy": {
+        "头肩底MTR": {
+          "trades": 2,
+          "wins": 0,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": -0.14000000000000523,
+          "gross_profit": 0.0,
+          "gross_loss": 0.14000000000000523,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩顶MTR": {
+          "trades": 3,
+          "wins": 0,
+          "losses": 3,
+          "scratches": 0,
+          "pnl": -0.3758965385173155,
+          "gross_profit": 0.0,
+          "gross_loss": 0.3758965385173155,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 60,
+      "segment": "S2",
+      "start": "2026-01-10",
+      "end": "2026-02-09",
+      "days": 30,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "total_trades": 2,
+      "wins": 0,
+      "losses": 2,
+      "scratches": 0,
+      "win_rate": 0.0,
+      "trades_per_day": 0.06666666666666667,
+      "total_pnl": -0.30369128532005507,
+      "avg_win": 0,
+      "avg_loss": -0.15184564266002754,
+      "best_trade": -0.07000000000000864,
+      "worst_trade": -0.23369128532004646,
+      "max_drawdown": 0.30369128532005507,
+      "profit_factor": 0.0,
+      "signals_generated": 284,
+      "signals_passed": 2,
+      "signals_blocked_bg": 4,
+      "signals_blocked_score": 29,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 238,
+      "by_strategy": {
+        "头肩顶MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.07000000000000864,
+          "gross_profit": 0.0,
+          "gross_loss": 0.07000000000000864,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.23369128532004646,
+          "gross_profit": 0.0,
+          "gross_loss": 0.23369128532004646,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 60,
+      "segment": "S3",
+      "start": "2026-02-09",
+      "end": "2026-03-11",
+      "days": 30,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "total_trades": 5,
+      "wins": 2,
+      "losses": 3,
+      "scratches": 0,
+      "win_rate": 40.0,
+      "trades_per_day": 0.16666666666666666,
+      "total_pnl": 1.3941335438203188,
+      "avg_win": 1.382631309614694,
+      "avg_loss": -0.4570430251363564,
+      "best_trade": 1.417987665903585,
+      "worst_trade": -1.2311290754090776,
+      "max_drawdown": 1.2311290754090776,
+      "profit_factor": 2.0167777555183024,
+      "signals_generated": 280,
+      "signals_passed": 7,
+      "signals_blocked_bg": 3,
+      "signals_blocked_score": 17,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 240,
+      "by_strategy": {
+        "头肩底MTR": {
+          "trades": 3,
+          "wins": 1,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": 0.04614587791673286,
+          "gross_profit": 1.347274953325803,
+          "gross_loss": 1.30112907540907,
+          "win_rate": 33.33333333333333,
+          "profit_factor": 1.0354660262297382
+        },
+        "头肩顶MTR": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": 1.3479876659035859,
+          "gross_profit": 1.417987665903585,
+          "gross_loss": 0.06999999999999906,
+          "win_rate": 50.0,
+          "profit_factor": 20.256966655765773
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": true
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 55,
+      "segment": "S1",
+      "start": "2025-12-11",
+      "end": "2026-01-10",
+      "days": 30,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "total_trades": 14,
+      "wins": 3,
+      "losses": 11,
+      "scratches": 0,
+      "win_rate": 21.428571428571427,
+      "trades_per_day": 0.4666666666666667,
+      "total_pnl": 0.27035575964736186,
+      "avg_win": 0.4020840993882276,
+      "avg_loss": -0.08508150350157463,
+      "best_trade": 0.5510396368025128,
+      "worst_trade": -0.19083548679671664,
+      "max_drawdown": 0.6558965385173273,
+      "profit_factor": 1.2888735544162484,
+      "signals_generated": 283,
+      "signals_passed": 17,
+      "signals_blocked_bg": 6,
+      "signals_blocked_score": 6,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 240,
+      "by_strategy": {
+        "头肩底MTR": {
+          "trades": 7,
+          "wins": 2,
+          "losses": 5,
+          "scratches": 0,
+          "pnl": 0.3435572822400432,
+          "gross_profit": 0.6935572822400438,
+          "gross_loss": 0.35000000000000053,
+          "win_rate": 28.57142857142857,
+          "profit_factor": 1.9815922349715507
+        },
+        "头肩顶MTR": {
+          "trades": 7,
+          "wins": 1,
+          "losses": 6,
+          "scratches": 0,
+          "pnl": -0.07320152259268131,
+          "gross_profit": 0.5126950159246391,
+          "gross_loss": 0.5858965385173204,
+          "win_rate": 14.285714285714285,
+          "profit_factor": 0.8750606672332861
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 55,
+      "segment": "S2",
+      "start": "2026-01-10",
+      "end": "2026-02-09",
+      "days": 30,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "total_trades": 14,
+      "wins": 1,
+      "losses": 13,
+      "scratches": 0,
+      "win_rate": 7.142857142857142,
+      "trades_per_day": 0.4666666666666667,
+      "total_pnl": -3.8819317946048995,
+      "avg_win": 0.4833592231733838,
+      "avg_loss": -0.3357916167521756,
+      "best_trade": 0.4833592231733838,
+      "worst_trade": -1.5670320409311267,
+      "max_drawdown": 3.881931794604899,
+      "profit_factor": 0.11072783491520566,
+      "signals_generated": 284,
+      "signals_passed": 14,
+      "signals_blocked_bg": 4,
+      "signals_blocked_score": 17,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 238,
+      "by_strategy": {
+        "头肩顶MTR": {
+          "trades": 5,
+          "wins": 1,
+          "losses": 4,
+          "scratches": 0,
+          "pnl": -0.07695684541047293,
+          "gross_profit": 0.4833592231733838,
+          "gross_loss": 0.5603160685838567,
+          "win_rate": 20.0,
+          "profit_factor": 0.8626545806459313
+        },
+        "头肩底MTR": {
+          "trades": 9,
+          "wins": 0,
+          "losses": 9,
+          "scratches": 0,
+          "pnl": -3.8049749491944267,
+          "gross_profit": 0.0,
+          "gross_loss": 3.8049749491944267,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 55,
+      "segment": "S3",
+      "start": "2026-02-09",
+      "end": "2026-03-11",
+      "days": 30,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "total_trades": 9,
+      "wins": 4,
+      "losses": 5,
+      "scratches": 0,
+      "win_rate": 44.44444444444444,
+      "trades_per_day": 0.3,
+      "total_pnl": 5.405252722624687,
+      "avg_win": 2.1200722246634616,
+      "avg_loss": -0.615007235205832,
+      "best_trade": 3.1798171541127678,
+      "worst_trade": -1.2311290754090776,
+      "max_drawdown": 1.2311290754090776,
+      "profit_factor": 2.7577850838830034,
+      "signals_generated": 280,
+      "signals_passed": 13,
+      "signals_blocked_bg": 3,
+      "signals_blocked_score": 11,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 240,
+      "by_strategy": {
+        "头肩底MTR": {
+          "trades": 6,
+          "wins": 3,
+          "losses": 3,
+          "scratches": 0,
+          "pnl": 5.03365119478522,
+          "gross_profit": 7.0623012327502614,
+          "gross_loss": 2.028650037965042,
+          "win_rate": 50.0,
+          "profit_factor": 3.48128119714257
+        },
+        "头肩顶MTR": {
+          "trades": 3,
+          "wins": 1,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": 0.3716015278394674,
+          "gross_profit": 1.417987665903585,
+          "gross_loss": 1.0463861380641175,
+          "win_rate": 33.33333333333333,
+          "profit_factor": 1.3551284887307038
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": true
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 60,
+      "segment": "S1",
+      "start": "2025-12-11",
+      "end": "2026-01-10",
+      "days": 30,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "total_trades": 5,
+      "wins": 0,
+      "losses": 5,
+      "scratches": 0,
+      "win_rate": 0.0,
+      "trades_per_day": 0.16666666666666666,
+      "total_pnl": -0.5158965385173208,
+      "avg_win": 0,
+      "avg_loss": -0.10317930770346415,
+      "best_trade": -0.06999999999999351,
+      "worst_trade": -0.19083548679671664,
+      "max_drawdown": 0.5158965385173208,
+      "profit_factor": 0.0,
+      "signals_generated": 283,
+      "signals_passed": 6,
+      "signals_blocked_bg": 6,
+      "signals_blocked_score": 17,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 240,
+      "by_strategy": {
+        "头肩底MTR": {
+          "trades": 2,
+          "wins": 0,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": -0.14000000000000523,
+          "gross_profit": 0.0,
+          "gross_loss": 0.14000000000000523,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩顶MTR": {
+          "trades": 3,
+          "wins": 0,
+          "losses": 3,
+          "scratches": 0,
+          "pnl": -0.3758965385173155,
+          "gross_profit": 0.0,
+          "gross_loss": 0.3758965385173155,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 60,
+      "segment": "S2",
+      "start": "2026-01-10",
+      "end": "2026-02-09",
+      "days": 30,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "total_trades": 2,
+      "wins": 0,
+      "losses": 2,
+      "scratches": 0,
+      "win_rate": 0.0,
+      "trades_per_day": 0.06666666666666667,
+      "total_pnl": -0.30369128532005507,
+      "avg_win": 0,
+      "avg_loss": -0.15184564266002754,
+      "best_trade": -0.07000000000000864,
+      "worst_trade": -0.23369128532004646,
+      "max_drawdown": 0.30369128532005507,
+      "profit_factor": 0.0,
+      "signals_generated": 284,
+      "signals_passed": 2,
+      "signals_blocked_bg": 4,
+      "signals_blocked_score": 29,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 238,
+      "by_strategy": {
+        "头肩顶MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.07000000000000864,
+          "gross_profit": 0.0,
+          "gross_loss": 0.07000000000000864,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.23369128532004646,
+          "gross_profit": 0.0,
+          "gross_loss": 0.23369128532004646,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 60,
+      "segment": "S3",
+      "start": "2026-02-09",
+      "end": "2026-03-11",
+      "days": 30,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "total_trades": 5,
+      "wins": 2,
+      "losses": 3,
+      "scratches": 0,
+      "win_rate": 40.0,
+      "trades_per_day": 0.16666666666666666,
+      "total_pnl": 1.3941335438203188,
+      "avg_win": 1.382631309614694,
+      "avg_loss": -0.4570430251363564,
+      "best_trade": 1.417987665903585,
+      "worst_trade": -1.2311290754090776,
+      "max_drawdown": 1.2311290754090776,
+      "profit_factor": 2.0167777555183024,
+      "signals_generated": 280,
+      "signals_passed": 7,
+      "signals_blocked_bg": 3,
+      "signals_blocked_score": 17,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 240,
+      "by_strategy": {
+        "头肩底MTR": {
+          "trades": 3,
+          "wins": 1,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": 0.04614587791673286,
+          "gross_profit": 1.347274953325803,
+          "gross_loss": 1.30112907540907,
+          "win_rate": 33.33333333333333,
+          "profit_factor": 1.0354660262297382
+        },
+        "头肩顶MTR": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": 1.3479876659035859,
+          "gross_profit": 1.417987665903585,
+          "gross_loss": 0.06999999999999906,
+          "win_rate": 50.0,
+          "profit_factor": 20.256966655765773
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": true
+      }
+    }
+  ],
+  "summary": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "threshold": 60,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "segments": 6,
+      "days": 180,
+      "total_trades": 24,
+      "wins": 4,
+      "losses": 20,
+      "total_pnl": 1.149091439965886,
+      "gross_profit": 5.530525238458776,
+      "gross_loss": 4.38143379849289,
+      "signals_generated": 1694,
+      "signals_passed": 30,
+      "signals_blocked_strategy": 1436,
+      "max_drawdown": 1.2311290754090776,
+      "strategy_stats": {
+        "头肩底MTR": {
+          "trades": 12,
+          "wins": 2,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": -0.6550908148066377,
+          "gross_profit": 2.694549906651606,
+          "gross_loss": 3.3496407214582433
+        },
+        "头肩顶MTR": {
+          "trades": 12,
+          "wins": 2,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": 1.8041822547725235,
+          "gross_profit": 2.83597533180717,
+          "gross_loss": 1.0317930770346464
+        }
+      },
+      "win_rate": 16.666666666666664,
+      "trades_per_day": 0.13333333333333333,
+      "profit_factor": 1.262263791446797,
+      "top_strategies": [
+        {
+          "label": "头肩顶MTR",
+          "trades": 12,
+          "wins": 2,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": 1.8041822547725235,
+          "win_rate": 16.666666666666664,
+          "profit_factor": 2.7485892229066984
+        },
+        {
+          "label": "头肩底MTR",
+          "trades": 12,
+          "wins": 2,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": -0.6550908148066377,
+          "win_rate": 16.666666666666664,
+          "profit_factor": 0.8044295286327162
+        }
+      ]
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "threshold": 55,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "segments": 6,
+      "days": 180,
+      "total_trades": 74,
+      "wins": 16,
+      "losses": 58,
+      "total_pnl": 3.587353375334299,
+      "gross_profit": 20.339800839983827,
+      "gross_loss": 16.752447464649528,
+      "signals_generated": 1694,
+      "signals_passed": 88,
+      "signals_blocked_strategy": 1436,
+      "max_drawdown": 3.881931794604899,
+      "strategy_stats": {
+        "头肩底MTR": {
+          "trades": 44,
+          "wins": 10,
+          "losses": 34,
+          "scratches": 0,
+          "pnl": 3.144467055661673,
+          "gross_profit": 15.51171702998061,
+          "gross_loss": 12.367249974318938
+        },
+        "头肩顶MTR": {
+          "trades": 30,
+          "wins": 6,
+          "losses": 24,
+          "scratches": 0,
+          "pnl": 0.44288631967262637,
+          "gross_profit": 4.828083810003216,
+          "gross_loss": 4.385197490330589
+        }
+      },
+      "win_rate": 21.62162162162162,
+      "trades_per_day": 0.4111111111111111,
+      "profit_factor": 1.2141390613463625,
+      "top_strategies": [
+        {
+          "label": "头肩底MTR",
+          "trades": 44,
+          "wins": 10,
+          "losses": 34,
+          "scratches": 0,
+          "pnl": 3.144467055661673,
+          "win_rate": 22.727272727272727,
+          "profit_factor": 1.2542575804799998
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 30,
+          "wins": 6,
+          "losses": 24,
+          "scratches": 0,
+          "pnl": 0.44288631967262637,
+          "win_rate": 20.0,
+          "profit_factor": 1.1009957523348028
+        }
+      ]
+    }
+  ],
+  "top": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "threshold": 60,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "segments": 6,
+      "days": 180,
+      "total_trades": 24,
+      "wins": 4,
+      "losses": 20,
+      "total_pnl": 1.149091439965886,
+      "gross_profit": 5.530525238458776,
+      "gross_loss": 4.38143379849289,
+      "signals_generated": 1694,
+      "signals_passed": 30,
+      "signals_blocked_strategy": 1436,
+      "max_drawdown": 1.2311290754090776,
+      "strategy_stats": {
+        "头肩底MTR": {
+          "trades": 12,
+          "wins": 2,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": -0.6550908148066377,
+          "gross_profit": 2.694549906651606,
+          "gross_loss": 3.3496407214582433
+        },
+        "头肩顶MTR": {
+          "trades": 12,
+          "wins": 2,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": 1.8041822547725235,
+          "gross_profit": 2.83597533180717,
+          "gross_loss": 1.0317930770346464
+        }
+      },
+      "win_rate": 16.666666666666664,
+      "trades_per_day": 0.13333333333333333,
+      "profit_factor": 1.262263791446797,
+      "top_strategies": [
+        {
+          "label": "头肩顶MTR",
+          "trades": 12,
+          "wins": 2,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": 1.8041822547725235,
+          "win_rate": 16.666666666666664,
+          "profit_factor": 2.7485892229066984
+        },
+        {
+          "label": "头肩底MTR",
+          "trades": 12,
+          "wins": 2,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": -0.6550908148066377,
+          "win_rate": 16.666666666666664,
+          "profit_factor": 0.8044295286327162
+        }
+      ]
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "threshold": 55,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "白名单=头肩底MTR/头肩顶MTR/突破回调",
+      "strategy_whitelist": [
+        "头肩底MTR",
+        "突破回调",
+        "头肩顶MTR"
+      ],
+      "strategy_blacklist": [],
+      "filter_signature": "-|头肩底MTR,头肩顶MTR,突破回调|-|brooks_pdf",
+      "segments": 6,
+      "days": 180,
+      "total_trades": 74,
+      "wins": 16,
+      "losses": 58,
+      "total_pnl": 3.587353375334299,
+      "gross_profit": 20.339800839983827,
+      "gross_loss": 16.752447464649528,
+      "signals_generated": 1694,
+      "signals_passed": 88,
+      "signals_blocked_strategy": 1436,
+      "max_drawdown": 3.881931794604899,
+      "strategy_stats": {
+        "头肩底MTR": {
+          "trades": 44,
+          "wins": 10,
+          "losses": 34,
+          "scratches": 0,
+          "pnl": 3.144467055661673,
+          "gross_profit": 15.51171702998061,
+          "gross_loss": 12.367249974318938
+        },
+        "头肩顶MTR": {
+          "trades": 30,
+          "wins": 6,
+          "losses": 24,
+          "scratches": 0,
+          "pnl": 0.44288631967262637,
+          "gross_profit": 4.828083810003216,
+          "gross_loss": 4.385197490330589
+        }
+      },
+      "win_rate": 21.62162162162162,
+      "trades_per_day": 0.4111111111111111,
+      "profit_factor": 1.2141390613463625,
+      "top_strategies": [
+        {
+          "label": "头肩底MTR",
+          "trades": 44,
+          "wins": 10,
+          "losses": 34,
+          "scratches": 0,
+          "pnl": 3.144467055661673,
+          "win_rate": 22.727272727272727,
+          "profit_factor": 1.2542575804799998
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 30,
+          "wins": 6,
+          "losses": 24,
+          "scratches": 0,
+          "pnl": 0.44288631967262637,
+          "win_rate": 20.0,
+          "profit_factor": 1.1009957523348028
+        }
+      ]
+    }
+  ]
+}

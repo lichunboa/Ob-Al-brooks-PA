@@ -6,22 +6,79 @@ export const dynamic = 'force-dynamic';
 
 const DEFAULT_QUERY_BASE = 'http://127.0.0.1:8086';
 const DEFAULT_EXECUTION_BASE = 'http://127.0.0.1:8092';
-const BOT_ID = 'claude-pa';
+const DEFAULT_CRYPTO_EXECUTION_BASE = 'http://127.0.0.1:8094';
 
 const PROJECT_ROOT = path.join(process.cwd(), '..');
 const AGENT_ROOT = path.join(PROJECT_ROOT, 'AB Patrol-Agent');
-const DATA_ROOT = path.join(AGENT_ROOT, 'data', 'pa_trader');
-const STATE_DIR = path.join(DATA_ROOT, 'state');
-const CYCLES_DIR = path.join(DATA_ROOT, 'cycles');
-const JOURNAL_DIR = path.join(DATA_ROOT, 'journal');
-const DECISION_LOG = path.join(JOURNAL_DIR, 'decision_log.jsonl');
-const EXECUTION_LOG = path.join(JOURNAL_DIR, 'execution_log.jsonl');
-const REQUEST_FILE = path.join(DATA_ROOT, 'logs', 'decision', 'last_request.md');
-const SESSION_FILE = path.join(STATE_DIR, 'decision_session.json');
-const RUNTIME_STATE = path.join(STATE_DIR, 'runtime_state.json');
-const NEXT_SCAN = path.join(STATE_DIR, 'next_scan.json');
+
+type RuntimeConfig = {
+  key: 'primary' | 'secondary';
+  label: string;
+  botId: string;
+  dataRoot: string;
+  defaultQueryBase: string;
+  defaultExecutionBase: string;
+  allowQuery: boolean;
+};
+
+type RuntimeFiles = {
+  stateDir: string;
+  cyclesDir: string;
+  journalDir: string;
+  decisionLog: string;
+  executionLog: string;
+  requestFile: string;
+  sessionFile: string;
+  runtimeState: string;
+  nextScan: string;
+};
+
+const RUNTIME_CONFIGS: RuntimeConfig[] = [
+  {
+    key: 'primary',
+    label: '多资产主栈',
+    botId: 'claude-pa',
+    dataRoot: path.join(AGENT_ROOT, 'data', 'pa_trader'),
+    defaultQueryBase: DEFAULT_QUERY_BASE,
+    defaultExecutionBase: DEFAULT_EXECUTION_BASE,
+    allowQuery: true,
+  },
+  {
+    key: 'secondary',
+    label: 'Binance Demo',
+    botId: 'al-brooks',
+    dataRoot: path.join(AGENT_ROOT, 'data', 'pa_trader_crypto'),
+    defaultQueryBase: '',
+    defaultExecutionBase:
+      process.env.AB_PATROL_EXECUTION_CRYPTO_BASE ||
+      process.env.NEXT_PUBLIC_EXECUTION_CRYPTO_API_URL ||
+      DEFAULT_CRYPTO_EXECUTION_BASE,
+    allowQuery: false,
+  },
+];
 
 type UnknownRecord = Record<string, unknown>;
+
+function runtimeFiles(dataRoot: string): RuntimeFiles {
+  const stateDir = path.join(dataRoot, 'state');
+  const journalDir = path.join(dataRoot, 'journal');
+
+  return {
+    stateDir,
+    cyclesDir: path.join(dataRoot, 'cycles'),
+    journalDir,
+    decisionLog: path.join(journalDir, 'decision_log.jsonl'),
+    executionLog: path.join(journalDir, 'execution_log.jsonl'),
+    requestFile: path.join(dataRoot, 'logs', 'decision', 'last_request.md'),
+    sessionFile: path.join(stateDir, 'decision_session.json'),
+    runtimeState: path.join(stateDir, 'runtime_state.json'),
+    nextScan: path.join(stateDir, 'next_scan.json'),
+  };
+}
+
+function hasRuntimeData(files: RuntimeFiles): boolean {
+  return [files.runtimeState, files.cyclesDir, files.decisionLog, files.executionLog].some((filePath) => fs.existsSync(filePath));
+}
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -49,6 +106,10 @@ function asBoolean(value: unknown): boolean | null {
 
 function asStringArray(value: unknown): string[] {
   return asArray(value).map((item) => asString(item)).filter(Boolean);
+}
+
+function looksLikeTrackedSymbol(value: string): boolean {
+  return Boolean(value) && !value.startsWith('_') && value.length <= 24 && /^[A-Z0-9/:\- ]+$/.test(value);
 }
 
 function readJson(filePath: string): UnknownRecord {
@@ -89,20 +150,20 @@ function readText(filePath: string): string {
   }
 }
 
-function latestCycle(): { cyclePath: string | null; cycle: UnknownRecord; cycleAgeSeconds: number | null } {
+function latestCycle(files: RuntimeFiles): { cyclePath: string | null; cycle: UnknownRecord; cycleAgeSeconds: number | null } {
   try {
-    if (!fs.existsSync(CYCLES_DIR)) {
+    if (!fs.existsSync(files.cyclesDir)) {
       return { cyclePath: null, cycle: {}, cycleAgeSeconds: null };
     }
-    const files = fs
-      .readdirSync(CYCLES_DIR)
+    const cycleFiles = fs
+      .readdirSync(files.cyclesDir)
       .filter((file) => file.startsWith('cycle_') && file.endsWith('.json'))
       .sort();
-    const latest = files.at(-1);
+    const latest = cycleFiles.at(-1);
     if (!latest) {
       return { cyclePath: null, cycle: {}, cycleAgeSeconds: null };
     }
-    const cyclePath = path.join(CYCLES_DIR, latest);
+    const cyclePath = path.join(files.cyclesDir, latest);
     const stat = fs.statSync(cyclePath);
     const cycleAgeSeconds = Math.max(0, Math.floor((Date.now() - stat.mtimeMs) / 1000));
     return {
@@ -115,17 +176,17 @@ function latestCycle(): { cyclePath: string | null; cycle: UnknownRecord; cycleA
   }
 }
 
-function recentCycles(limit = 5): UnknownRecord[] {
+function recentCycles(files: RuntimeFiles, limit = 5): UnknownRecord[] {
   try {
-    if (!fs.existsSync(CYCLES_DIR)) return [];
+    if (!fs.existsSync(files.cyclesDir)) return [];
     return fs
-      .readdirSync(CYCLES_DIR)
+      .readdirSync(files.cyclesDir)
       .filter((file) => file.startsWith('cycle_') && file.endsWith('.json'))
       .sort()
       .slice(-limit)
       .reverse()
       .map((file) => {
-        const payload = readJson(path.join(CYCLES_DIR, file));
+        const payload = readJson(path.join(files.cyclesDir, file));
         const decision = asRecord(payload.decision);
         return {
           cycle_id: asString(payload.cycle_id) || file.replace(/\.json$/, ''),
@@ -319,7 +380,12 @@ function topThemes(value: unknown): Array<{ label: string; count: number }> {
   return entries;
 }
 
-function normalizePayload(raw: UnknownRecord, source: 'query-service' | 'fallback', queryUrl: string | null) {
+function normalizePayload(
+  raw: UnknownRecord,
+  source: 'query-service' | 'fallback',
+  queryUrl: string | null,
+  runtimeConfig: RuntimeConfig,
+) {
   const snapshot = asRecord(raw.snapshot);
   const runtime = asRecord(snapshot.runtime);
   const nextScan = asRecord(snapshot.next_scan);
@@ -346,8 +412,8 @@ function normalizePayload(raw: UnknownRecord, source: 'query-service' | 'fallbac
   const symbolKeys = Array.from(
     new Set([
       ...focusSymbols,
-      ...Object.keys(symbolUpdates).filter((key) => key.endsWith('USDT')),
-      ...Object.keys(runtimeSymbols).filter((key) => key.endsWith('USDT')),
+      ...Object.keys(symbolUpdates).filter((key) => looksLikeTrackedSymbol(key)),
+      ...Object.keys(runtimeSymbols).filter((key) => looksLikeTrackedSymbol(key)),
     ]),
   );
 
@@ -374,6 +440,8 @@ function normalizePayload(raw: UnknownRecord, source: 'query-service' | 'fallbac
   const funnel = asRecord(asRecord(raw.funnel).data);
 
   return {
+    runtimeKey: runtimeConfig.key,
+    runtimeLabel: runtimeConfig.label,
     source,
     queryUrl,
     health: {
@@ -387,7 +455,8 @@ function normalizePayload(raw: UnknownRecord, source: 'query-service' | 'fallbac
       executionPortOpen: asBoolean(snapshot.execution_port_open) ?? false,
     },
     runtime: {
-      botId: asString(runtime.bot_id) || BOT_ID,
+      botId: asString(runtime.bot_id) || runtimeConfig.botId,
+      exchange: asString(runtime.exchange) || asString(health.exchange),
       marketProfile: asString(runtime.market_profile),
       phase: asString(runtime.current_phase) || asString(latestCycleDecision.phase) || asString(latestCycle.phase),
       focusSymbols,
@@ -416,6 +485,8 @@ function normalizePayload(raw: UnknownRecord, source: 'query-service' | 'fallbac
       promptReferences: asStringArray(asRecord(latestCycleDecision.state_patch).prompt_references),
     },
     execution: {
+      exchange: asString(health.exchange),
+      accountAsset: asString(health.account_asset),
       canTrade: asBoolean(canTrade.can_trade),
       canTradeReason: asString(canTrade.reason),
       positionsCount: positions.length,
@@ -496,23 +567,25 @@ function normalizePayload(raw: UnknownRecord, source: 'query-service' | 'fallbac
   };
 }
 
-async function buildFallbackPayload(queryBase: string): Promise<UnknownRecord> {
-  const runtime = readJson(RUNTIME_STATE);
-  const nextScan = readJson(NEXT_SCAN);
-  const latest = latestCycle();
-  const requestText = readText(REQUEST_FILE);
-  const session = readJson(SESSION_FILE);
-  const queryHealth = await fetchJson(`${queryBase.replace(/\/$/, '')}/health`);
+async function buildFallbackPayload(runtimeConfig: RuntimeConfig, queryBase: string | null): Promise<UnknownRecord> {
+  const files = runtimeFiles(runtimeConfig.dataRoot);
+  const runtime = readJson(files.runtimeState);
+  const nextScan = readJson(files.nextScan);
+  const latest = latestCycle(files);
+  const requestText = readText(files.requestFile);
+  const session = readJson(files.sessionFile);
+  const queryHealth = queryBase ? await fetchJson(`${queryBase.replace(/\/$/, '')}/health`) : null;
 
-  const executionHealth = await fetchJson(`${DEFAULT_EXECUTION_BASE}/health`);
-  const positions = await fetchJson(`${DEFAULT_EXECUTION_BASE}/positions`);
-  const orders = await fetchJson(`${DEFAULT_EXECUTION_BASE}/orders/open`);
-  const canTrade = await fetchJson(`${DEFAULT_EXECUTION_BASE}/trading/can-trade/${BOT_ID}`);
+  const executionBase = runtimeConfig.defaultExecutionBase.replace(/\/$/, '');
+  const executionHealth = await fetchJson(`${executionBase}/health`);
+  const positions = await fetchJson(`${executionBase}/positions`);
+  const orders = await fetchJson(`${executionBase}/orders/open`);
+  const canTrade = await fetchJson(`${executionBase}/trading/can-trade/${runtimeConfig.botId}`);
   const sessionBootstrappedAt = asNumber(session.bootstrapped_at);
 
   const runtimeStatAgeSeconds = (() => {
     try {
-      const stat = fs.statSync(RUNTIME_STATE);
+      const stat = fs.statSync(files.runtimeState);
       return Math.max(0, Math.floor((Date.now() - stat.mtimeMs) / 1000));
     } catch {
       return null;
@@ -530,9 +603,9 @@ async function buildFallbackPayload(queryBase: string): Promise<UnknownRecord> {
       next_scan: Object.keys(nextScan).length > 0 ? nextScan : runtime.next_scan,
       latest_cycle_path: latest.cyclePath,
       latest_cycle: latest.cycle,
-      recent_cycles: recentCycles(5),
-      decision_tail: readJsonlTail(DECISION_LOG, 5),
-      execution_tail: readJsonlTail(EXECUTION_LOG, 5),
+      recent_cycles: recentCycles(files, 5),
+      decision_tail: readJsonlTail(files.decisionLog, 5),
+      execution_tail: readJsonlTail(files.executionLog, 5),
       monitoring: {
         knowledge_chars: asNumber(asRecord(runtime.knowledge_loading).knowledge_chars),
         refs_count: asNumber(asRecord(runtime.knowledge_loading).refs_count) ?? 0,
@@ -562,9 +635,7 @@ async function buildFallbackPayload(queryBase: string): Promise<UnknownRecord> {
       query_live: queryLive,
       execution_port_open: executionPortOpen,
     },
-    recent: {
-      items: recentCycles(5),
-    },
+    recent: { items: recentCycles(files, 5) },
     decision: {
       cycle_path: latest.cyclePath,
       decision: asRecord(latest.cycle.decision),
@@ -577,18 +648,40 @@ async function buildFallbackPayload(queryBase: string): Promise<UnknownRecord> {
 }
 
 export async function GET() {
-  const runtime = readJson(RUNTIME_STATE);
-  const configuredQueryBase =
-    asString(runtime.query_service_base) ||
-    process.env.AB_PATROL_QUERY_BASE ||
-    DEFAULT_QUERY_BASE;
-  const queryUrl = `${configuredQueryBase.replace(/\/$/, '')}/api/v1/runtime/full`;
+  const runtimeResults = await Promise.all(
+    RUNTIME_CONFIGS.map(async (runtimeConfig) => {
+      const files = runtimeFiles(runtimeConfig.dataRoot);
+      if (!hasRuntimeData(files)) {
+        return null;
+      }
 
-  const remote = await fetchJson(queryUrl);
-  if (isRecord(remote) && isRecord(remote.snapshot)) {
-    return NextResponse.json(normalizePayload(remote, 'query-service', queryUrl));
-  }
+      const runtime = readJson(files.runtimeState);
+      const configuredQueryBase =
+        runtimeConfig.allowQuery
+          ? asString(runtime.query_service_base) || process.env.AB_PATROL_QUERY_BASE || runtimeConfig.defaultQueryBase
+          : null;
+      const queryUrl = configuredQueryBase
+        ? `${configuredQueryBase.replace(/\/$/, '')}/api/v1/runtime/full`
+        : null;
 
-  const fallback = await buildFallbackPayload(configuredQueryBase);
-  return NextResponse.json(normalizePayload(fallback, 'fallback', queryUrl));
+      if (queryUrl) {
+        const remote = await fetchJson(queryUrl);
+        if (isRecord(remote) && isRecord(remote.snapshot)) {
+          return normalizePayload(remote, 'query-service', queryUrl, runtimeConfig);
+        }
+      }
+
+      const fallback = await buildFallbackPayload(runtimeConfig, configuredQueryBase);
+      return normalizePayload(fallback, 'fallback', queryUrl, runtimeConfig);
+    }),
+  );
+
+  const runtimes = runtimeResults.filter((item): item is NonNullable<(typeof runtimeResults)[number]> => item !== null);
+
+  return NextResponse.json({
+    generatedAt: new Date().toISOString(),
+    primary: runtimes.find((item) => asString(item.runtimeKey) === 'primary') ?? null,
+    secondary: runtimes.find((item) => asString(item.runtimeKey) === 'secondary') ?? null,
+    runtimes,
+  });
 }

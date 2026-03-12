@@ -103,6 +103,11 @@ class Trade:
     higher_follow_through: bool = False
     trendline_break_confirmed: bool = False
     failed_breakout_evidence: bool = False
+    signal_bar_quality: float = 0.0
+    signal_bar_tail_ratio: float = 0.0
+    signal_bar_close_position: float = 0.0
+    reclaimed_prior_close: bool = False
+    broke_micro_extreme: bool = False
     requires_second_entry: bool = False
     acceptance_ready: bool = False
     executable_signal_ready: bool = False
@@ -118,6 +123,9 @@ class Trade:
     prior_leg_context: str = ""
     prior_leg_bars: int = 0
     prior_leg_overlap_ratio: float = 0.0
+    playbook_id: str = ""
+    playbook_family: str = ""
+    order_bias: str = ""
     route_style: str = ""
     management_style: str = "default"
     recommended_target: float = 0.0
@@ -126,6 +134,7 @@ class Trade:
     magnet_cluster_count: int = 0
     magnet_cluster_strength: float = 0.0
     signal_stage: str = ""
+    signal_stage_reason: str = ""
     intent: str = ""
     risk_percent: float = 0.0
     scale_legs: int = 1
@@ -175,6 +184,11 @@ class PendingOrder:
     higher_follow_through: bool = False
     trendline_break_confirmed: bool = False
     failed_breakout_evidence: bool = False
+    signal_bar_quality: float = 0.0
+    signal_bar_tail_ratio: float = 0.0
+    signal_bar_close_position: float = 0.0
+    reclaimed_prior_close: bool = False
+    broke_micro_extreme: bool = False
     requires_second_entry: bool = False
     acceptance_ready: bool = False
     executable_signal_ready: bool = False
@@ -190,6 +204,9 @@ class PendingOrder:
     prior_leg_context: str = ""
     prior_leg_bars: int = 0
     prior_leg_overlap_ratio: float = 0.0
+    playbook_id: str = ""
+    playbook_family: str = ""
+    order_bias: str = ""
     route_style: str = ""
     management_style: str = "default"
     recommended_target: float = 0.0
@@ -198,6 +215,7 @@ class PendingOrder:
     magnet_cluster_count: int = 0
     magnet_cluster_strength: float = 0.0
     signal_stage: str = ""
+    signal_stage_reason: str = ""
     intent: str = ""
     risk_percent: float = 0.0
     original_entry_price: float = 0.0

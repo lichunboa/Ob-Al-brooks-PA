@@ -1,0 +1,2026 @@
+{
+  "generated_at": "2026-03-12T08:59:58.545953",
+  "config": {
+    "symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT",
+      "SOLUSDT"
+    ],
+    "timeframes": [
+      "5m"
+    ],
+    "mode": "split",
+    "thresholds": [
+      60
+    ],
+    "segments": [
+      {
+        "label": "S1",
+        "start": "2026-02-25",
+        "end": "2026-03-11",
+        "days": 14
+      }
+    ],
+    "max_hold": 48,
+    "fee_rate": 0.0004,
+    "initial_capital": 10000.0,
+    "cache_dir": "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/backtest_cache",
+    "parquet": "",
+    "engine_threshold_overrides": {},
+    "strategy_profile": "",
+    "strategy_whitelist": [],
+    "strategy_blacklist": [],
+    "strategy_filter_description": "未启用策略过滤",
+    "management_profile": "brooks_pdf",
+    "goals": {
+      "win_rate": 85.0,
+      "trades_per_day": 50.0,
+      "profit_factor": 1.5
+    }
+  },
+  "runs": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "5m",
+      "timeframes": [
+        "5m"
+      ],
+      "threshold": 60,
+      "segment": "S1",
+      "start": "2026-02-25",
+      "end": "2026-03-11",
+      "days": 14,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "未启用策略过滤",
+      "strategy_whitelist": [],
+      "strategy_blacklist": [],
+      "filter_signature": "-|-|-|brooks_pdf",
+      "total_trades": 48,
+      "wins": 15,
+      "losses": 30,
+      "scratches": 3,
+      "win_rate": 31.25,
+      "trades_per_day": 3.4285714285714284,
+      "total_pnl": 1.3286840666831707,
+      "avg_win": 0.6420557835391842,
+      "avg_loss": -0.27613767936731626,
+      "best_trade": 1.9434953663830221,
+      "worst_trade": -0.5485739278446418,
+      "max_drawdown": 2.161895501150861,
+      "profit_factor": 1.1625646036612165,
+      "initial_capital": 10000.0,
+      "ending_equity": 10061.875152984609,
+      "account_return_pct": 0.6187515298460857,
+      "account_max_drawdown": 0.8248554457205601,
+      "account_total_pnl_amount": 61.875152984608576,
+      "signals_generated": 499,
+      "signals_passed": 93,
+      "signals_blocked_bg": 0,
+      "signals_blocked_score": 0,
+      "signals_blocked_rr": 275,
+      "signals_blocked_strategy": 0,
+      "signals_blocked_route": 128,
+      "route_block_reasons": {
+        "宽通道逆势单仍需靠近边缘或优势区": 9,
+        "宽通道中部不做逆势 fade": 51,
+        "15m 弱空结构中，不做 5m 逆势 H1/H2": 16,
+        "15m 为 TR，5m 只做边缘 BLSHS 或明确反转": 20,
+        "15m 弱多结构中，5m 小反转证据不足": 2,
+        "15m 弱多结构中，不做 5m 逆势 L1/L2": 16,
+        "15m 为 TR，5m 顺势恢复已离开有利半区": 6,
+        "15m 为 TR，5m 小反转要更强确认": 1,
+        "15m 弱空结构中，5m 小反转证据不足": 2,
+        "15m 为 TR，中部腿不做顺势追单": 4,
+        "宽通道中部顺势恢复仍缺少接受": 1
+      },
+      "entry_block_reasons": {
+        "低2 前一腿更像 TR second-leg trap，且近端磁体太近，不追 stop": 8,
+        "止损没有放到结构位外": 204,
+        "H2/L2 前方近端磁体和 trapped side 太近，先等二次确认": 14,
+        "5m 高2 在震荡背景中更像区间噪音，先等更清晰确认": 10,
+        "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径": 12,
+        "前方磁体簇过密，第一次信号先不追": 4,
+        "5m 底部反转前方阻力过近，按 Brooks 先等二次确认或改限价": 2,
+        "看衰突破仍缺少真正的 failed breakout / trapped side 证据": 15,
+        "H2/L2 到第一目标磁体太近，不值得用 stop 追": 2,
+        "5m 双重顶前方目标受阻，按 Brooks 更适合限价刮头皮或等更强反转": 1
+      },
+      "by_strategy": {
+        "双重顶": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.2897614941338323,
+          "gross_profit": 0.2897614941338323,
+          "gross_loss": 0.0,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        "高2": {
+          "trades": 27,
+          "wins": 9,
+          "losses": 16,
+          "scratches": 2,
+          "pnl": 3.6669442503957295,
+          "gross_profit": 8.270445150392394,
+          "gross_loss": 4.607397872806326,
+          "win_rate": 33.33333333333333,
+          "profit_factor": 1.7950360222211368
+        },
+        "低2": {
+          "trades": 14,
+          "wins": 3,
+          "losses": 10,
+          "scratches": 1,
+          "pnl": -1.986796218289584,
+          "gross_profit": 0.7926745791868861,
+          "gross_loss": 2.7575515192817046,
+          "win_rate": 21.428571428571427,
+          "profit_factor": 0.28745594548070835
+        },
+        "头肩底MTR": {
+          "trades": 2,
+          "wins": 0,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": -0.4899883257652289,
+          "gross_profit": 0.0,
+          "gross_loss": 0.4899883257652289,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "收线追进": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.21057111826886793,
+          "gross_profit": 0.21057111826886793,
+          "gross_loss": 0.0,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        "第二腿陷阱": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.1000109044928662,
+          "gross_profit": 0.0,
+          "gross_loss": 0.1000109044928662,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩顶MTR": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.26179734756758066,
+          "gross_profit": 0.06738441110578162,
+          "gross_loss": 0.3291817586733623,
+          "win_rate": 50.0,
+          "profit_factor": 0.2047027495610571
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe_set": "5m",
+      "timeframes": [
+        "5m"
+      ],
+      "threshold": 60,
+      "segment": "S1",
+      "start": "2026-02-25",
+      "end": "2026-03-11",
+      "days": 14,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "未启用策略过滤",
+      "strategy_whitelist": [],
+      "strategy_blacklist": [],
+      "filter_signature": "-|-|-|brooks_pdf",
+      "total_trades": 51,
+      "wins": 11,
+      "losses": 36,
+      "scratches": 4,
+      "win_rate": 21.568627450980394,
+      "trades_per_day": 3.642857142857143,
+      "total_pnl": -6.434304951508446,
+      "avg_win": 0.5433868786266491,
+      "avg_loss": -0.34337511900560763,
+      "best_trade": 1.5925220877534843,
+      "worst_trade": -0.7687640906686182,
+      "max_drawdown": 6.784202325636123,
+      "profit_factor": 0.4835378872563377,
+      "initial_capital": 10000.0,
+      "ending_equity": 9739.900667976404,
+      "account_return_pct": -2.6009933202359568,
+      "account_max_drawdown": 3.0564417689388854,
+      "account_total_pnl_amount": -260.0993320235957,
+      "signals_generated": 491,
+      "signals_passed": 71,
+      "signals_blocked_bg": 0,
+      "signals_blocked_score": 0,
+      "signals_blocked_rr": 296,
+      "signals_blocked_strategy": 0,
+      "signals_blocked_route": 123,
+      "route_block_reasons": {
+        "宽通道中部不做逆势 fade": 45,
+        "15m 弱多结构中，5m 小反转证据不足": 5,
+        "15m 弱多结构中，不做 5m 逆势 L1/L2": 9,
+        "15m 弱空结构中，5m 小反转证据不足": 4,
+        "15m 为 TR，5m 顺势恢复已离开有利半区": 14,
+        "15m 为 TR，5m 只做边缘 BLSHS 或明确反转": 23,
+        "15m 弱空结构中，不做 5m 逆势 H1/H2": 11,
+        "宽通道逆势单仍需靠近边缘或优势区": 7,
+        "15m 为 TR，中部腿不做顺势追单": 3,
+        "15m 为 TR，5m 小反转要更强确认": 1,
+        "15m 为 TR，5m scalp 缺少 follow-through": 1
+      },
+      "entry_block_reasons": {
+        "止损没有放到结构位外": 198,
+        "H2/L2 前方近端磁体和 trapped side 太近，先等二次确认": 24,
+        "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径": 20,
+        "H2/L2 到第一目标磁体太近，不值得用 stop 追": 6,
+        "前方磁体簇过密，第一次信号先不追": 10,
+        "看衰突破仍缺少真正的 failed breakout / trapped side 证据": 20,
+        "5m 高2 在震荡背景中更像区间噪音，先等更清晰确认": 9,
+        "低2 前一腿更像 TR second-leg trap，且近端磁体太近，不追 stop": 7
+      },
+      "by_strategy": {
+        "低2": {
+          "trades": 19,
+          "wins": 1,
+          "losses": 16,
+          "scratches": 2,
+          "pnl": -4.681865985873927,
+          "gross_profit": 0.36420380361586047,
+          "gross_loss": 5.0348288858158226,
+          "win_rate": 5.263157894736842,
+          "profit_factor": 0.07233687814930505
+        },
+        "高2": {
+          "trades": 28,
+          "wins": 8,
+          "losses": 20,
+          "scratches": 0,
+          "pnl": -2.0155270150278675,
+          "gross_profit": 5.311148383358185,
+          "gross_loss": 7.326675398386053,
+          "win_rate": 28.57142857142857,
+          "profit_factor": 0.724905648819674
+        },
+        "MAG 20/20 Setup": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.1961721464849286,
+          "gross_profit": 0.1961721464849286,
+          "gross_loss": 0.0,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        "头肩底MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.04971757122888293,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "第二腿陷阱": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.10573133143416666,
+          "gross_profit": 0.10573133143416666,
+          "gross_loss": 0.0,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        "头肩顶MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.010902142703134998,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "BNBUSDT",
+      "timeframe_set": "5m",
+      "timeframes": [
+        "5m"
+      ],
+      "threshold": 60,
+      "segment": "S1",
+      "start": "2026-02-25",
+      "end": "2026-03-11",
+      "days": 14,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "未启用策略过滤",
+      "strategy_whitelist": [],
+      "strategy_blacklist": [],
+      "filter_signature": "-|-|-|brooks_pdf",
+      "total_trades": 49,
+      "wins": 11,
+      "losses": 33,
+      "scratches": 5,
+      "win_rate": 22.448979591836736,
+      "trades_per_day": 3.5,
+      "total_pnl": -4.126420254790933,
+      "avg_win": 0.4574894730495318,
+      "avg_loss": -0.2780921032219938,
+      "best_trade": 1.2924423085349122,
+      "worst_trade": -0.7377565169610577,
+      "max_drawdown": 4.881582955183397,
+      "profit_factor": 0.5483668513045714,
+      "initial_capital": 10000.0,
+      "ending_equity": 9763.059059557125,
+      "account_return_pct": -2.369409404428752,
+      "account_max_drawdown": 2.6344066098858367,
+      "account_total_pnl_amount": -236.94094044287522,
+      "signals_generated": 459,
+      "signals_passed": 90,
+      "signals_blocked_bg": 0,
+      "signals_blocked_score": 0,
+      "signals_blocked_rr": 255,
+      "signals_blocked_strategy": 0,
+      "signals_blocked_route": 111,
+      "route_block_reasons": {
+        "15m 为 TR，5m 只做边缘 BLSHS 或明确反转": 23,
+        "15m 弱多结构中，5m 小反转证据不足": 2,
+        "宽通道中部不做逆势 fade": 33,
+        "15m 为 TR，5m 顺势恢复已离开有利半区": 17,
+        "15m 弱空结构中，5m 小反转证据不足": 5,
+        "宽通道逆势单仍需靠近边缘或优势区": 11,
+        "15m 弱多结构中，不做 5m 逆势 L1/L2": 6,
+        "15m 弱空结构中，不做 5m 逆势 H1/H2": 9,
+        "15m 为 TR，5m 小反转要更强确认": 1,
+        "15m 为 TR，5m 不追突破": 1,
+        "15m 为 TR，中部腿不做顺势追单": 2,
+        "15m 为 TR，5m breakout mode 证据不足": 1
+      },
+      "entry_block_reasons": {
+        "止损没有放到结构位外": 172,
+        "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径": 19,
+        "H2/L2 前方近端磁体和 trapped side 太近，先等二次确认": 14,
+        "低2 前一腿更像 TR second-leg trap，且近端磁体太近，不追 stop": 12,
+        "前方磁体簇过密，第一次信号先不追": 7,
+        "看衰突破仍缺少真正的 failed breakout / trapped side 证据": 16,
+        "5m 高2 在震荡背景中更像区间噪音，先等更清晰确认": 7,
+        "H2/L2 到第一目标磁体太近，不值得用 stop 追": 3,
+        "5m 双重顶前方目标受阻，按 Brooks 更适合限价刮头皮或等更强反转": 1
+      },
+      "by_strategy": {
+        "高2": {
+          "trades": 22,
+          "wins": 8,
+          "losses": 13,
+          "scratches": 1,
+          "pnl": 1.0326867751668511,
+          "gross_profit": 4.694098286925635,
+          "gross_loss": 3.6350043016689524,
+          "win_rate": 36.36363636363637,
+          "profit_factor": 1.291359761189393
+        },
+        "低2": {
+          "trades": 10,
+          "wins": 0,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": -2.925771510118416,
+          "gross_profit": 0.0,
+          "gross_loss": 2.925771510118416,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "楔形底": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.024026630817485628,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "双重顶": {
+          "trades": 3,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 2,
+          "pnl": -0.20196916785505584,
+          "gross_profit": 0.0,
+          "gross_loss": 0.20635991000707865,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "收线追进": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": 0.009721330108324683,
+          "gross_profit": 0.09614703291956382,
+          "gross_loss": 0.08642570281123914,
+          "win_rate": 50.0,
+          "profit_factor": 1.1124819329448425
+        },
+        "第二腿陷阱": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.4349586070622385,
+          "gross_profit": 0.07565562758189175,
+          "gross_loss": 0.5106142346441302,
+          "win_rate": 50.0,
+          "profit_factor": 0.14816591949227487
+        },
+        "双重底": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.016224785110334525,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "急速通道": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.22960824233450972,
+          "gross_profit": 0.0,
+          "gross_loss": 0.22960824233450972,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 4,
+          "wins": 0,
+          "losses": 4,
+          "scratches": 0,
+          "pnl": -0.5624679297461471,
+          "gross_profit": 0.0,
+          "gross_loss": 0.5624679297461471,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "突破回调": {
+          "trades": 2,
+          "wins": 0,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": -1.0207875749953206,
+          "gross_profit": 0.0,
+          "gross_loss": 1.0207875749953206,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩顶MTR": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.16648325611775944,
+          "gross_profit": 0.16648325611775944,
+          "gross_loss": 0.0,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe_set": "5m",
+      "timeframes": [
+        "5m"
+      ],
+      "threshold": 60,
+      "segment": "S1",
+      "start": "2026-02-25",
+      "end": "2026-03-11",
+      "days": 14,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "未启用策略过滤",
+      "strategy_whitelist": [],
+      "strategy_blacklist": [],
+      "filter_signature": "-|-|-|brooks_pdf",
+      "total_trades": 57,
+      "wins": 9,
+      "losses": 42,
+      "scratches": 6,
+      "win_rate": 15.789473684210526,
+      "trades_per_day": 4.071428571428571,
+      "total_pnl": -8.656609389088166,
+      "avg_win": 0.7516000226866285,
+      "avg_loss": -0.3659006279981721,
+      "best_trade": 1.9501135892546309,
+      "worst_trade": -1.0568409469937938,
+      "max_drawdown": 11.38303006786526,
+      "profit_factor": 0.44016636046704966,
+      "initial_capital": 10000.0,
+      "ending_equity": 9729.42909900127,
+      "account_return_pct": -2.705709009987295,
+      "account_max_drawdown": 3.4182955604290486,
+      "account_total_pnl_amount": -270.5709009987295,
+      "signals_generated": 448,
+      "signals_passed": 97,
+      "signals_blocked_bg": 0,
+      "signals_blocked_score": 0,
+      "signals_blocked_rr": 275,
+      "signals_blocked_strategy": 0,
+      "signals_blocked_route": 80,
+      "route_block_reasons": {
+        "宽通道中部不做逆势 fade": 29,
+        "15m 弱多结构中，5m 小反转证据不足": 2,
+        "15m 为 TR，5m 顺势恢复已离开有利半区": 7,
+        "15m 弱空结构中，不做 5m 逆势 H1/H2": 6,
+        "15m 为 TR，5m 只做边缘 BLSHS 或明确反转": 10,
+        "15m 为 TR，中部腿不做顺势追单": 9,
+        "15m 弱多结构中，不做 5m 逆势 L1/L2": 10,
+        "宽通道逆势单仍需靠近边缘或优势区": 5,
+        "宽通道逆势里不追弱突破": 1,
+        "15m 弱空结构中，5m 小反转证据不足": 1
+      },
+      "entry_block_reasons": {
+        "低2 前一腿更像 TR second-leg trap，且近端磁体太近，不追 stop": 13,
+        "止损没有放到结构位外": 184,
+        "5m 高2 在震荡背景中更像区间噪音，先等更清晰确认": 5,
+        "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径": 15,
+        "前方磁体簇过密，第一次信号先不追": 6,
+        "H2/L2 前方近端磁体和 trapped side 太近，先等二次确认": 17,
+        "看衰突破仍缺少真正的 failed breakout / trapped side 证据": 21,
+        "H2/L2 到第一目标磁体太近，不值得用 stop 追": 3,
+        "5m 底部反转前方阻力过近，按 Brooks 先等二次确认或改限价": 2
+      },
+      "by_strategy": {
+        "低2": {
+          "trades": 21,
+          "wins": 5,
+          "losses": 16,
+          "scratches": 0,
+          "pnl": -2.229690856341963,
+          "gross_profit": 2.9633414860517333,
+          "gross_loss": 5.193032342393695,
+          "win_rate": 23.809523809523807,
+          "profit_factor": 0.5706379800218614
+        },
+        "高2": {
+          "trades": 32,
+          "wins": 3,
+          "losses": 26,
+          "scratches": 3,
+          "pnl": -7.035614479794172,
+          "gross_profit": 3.207575430003473,
+          "gross_loss": 10.174794033529531,
+          "win_rate": 9.375,
+          "profit_factor": 0.31524720986325444
+        },
+        "第二腿陷阱": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.03217049915871488,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "双重底": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.011763903104755988,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.5934832881244503,
+          "gross_profit": 0.5934832881244503,
+          "gross_loss": 0.0,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        "双重顶": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.005193937130438406,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    }
+  ],
+  "summary": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "5m",
+      "threshold": 60,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "未启用策略过滤",
+      "strategy_whitelist": [],
+      "strategy_blacklist": [],
+      "filter_signature": "-|-|-|brooks_pdf",
+      "segments": 1,
+      "days": 14,
+      "total_trades": 48,
+      "wins": 15,
+      "losses": 30,
+      "total_pnl": 1.3286840666831707,
+      "gross_profit": 9.630836753087763,
+      "gross_loss": 8.284130381019487,
+      "signals_generated": 499,
+      "signals_passed": 93,
+      "signals_blocked_strategy": 0,
+      "signals_blocked_route": 128,
+      "route_block_reasons": {
+        "宽通道中部不做逆势 fade": 51,
+        "15m 为 TR，5m 只做边缘 BLSHS 或明确反转": 20,
+        "15m 弱多结构中，不做 5m 逆势 L1/L2": 16,
+        "15m 弱空结构中，不做 5m 逆势 H1/H2": 16,
+        "宽通道逆势单仍需靠近边缘或优势区": 9
+      },
+      "entry_block_reasons": {
+        "止损没有放到结构位外": 204,
+        "看衰突破仍缺少真正的 failed breakout / trapped side 证据": 15,
+        "H2/L2 前方近端磁体和 trapped side 太近，先等二次确认": 14,
+        "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径": 12,
+        "5m 高2 在震荡背景中更像区间噪音，先等更清晰确认": 10
+      },
+      "max_drawdown": 2.161895501150861,
+      "account_max_drawdown": 0.8248554457205601,
+      "initial_capital": 10000.0,
+      "ending_equity": 10061.875152984609,
+      "account_total_pnl_amount": 61.875152984608576,
+      "account_return_pct_weighted": 8.6625214178452,
+      "strategy_stats": {
+        "双重顶": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.2897614941338323,
+          "gross_profit": 0.2897614941338323,
+          "gross_loss": 0.0
+        },
+        "高2": {
+          "trades": 27,
+          "wins": 9,
+          "losses": 16,
+          "scratches": 2,
+          "pnl": 3.6669442503957295,
+          "gross_profit": 8.270445150392394,
+          "gross_loss": 4.607397872806326
+        },
+        "低2": {
+          "trades": 14,
+          "wins": 3,
+          "losses": 10,
+          "scratches": 1,
+          "pnl": -1.986796218289584,
+          "gross_profit": 0.7926745791868861,
+          "gross_loss": 2.7575515192817046
+        },
+        "头肩底MTR": {
+          "trades": 2,
+          "wins": 0,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": -0.4899883257652289,
+          "gross_profit": 0.0,
+          "gross_loss": 0.4899883257652289
+        },
+        "收线追进": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.21057111826886793,
+          "gross_profit": 0.21057111826886793,
+          "gross_loss": 0.0
+        },
+        "第二腿陷阱": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.1000109044928662,
+          "gross_profit": 0.0,
+          "gross_loss": 0.1000109044928662
+        },
+        "头肩顶MTR": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.26179734756758066,
+          "gross_profit": 0.06738441110578162,
+          "gross_loss": 0.3291817586733623
+        }
+      },
+      "win_rate": 31.25,
+      "trades_per_day": 3.4285714285714284,
+      "profit_factor": 1.1625646036612165,
+      "account_return_pct": 0.6187515298460857,
+      "top_strategies": [
+        {
+          "label": "高2",
+          "trades": 27,
+          "wins": 9,
+          "losses": 16,
+          "scratches": 2,
+          "pnl": 3.6669442503957295,
+          "win_rate": 33.33333333333333,
+          "profit_factor": 1.7950360222211368
+        },
+        {
+          "label": "双重顶",
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.2897614941338323,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        {
+          "label": "收线追进",
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.21057111826886793,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        {
+          "label": "第二腿陷阱",
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.1000109044928662,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.26179734756758066,
+          "win_rate": 50.0,
+          "profit_factor": 0.2047027495610571
+        }
+      ]
+    },
+    {
+      "symbol": "BNBUSDT",
+      "timeframe_set": "5m",
+      "threshold": 60,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "未启用策略过滤",
+      "strategy_whitelist": [],
+      "strategy_blacklist": [],
+      "filter_signature": "-|-|-|brooks_pdf",
+      "segments": 1,
+      "days": 14,
+      "total_trades": 49,
+      "wins": 11,
+      "losses": 33,
+      "total_pnl": -4.126420254790933,
+      "gross_profit": 5.03238420354485,
+      "gross_loss": 9.177039406325795,
+      "signals_generated": 459,
+      "signals_passed": 90,
+      "signals_blocked_strategy": 0,
+      "signals_blocked_route": 111,
+      "route_block_reasons": {
+        "宽通道中部不做逆势 fade": 33,
+        "15m 为 TR，5m 只做边缘 BLSHS 或明确反转": 23,
+        "15m 为 TR，5m 顺势恢复已离开有利半区": 17,
+        "宽通道逆势单仍需靠近边缘或优势区": 11,
+        "15m 弱空结构中，不做 5m 逆势 H1/H2": 9
+      },
+      "entry_block_reasons": {
+        "止损没有放到结构位外": 172,
+        "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径": 19,
+        "看衰突破仍缺少真正的 failed breakout / trapped side 证据": 16,
+        "H2/L2 前方近端磁体和 trapped side 太近，先等二次确认": 14,
+        "低2 前一腿更像 TR second-leg trap，且近端磁体太近，不追 stop": 12
+      },
+      "max_drawdown": 4.881582955183397,
+      "account_max_drawdown": 2.6344066098858367,
+      "initial_capital": 10000.0,
+      "ending_equity": 9763.059059557125,
+      "account_total_pnl_amount": -236.94094044287522,
+      "account_return_pct_weighted": -33.17173166200253,
+      "strategy_stats": {
+        "高2": {
+          "trades": 22,
+          "wins": 8,
+          "losses": 13,
+          "scratches": 1,
+          "pnl": 1.0326867751668511,
+          "gross_profit": 4.694098286925635,
+          "gross_loss": 3.6350043016689524
+        },
+        "低2": {
+          "trades": 10,
+          "wins": 0,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": -2.925771510118416,
+          "gross_profit": 0.0,
+          "gross_loss": 2.925771510118416
+        },
+        "楔形底": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.024026630817485628,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        },
+        "双重顶": {
+          "trades": 3,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 2,
+          "pnl": -0.20196916785505584,
+          "gross_profit": 0.0,
+          "gross_loss": 0.20635991000707865
+        },
+        "收线追进": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": 0.009721330108324683,
+          "gross_profit": 0.09614703291956382,
+          "gross_loss": 0.08642570281123914
+        },
+        "第二腿陷阱": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.4349586070622385,
+          "gross_profit": 0.07565562758189175,
+          "gross_loss": 0.5106142346441302
+        },
+        "双重底": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.016224785110334525,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        },
+        "急速通道": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.22960824233450972,
+          "gross_profit": 0.0,
+          "gross_loss": 0.22960824233450972
+        },
+        "头肩底MTR": {
+          "trades": 4,
+          "wins": 0,
+          "losses": 4,
+          "scratches": 0,
+          "pnl": -0.5624679297461471,
+          "gross_profit": 0.0,
+          "gross_loss": 0.5624679297461471
+        },
+        "突破回调": {
+          "trades": 2,
+          "wins": 0,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": -1.0207875749953206,
+          "gross_profit": 0.0,
+          "gross_loss": 1.0207875749953206
+        },
+        "头肩顶MTR": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.16648325611775944,
+          "gross_profit": 0.16648325611775944,
+          "gross_loss": 0.0
+        }
+      },
+      "win_rate": 22.448979591836736,
+      "trades_per_day": 3.5,
+      "profit_factor": 0.5483668513045714,
+      "account_return_pct": -2.369409404428752,
+      "top_strategies": [
+        {
+          "label": "高2",
+          "trades": 22,
+          "wins": 8,
+          "losses": 13,
+          "scratches": 1,
+          "pnl": 1.0326867751668511,
+          "win_rate": 36.36363636363637,
+          "profit_factor": 1.291359761189393
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.16648325611775944,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        {
+          "label": "楔形底",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.024026630817485628,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "双重底",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.016224785110334525,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "收线追进",
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": 0.009721330108324683,
+          "win_rate": 50.0,
+          "profit_factor": 1.1124819329448425
+        }
+      ]
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe_set": "5m",
+      "threshold": 60,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "未启用策略过滤",
+      "strategy_whitelist": [],
+      "strategy_blacklist": [],
+      "filter_signature": "-|-|-|brooks_pdf",
+      "segments": 1,
+      "days": 14,
+      "total_trades": 51,
+      "wins": 11,
+      "losses": 36,
+      "total_pnl": -6.434304951508446,
+      "gross_profit": 5.977255664893141,
+      "gross_loss": 12.361504284201875,
+      "signals_generated": 491,
+      "signals_passed": 71,
+      "signals_blocked_strategy": 0,
+      "signals_blocked_route": 123,
+      "route_block_reasons": {
+        "宽通道中部不做逆势 fade": 45,
+        "15m 为 TR，5m 只做边缘 BLSHS 或明确反转": 23,
+        "15m 为 TR，5m 顺势恢复已离开有利半区": 14,
+        "15m 弱空结构中，不做 5m 逆势 H1/H2": 11,
+        "15m 弱多结构中，不做 5m 逆势 L1/L2": 9
+      },
+      "entry_block_reasons": {
+        "止损没有放到结构位外": 198,
+        "H2/L2 前方近端磁体和 trapped side 太近，先等二次确认": 24,
+        "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径": 20,
+        "看衰突破仍缺少真正的 failed breakout / trapped side 证据": 20,
+        "前方磁体簇过密，第一次信号先不追": 10
+      },
+      "max_drawdown": 6.784202325636123,
+      "account_max_drawdown": 3.0564417689388854,
+      "initial_capital": 10000.0,
+      "ending_equity": 9739.900667976404,
+      "account_total_pnl_amount": -260.0993320235957,
+      "account_return_pct_weighted": -36.41390648330339,
+      "strategy_stats": {
+        "低2": {
+          "trades": 19,
+          "wins": 1,
+          "losses": 16,
+          "scratches": 2,
+          "pnl": -4.681865985873927,
+          "gross_profit": 0.36420380361586047,
+          "gross_loss": 5.0348288858158226
+        },
+        "高2": {
+          "trades": 28,
+          "wins": 8,
+          "losses": 20,
+          "scratches": 0,
+          "pnl": -2.0155270150278675,
+          "gross_profit": 5.311148383358185,
+          "gross_loss": 7.326675398386053
+        },
+        "MAG 20/20 Setup": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.1961721464849286,
+          "gross_profit": 0.1961721464849286,
+          "gross_loss": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.04971757122888293,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        },
+        "第二腿陷阱": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.10573133143416666,
+          "gross_profit": 0.10573133143416666,
+          "gross_loss": 0.0
+        },
+        "头肩顶MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.010902142703134998,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        }
+      },
+      "win_rate": 21.568627450980394,
+      "trades_per_day": 3.642857142857143,
+      "profit_factor": 0.4835378872563377,
+      "account_return_pct": -2.6009933202359568,
+      "top_strategies": [
+        {
+          "label": "MAG 20/20 Setup",
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.1961721464849286,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        {
+          "label": "第二腿陷阱",
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.10573133143416666,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.010902142703134998,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "头肩底MTR",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.04971757122888293,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "高2",
+          "trades": 28,
+          "wins": 8,
+          "losses": 20,
+          "scratches": 0,
+          "pnl": -2.0155270150278675,
+          "win_rate": 28.57142857142857,
+          "profit_factor": 0.724905648819674
+        }
+      ]
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe_set": "5m",
+      "threshold": 60,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "未启用策略过滤",
+      "strategy_whitelist": [],
+      "strategy_blacklist": [],
+      "filter_signature": "-|-|-|brooks_pdf",
+      "segments": 1,
+      "days": 14,
+      "total_trades": 57,
+      "wins": 9,
+      "losses": 42,
+      "total_pnl": -8.656609389088166,
+      "gross_profit": 6.7644002041796565,
+      "gross_loss": 15.367826375923228,
+      "signals_generated": 448,
+      "signals_passed": 97,
+      "signals_blocked_strategy": 0,
+      "signals_blocked_route": 80,
+      "route_block_reasons": {
+        "宽通道中部不做逆势 fade": 29,
+        "15m 为 TR，5m 只做边缘 BLSHS 或明确反转": 10,
+        "15m 弱多结构中，不做 5m 逆势 L1/L2": 10,
+        "15m 为 TR，中部腿不做顺势追单": 9,
+        "15m 为 TR，5m 顺势恢复已离开有利半区": 7
+      },
+      "entry_block_reasons": {
+        "止损没有放到结构位外": 184,
+        "看衰突破仍缺少真正的 failed breakout / trapped side 证据": 21,
+        "H2/L2 前方近端磁体和 trapped side 太近，先等二次确认": 17,
+        "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径": 15,
+        "低2 前一腿更像 TR second-leg trap，且近端磁体太近，不追 stop": 13
+      },
+      "max_drawdown": 11.38303006786526,
+      "account_max_drawdown": 3.4182955604290486,
+      "initial_capital": 10000.0,
+      "ending_equity": 9729.42909900127,
+      "account_total_pnl_amount": -270.5709009987295,
+      "account_return_pct_weighted": -37.87992613982213,
+      "strategy_stats": {
+        "低2": {
+          "trades": 21,
+          "wins": 5,
+          "losses": 16,
+          "scratches": 0,
+          "pnl": -2.229690856341963,
+          "gross_profit": 2.9633414860517333,
+          "gross_loss": 5.193032342393695
+        },
+        "高2": {
+          "trades": 32,
+          "wins": 3,
+          "losses": 26,
+          "scratches": 3,
+          "pnl": -7.035614479794172,
+          "gross_profit": 3.207575430003473,
+          "gross_loss": 10.174794033529531
+        },
+        "第二腿陷阱": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.03217049915871488,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        },
+        "双重底": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.011763903104755988,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.5934832881244503,
+          "gross_profit": 0.5934832881244503,
+          "gross_loss": 0.0
+        },
+        "双重顶": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.005193937130438406,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        }
+      },
+      "win_rate": 15.789473684210526,
+      "trades_per_day": 4.071428571428571,
+      "profit_factor": 0.44016636046704966,
+      "account_return_pct": -2.705709009987295,
+      "top_strategies": [
+        {
+          "label": "头肩底MTR",
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.5934832881244503,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        {
+          "label": "第二腿陷阱",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.03217049915871488,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "双重顶",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.005193937130438406,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "双重底",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.011763903104755988,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "低2",
+          "trades": 21,
+          "wins": 5,
+          "losses": 16,
+          "scratches": 0,
+          "pnl": -2.229690856341963,
+          "win_rate": 23.809523809523807,
+          "profit_factor": 0.5706379800218614
+        }
+      ]
+    }
+  ],
+  "top": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "5m",
+      "threshold": 60,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "未启用策略过滤",
+      "strategy_whitelist": [],
+      "strategy_blacklist": [],
+      "filter_signature": "-|-|-|brooks_pdf",
+      "segments": 1,
+      "days": 14,
+      "total_trades": 48,
+      "wins": 15,
+      "losses": 30,
+      "total_pnl": 1.3286840666831707,
+      "gross_profit": 9.630836753087763,
+      "gross_loss": 8.284130381019487,
+      "signals_generated": 499,
+      "signals_passed": 93,
+      "signals_blocked_strategy": 0,
+      "signals_blocked_route": 128,
+      "route_block_reasons": {
+        "宽通道中部不做逆势 fade": 51,
+        "15m 为 TR，5m 只做边缘 BLSHS 或明确反转": 20,
+        "15m 弱多结构中，不做 5m 逆势 L1/L2": 16,
+        "15m 弱空结构中，不做 5m 逆势 H1/H2": 16,
+        "宽通道逆势单仍需靠近边缘或优势区": 9
+      },
+      "entry_block_reasons": {
+        "止损没有放到结构位外": 204,
+        "看衰突破仍缺少真正的 failed breakout / trapped side 证据": 15,
+        "H2/L2 前方近端磁体和 trapped side 太近，先等二次确认": 14,
+        "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径": 12,
+        "5m 高2 在震荡背景中更像区间噪音，先等更清晰确认": 10
+      },
+      "max_drawdown": 2.161895501150861,
+      "account_max_drawdown": 0.8248554457205601,
+      "initial_capital": 10000.0,
+      "ending_equity": 10061.875152984609,
+      "account_total_pnl_amount": 61.875152984608576,
+      "account_return_pct_weighted": 8.6625214178452,
+      "strategy_stats": {
+        "双重顶": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.2897614941338323,
+          "gross_profit": 0.2897614941338323,
+          "gross_loss": 0.0
+        },
+        "高2": {
+          "trades": 27,
+          "wins": 9,
+          "losses": 16,
+          "scratches": 2,
+          "pnl": 3.6669442503957295,
+          "gross_profit": 8.270445150392394,
+          "gross_loss": 4.607397872806326
+        },
+        "低2": {
+          "trades": 14,
+          "wins": 3,
+          "losses": 10,
+          "scratches": 1,
+          "pnl": -1.986796218289584,
+          "gross_profit": 0.7926745791868861,
+          "gross_loss": 2.7575515192817046
+        },
+        "头肩底MTR": {
+          "trades": 2,
+          "wins": 0,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": -0.4899883257652289,
+          "gross_profit": 0.0,
+          "gross_loss": 0.4899883257652289
+        },
+        "收线追进": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.21057111826886793,
+          "gross_profit": 0.21057111826886793,
+          "gross_loss": 0.0
+        },
+        "第二腿陷阱": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.1000109044928662,
+          "gross_profit": 0.0,
+          "gross_loss": 0.1000109044928662
+        },
+        "头肩顶MTR": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.26179734756758066,
+          "gross_profit": 0.06738441110578162,
+          "gross_loss": 0.3291817586733623
+        }
+      },
+      "win_rate": 31.25,
+      "trades_per_day": 3.4285714285714284,
+      "profit_factor": 1.1625646036612165,
+      "account_return_pct": 0.6187515298460857,
+      "top_strategies": [
+        {
+          "label": "高2",
+          "trades": 27,
+          "wins": 9,
+          "losses": 16,
+          "scratches": 2,
+          "pnl": 3.6669442503957295,
+          "win_rate": 33.33333333333333,
+          "profit_factor": 1.7950360222211368
+        },
+        {
+          "label": "双重顶",
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.2897614941338323,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        {
+          "label": "收线追进",
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.21057111826886793,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        {
+          "label": "第二腿陷阱",
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.1000109044928662,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.26179734756758066,
+          "win_rate": 50.0,
+          "profit_factor": 0.2047027495610571
+        }
+      ]
+    },
+    {
+      "symbol": "BNBUSDT",
+      "timeframe_set": "5m",
+      "threshold": 60,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "未启用策略过滤",
+      "strategy_whitelist": [],
+      "strategy_blacklist": [],
+      "filter_signature": "-|-|-|brooks_pdf",
+      "segments": 1,
+      "days": 14,
+      "total_trades": 49,
+      "wins": 11,
+      "losses": 33,
+      "total_pnl": -4.126420254790933,
+      "gross_profit": 5.03238420354485,
+      "gross_loss": 9.177039406325795,
+      "signals_generated": 459,
+      "signals_passed": 90,
+      "signals_blocked_strategy": 0,
+      "signals_blocked_route": 111,
+      "route_block_reasons": {
+        "宽通道中部不做逆势 fade": 33,
+        "15m 为 TR，5m 只做边缘 BLSHS 或明确反转": 23,
+        "15m 为 TR，5m 顺势恢复已离开有利半区": 17,
+        "宽通道逆势单仍需靠近边缘或优势区": 11,
+        "15m 弱空结构中，不做 5m 逆势 H1/H2": 9
+      },
+      "entry_block_reasons": {
+        "止损没有放到结构位外": 172,
+        "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径": 19,
+        "看衰突破仍缺少真正的 failed breakout / trapped side 证据": 16,
+        "H2/L2 前方近端磁体和 trapped side 太近，先等二次确认": 14,
+        "低2 前一腿更像 TR second-leg trap，且近端磁体太近，不追 stop": 12
+      },
+      "max_drawdown": 4.881582955183397,
+      "account_max_drawdown": 2.6344066098858367,
+      "initial_capital": 10000.0,
+      "ending_equity": 9763.059059557125,
+      "account_total_pnl_amount": -236.94094044287522,
+      "account_return_pct_weighted": -33.17173166200253,
+      "strategy_stats": {
+        "高2": {
+          "trades": 22,
+          "wins": 8,
+          "losses": 13,
+          "scratches": 1,
+          "pnl": 1.0326867751668511,
+          "gross_profit": 4.694098286925635,
+          "gross_loss": 3.6350043016689524
+        },
+        "低2": {
+          "trades": 10,
+          "wins": 0,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": -2.925771510118416,
+          "gross_profit": 0.0,
+          "gross_loss": 2.925771510118416
+        },
+        "楔形底": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.024026630817485628,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        },
+        "双重顶": {
+          "trades": 3,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 2,
+          "pnl": -0.20196916785505584,
+          "gross_profit": 0.0,
+          "gross_loss": 0.20635991000707865
+        },
+        "收线追进": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": 0.009721330108324683,
+          "gross_profit": 0.09614703291956382,
+          "gross_loss": 0.08642570281123914
+        },
+        "第二腿陷阱": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.4349586070622385,
+          "gross_profit": 0.07565562758189175,
+          "gross_loss": 0.5106142346441302
+        },
+        "双重底": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.016224785110334525,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        },
+        "急速通道": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.22960824233450972,
+          "gross_profit": 0.0,
+          "gross_loss": 0.22960824233450972
+        },
+        "头肩底MTR": {
+          "trades": 4,
+          "wins": 0,
+          "losses": 4,
+          "scratches": 0,
+          "pnl": -0.5624679297461471,
+          "gross_profit": 0.0,
+          "gross_loss": 0.5624679297461471
+        },
+        "突破回调": {
+          "trades": 2,
+          "wins": 0,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": -1.0207875749953206,
+          "gross_profit": 0.0,
+          "gross_loss": 1.0207875749953206
+        },
+        "头肩顶MTR": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.16648325611775944,
+          "gross_profit": 0.16648325611775944,
+          "gross_loss": 0.0
+        }
+      },
+      "win_rate": 22.448979591836736,
+      "trades_per_day": 3.5,
+      "profit_factor": 0.5483668513045714,
+      "account_return_pct": -2.369409404428752,
+      "top_strategies": [
+        {
+          "label": "高2",
+          "trades": 22,
+          "wins": 8,
+          "losses": 13,
+          "scratches": 1,
+          "pnl": 1.0326867751668511,
+          "win_rate": 36.36363636363637,
+          "profit_factor": 1.291359761189393
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.16648325611775944,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        {
+          "label": "楔形底",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.024026630817485628,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "双重底",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.016224785110334525,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "收线追进",
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": 0.009721330108324683,
+          "win_rate": 50.0,
+          "profit_factor": 1.1124819329448425
+        }
+      ]
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe_set": "5m",
+      "threshold": 60,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "未启用策略过滤",
+      "strategy_whitelist": [],
+      "strategy_blacklist": [],
+      "filter_signature": "-|-|-|brooks_pdf",
+      "segments": 1,
+      "days": 14,
+      "total_trades": 51,
+      "wins": 11,
+      "losses": 36,
+      "total_pnl": -6.434304951508446,
+      "gross_profit": 5.977255664893141,
+      "gross_loss": 12.361504284201875,
+      "signals_generated": 491,
+      "signals_passed": 71,
+      "signals_blocked_strategy": 0,
+      "signals_blocked_route": 123,
+      "route_block_reasons": {
+        "宽通道中部不做逆势 fade": 45,
+        "15m 为 TR，5m 只做边缘 BLSHS 或明确反转": 23,
+        "15m 为 TR，5m 顺势恢复已离开有利半区": 14,
+        "15m 弱空结构中，不做 5m 逆势 H1/H2": 11,
+        "15m 弱多结构中，不做 5m 逆势 L1/L2": 9
+      },
+      "entry_block_reasons": {
+        "止损没有放到结构位外": 198,
+        "H2/L2 前方近端磁体和 trapped side 太近，先等二次确认": 24,
+        "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径": 20,
+        "看衰突破仍缺少真正的 failed breakout / trapped side 证据": 20,
+        "前方磁体簇过密，第一次信号先不追": 10
+      },
+      "max_drawdown": 6.784202325636123,
+      "account_max_drawdown": 3.0564417689388854,
+      "initial_capital": 10000.0,
+      "ending_equity": 9739.900667976404,
+      "account_total_pnl_amount": -260.0993320235957,
+      "account_return_pct_weighted": -36.41390648330339,
+      "strategy_stats": {
+        "低2": {
+          "trades": 19,
+          "wins": 1,
+          "losses": 16,
+          "scratches": 2,
+          "pnl": -4.681865985873927,
+          "gross_profit": 0.36420380361586047,
+          "gross_loss": 5.0348288858158226
+        },
+        "高2": {
+          "trades": 28,
+          "wins": 8,
+          "losses": 20,
+          "scratches": 0,
+          "pnl": -2.0155270150278675,
+          "gross_profit": 5.311148383358185,
+          "gross_loss": 7.326675398386053
+        },
+        "MAG 20/20 Setup": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.1961721464849286,
+          "gross_profit": 0.1961721464849286,
+          "gross_loss": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.04971757122888293,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        },
+        "第二腿陷阱": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.10573133143416666,
+          "gross_profit": 0.10573133143416666,
+          "gross_loss": 0.0
+        },
+        "头肩顶MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.010902142703134998,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        }
+      },
+      "win_rate": 21.568627450980394,
+      "trades_per_day": 3.642857142857143,
+      "profit_factor": 0.4835378872563377,
+      "account_return_pct": -2.6009933202359568,
+      "top_strategies": [
+        {
+          "label": "MAG 20/20 Setup",
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.1961721464849286,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        {
+          "label": "第二腿陷阱",
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.10573133143416666,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.010902142703134998,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "头肩底MTR",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.04971757122888293,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "高2",
+          "trades": 28,
+          "wins": 8,
+          "losses": 20,
+          "scratches": 0,
+          "pnl": -2.0155270150278675,
+          "win_rate": 28.57142857142857,
+          "profit_factor": 0.724905648819674
+        }
+      ]
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe_set": "5m",
+      "threshold": 60,
+      "strategy_profile": "",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "未启用策略过滤",
+      "strategy_whitelist": [],
+      "strategy_blacklist": [],
+      "filter_signature": "-|-|-|brooks_pdf",
+      "segments": 1,
+      "days": 14,
+      "total_trades": 57,
+      "wins": 9,
+      "losses": 42,
+      "total_pnl": -8.656609389088166,
+      "gross_profit": 6.7644002041796565,
+      "gross_loss": 15.367826375923228,
+      "signals_generated": 448,
+      "signals_passed": 97,
+      "signals_blocked_strategy": 0,
+      "signals_blocked_route": 80,
+      "route_block_reasons": {
+        "宽通道中部不做逆势 fade": 29,
+        "15m 为 TR，5m 只做边缘 BLSHS 或明确反转": 10,
+        "15m 弱多结构中，不做 5m 逆势 L1/L2": 10,
+        "15m 为 TR，中部腿不做顺势追单": 9,
+        "15m 为 TR，5m 顺势恢复已离开有利半区": 7
+      },
+      "entry_block_reasons": {
+        "止损没有放到结构位外": 184,
+        "看衰突破仍缺少真正的 failed breakout / trapped side 证据": 21,
+        "H2/L2 前方近端磁体和 trapped side 太近，先等二次确认": 17,
+        "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径": 15,
+        "低2 前一腿更像 TR second-leg trap，且近端磁体太近，不追 stop": 13
+      },
+      "max_drawdown": 11.38303006786526,
+      "account_max_drawdown": 3.4182955604290486,
+      "initial_capital": 10000.0,
+      "ending_equity": 9729.42909900127,
+      "account_total_pnl_amount": -270.5709009987295,
+      "account_return_pct_weighted": -37.87992613982213,
+      "strategy_stats": {
+        "低2": {
+          "trades": 21,
+          "wins": 5,
+          "losses": 16,
+          "scratches": 0,
+          "pnl": -2.229690856341963,
+          "gross_profit": 2.9633414860517333,
+          "gross_loss": 5.193032342393695
+        },
+        "高2": {
+          "trades": 32,
+          "wins": 3,
+          "losses": 26,
+          "scratches": 3,
+          "pnl": -7.035614479794172,
+          "gross_profit": 3.207575430003473,
+          "gross_loss": 10.174794033529531
+        },
+        "第二腿陷阱": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.03217049915871488,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        },
+        "双重底": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.011763903104755988,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.5934832881244503,
+          "gross_profit": 0.5934832881244503,
+          "gross_loss": 0.0
+        },
+        "双重顶": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.005193937130438406,
+          "gross_profit": 0.0,
+          "gross_loss": 0.0
+        }
+      },
+      "win_rate": 15.789473684210526,
+      "trades_per_day": 4.071428571428571,
+      "profit_factor": 0.44016636046704966,
+      "account_return_pct": -2.705709009987295,
+      "top_strategies": [
+        {
+          "label": "头肩底MTR",
+          "trades": 1,
+          "wins": 1,
+          "losses": 0,
+          "scratches": 0,
+          "pnl": 0.5934832881244503,
+          "win_rate": 100.0,
+          "profit_factor": 999.0
+        },
+        {
+          "label": "第二腿陷阱",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": 0.03217049915871488,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "双重顶",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.005193937130438406,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "双重底",
+          "trades": 1,
+          "wins": 0,
+          "losses": 0,
+          "scratches": 1,
+          "pnl": -0.011763903104755988,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "低2",
+          "trades": 21,
+          "wins": 5,
+          "losses": 16,
+          "scratches": 0,
+          "pnl": -2.229690856341963,
+          "win_rate": 23.809523809523807,
+          "profit_factor": 0.5706379800218614
+        }
+      ]
+    }
+  ]
+}

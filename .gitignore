@@ -67,6 +67,7 @@ venv/
 # Node
 # ====================
 node_modules/
+*.tsbuildinfo
 AB Patrol-Web/.next/
 AB Patrol-Web/.next.bak.*/
 

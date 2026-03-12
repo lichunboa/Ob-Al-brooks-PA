@@ -67,8 +67,7 @@ export const config = {
 
   /** 默认交易对列表 (与后端 SYMBOLS_GROUPS=main4 + SYMBOLS_EXTRA 一致) */
   defaultSymbols: [
-    'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT',
-    'DOGEUSDT', 'AAVEUSDT', 'ADAUSDT', 'AVAXUSDT',
+    'BTCUSDT', 'SOLUSDT',
   ] as const,
 
   /** 支持的时间周期 (PA 引擎实际交易周期) */

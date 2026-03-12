@@ -1,13 +1,14 @@
 """
 Signal Service 健康检查模块
 """
+
 import json
+import logging
 import threading
 import time
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime
-from typing import Dict, Any, List, Tuple
-import logging
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Any, Dict, List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class HealthHandler(BaseHTTPRequestHandler):
         engine_check = self._check_engines()
         checks.append(engine_check)
         
-        # 检查规则加载
+        # 检查 legacy 规则链是否仍可兼容加载
         rules_check = self._check_rules()
         checks.append(rules_check)
         
@@ -142,20 +143,21 @@ class HealthHandler(BaseHTTPRequestHandler):
             from rules import RULE_COUNT
             
             return {
-                "name": "rules",
+                "name": "legacy_rules",
                 "status": "healthy" if RULE_COUNT > 0 else "degraded",
-                "message": f"已加载 {RULE_COUNT} 条规则"
+                "message": f"legacy PG 规则兼容保留，当前可加载 {RULE_COUNT} 条"
             }
         except Exception as e:
             return {
-                "name": "rules",
+                "name": "legacy_rules",
                 "status": "unhealthy",
-                "message": f"规则加载失败: {str(e)}"
+                "message": f"legacy 规则加载失败: {str(e)}"
             }
     
     def _check_database(self) -> Dict[str, Any]:
         try:
             import os
+
             import psycopg
             
             db_url = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5434/market_data')

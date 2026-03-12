@@ -181,6 +181,13 @@ def finalize_group_stats(grouped: dict[str, dict[str, float | int]], limit: int 
     return rows[:limit]
 
 
+def merge_count_map(target: dict[str, int], incoming: dict[str, Any]) -> None:
+    """合并按原因计数的字典。"""
+    for key, value in (incoming or {}).items():
+        label = str(key or "UNKNOWN")
+        target[label] = int(target.get(label, 0) or 0) + int(value or 0)
+
+
 def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """按 symbol / timeframe / threshold 汇总结果。"""
     grouped: dict[tuple[str, str, int, str, str], dict[str, Any]] = {}
@@ -218,6 +225,8 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "signals_passed": 0,
                 "signals_blocked_strategy": 0,
                 "signals_blocked_route": 0,
+                "route_block_reasons": {},
+                "entry_block_reasons": {},
                 "max_drawdown": 0.0,
                 "account_max_drawdown": 0.0,
                 "initial_capital": 0.0,
@@ -237,6 +246,8 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         bucket["signals_passed"] += int(row["signals_passed"])
         bucket["signals_blocked_strategy"] += int(row.get("signals_blocked_strategy", 0) or 0)
         bucket["signals_blocked_route"] += int(row.get("signals_blocked_route", 0) or 0)
+        merge_count_map(bucket["route_block_reasons"], row.get("route_block_reasons", {}))
+        merge_count_map(bucket["entry_block_reasons"], row.get("entry_block_reasons", {}))
         bucket["max_drawdown"] = max(float(bucket["max_drawdown"]), float(row["max_drawdown"]))
         bucket["account_max_drawdown"] = max(
             float(bucket["account_max_drawdown"]),
@@ -269,6 +280,12 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "account_return_pct": float(bucket["account_return_pct_weighted"]) / total_days if total_days else 0.0,
                 "account_max_drawdown": float(bucket["account_max_drawdown"]),
                 "top_strategies": finalize_group_stats(bucket["strategy_stats"]),
+                "route_block_reasons": dict(
+                    sorted(bucket["route_block_reasons"].items(), key=lambda item: (-item[1], item[0]))[:5]
+                ),
+                "entry_block_reasons": dict(
+                    sorted(bucket["entry_block_reasons"].items(), key=lambda item: (-item[1], item[0]))[:5]
+                ),
             }
         )
     summary_rows.sort(
@@ -411,6 +428,8 @@ def run_matrix(args: argparse.Namespace) -> dict[str, Any]:
                                 "signals_blocked_rr": result.signals_blocked_rr,
                                 "signals_blocked_strategy": result.signals_blocked_strategy,
                                 "signals_blocked_route": result.signals_blocked_route,
+                                "route_block_reasons": result.route_block_reasons,
+                                "entry_block_reasons": result.entry_block_reasons,
                                 "by_strategy": result.by_strategy,
                                 "error": None,
                             }
@@ -515,6 +534,10 @@ def print_top_summary(report: dict[str, Any]) -> None:
         )
         if row.get("strategy_filter_description"):
             print(f"    过滤: {row['strategy_filter_description']}")
+        if row.get("route_block_reasons"):
+            print(f"    路由主因: {row['route_block_reasons']}")
+        if row.get("entry_block_reasons"):
+            print(f"    入场主因: {row['entry_block_reasons']}")
         top_strategy = (row.get("top_strategies") or [{}])[0]
         if top_strategy.get("label"):
             print(
@@ -550,7 +573,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="both",
         help="周期运行方式: 单周期 / 合并周期 / 两者都跑",
     )
-    parser.add_argument("--thresholds", default=",".join(str(item) for item in DEFAULT_THRESHOLDS), help="评分阈值列表")
+    parser.add_argument(
+        "--thresholds",
+        default=",".join(str(item) for item in DEFAULT_THRESHOLDS),
+        help="全局引擎 signal_threshold 列表",
+    )
     parser.add_argument("--days", type=int, default=30, help="单段回测天数")
     parser.add_argument("--segment-count", type=int, default=3, help="自动生成的行情段数")
     parser.add_argument("--segment-gap-days", type=int, default=45, help="相邻分段向前偏移天数")

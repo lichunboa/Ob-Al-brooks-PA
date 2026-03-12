@@ -56,6 +56,7 @@
 - 新增 Web 相关代码，统一进入 `AB Patrol-Web/`。
 - 新增项目说明，优先进入 `docs/` 或对应子系统的 `docs/`。
 - 带旧路径、旧架构的历史文档，统一归到 `docs/archive/`。
+- 目录的详细功能拆分，统一以 `docs/FOLDER_STRUCTURE.md` 为准。
 
 ## 5. 最近一次结构调整
 
@@ -63,3 +64,4 @@
 - 已删除：`AB%20Patrol-Agent/`
 - 已删除：顶层空目录 `AB/`
 - 已新增明确子包：`AB Patrol-Agent/services/signal-service/src/engines/pa/`
+- 已新增结构索引：`docs/CURRENT_TRADING_FLOW.md`、`docs/FOLDER_STRUCTURE.md`

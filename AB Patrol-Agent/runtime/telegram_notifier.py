@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import time
 from datetime import datetime
 from typing import Any
@@ -364,6 +365,11 @@ class TelegramNotifierMixin:
 
         def scan_reason_cn() -> str:
             focus = decision.get("focus_symbols") or []
+            exchange = self.configured_exchange()
+            if exchange == "ctrader":
+                if focus:
+                    return "当前按外汇 / 指数 / 贵金属观察名单复扫，优先盯住最接近触发点的主流品种。"
+                return "当前按多资产观察名单复扫。"
             if "BTCUSDT" in focus or "ETHUSDT" in focus:
                 if "BNBUSDT" in focus:
                     return "BTC、ETH 仍最接近触发点，BNB 也在区间边缘，需要继续快扫确认。"
@@ -536,6 +542,11 @@ class TelegramNotifierMixin:
         trade_text = "可以" if can_trade_ok else "不可以"
         trade_reason = str(can_trade.get("reason") or "-")
         dry_run_text = "是" if self.config.dry_run else "否"
+        exchange = self.configured_exchange()
+        title_text = {
+            "ctrader": "🦁 PA交易 Multi-Asset｜巡逻报告",
+            "okx": "🦁 PA交易 OKX｜巡逻报告",
+        }.get(exchange, "🦁 PA交易 Crypto｜巡逻报告")
         knowledge_loading = (decision.get("state_patch") or {}).get("knowledge_loading") or {}
         monitoring = self.monitoring_snapshot(knowledge_loading)
         refs_text = ", ".join(collect_refs()) or "-"
@@ -549,7 +560,7 @@ class TelegramNotifierMixin:
         skill_sections_text = " / ".join(str(item) for item in skill_sections[:6]) if skill_sections else "-"
 
         lines = [
-            "🦁 PA交易 Crypto｜巡逻报告",
+            title_text,
             "",
             "━━ 当前状态 ━━",
             f"• 轮次: {cycle_id}",

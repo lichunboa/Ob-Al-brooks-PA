@@ -1,0 +1,20 @@
+{
+  "next_scan_at": "2026-03-11T13:41:55.107803+00:00",
+  "in_seconds": 120,
+  "requested_seconds": 120,
+  "model_suggested_seconds": 120,
+  "model_suggested_reason": "ETHUSDT 刚进入可执行后的高敏感窗口；若继续上攻 2100/2160 或重新跌回 2038.99/2023.4 下方，premise 都会很快改变。",
+  "reason_code": "HIGH_EDGE_ACTIVE",
+  "reason_text": "当前处于 fresh BC/SC、TR 边缘、breakout follow-through 或已接近可执行条件，按 2 分钟继续守候。",
+  "bucket_rule": "P1：fresh BC/SC / TR edge / breakout follow-through / executable 候选 → 2 分钟",
+  "bucket_source_refs": [
+    "SKILL.md#Step 5",
+    "C5-step5-dynamic-timing.md",
+    "S4-strategy-match.md",
+    "S6-tr.md",
+    "S6-channel.md",
+    "S6-common.md"
+  ],
+  "derived_from_cycle": "cycle_20260311_213955",
+  "interruptible": true
+}

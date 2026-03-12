@@ -2,7 +2,7 @@
 
 `AB Patrol-Agent` 是当前项目中独立的 Al Brooks 巡逻交易主脑。
 
-当前目标不是“先想办法下几笔单”，而是先把整套 Patrol 升级到尽可能接近完整 Al Brooks 理论的状态，再恢复稳定的 Binance demo 自动执行。
+当前目标不是“先想办法下几笔单”，而是先把整套 Patrol 升级到尽可能接近完整 Al Brooks 理论的状态，再恢复稳定的多市场自动执行。
 
 ## 当前最高权威
 
@@ -31,7 +31,7 @@
 
 默认模式由以下配置控制：
 
-- [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/config/.env.example](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/config/.env.example)
+- `config/.env.example`
   - `AB_PATROL_ENABLE_AUTOTRADE=0`
 
 也就是说：
@@ -49,7 +49,7 @@
   -> codex_cli 长会话
   -> patrol_trade.py 执行安全校验
   -> execution-service
-  -> Binance demo
+  -> Binance demo / cTrader demo
   -> Query Service / AB Patrol-Web / TG
 ```
 
@@ -85,7 +85,7 @@
 - `codex_cli` 长会话决策
 - `Query Service / Web / TG` 可见性
 - `watchdog` 自恢复骨架
-- `execution-service` 的 Binance demo 执行链
+- `execution-service` 的 Binance demo / cTrader demo 执行链
 
 ## 当前仍未完成的重点
 
@@ -98,13 +98,13 @@
 ## 当前最重要的文档
 
 - 规范层：
-  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/knowledge/patrol-l1/canonical/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/knowledge/patrol-l1/canonical/README.md)
+  - `knowledge/patrol-l1/canonical/README.md`
 - Patrol 文档入口：
-  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/README.md)
+  - `docs/README.md`
 - 当前规则偏差审计：
-  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/HARDCODED_RULE_MATRIX_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/HARDCODED_RULE_MATRIX_20260308.md)
-- 当前目标状态：
-  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/GOAL_STATUS_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/GOAL_STATUS_20260308.md)
+  - `../docs/archive/patrol-agent/HARDCODED_RULE_MATRIX_20260308.md`
+- 当前运行链：
+  - `docs/RUNTIME_FLOW.md`
 
 ## 初始化
 

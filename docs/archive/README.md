@@ -17,7 +17,9 @@
 - `PROJECT_BOUNDARIES_20260307.md`
 - `PROJECT_BOUNDARIES_20260308.md`
 - `SYSTEM-FIX-REPORT-20260207.md`
+- `OPTIMIZATION_NOTES_20260309.md`
 - `local-dev.md`
+- `patrol-agent/`
 - `clawdbot-integration/`
 - `architecture/`
 

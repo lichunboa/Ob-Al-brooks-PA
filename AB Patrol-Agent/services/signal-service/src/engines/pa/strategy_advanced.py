@@ -8,6 +8,7 @@ from typing import Optional
 
 from .analysis import CandlePatterns
 from .models import Candle, PASignal
+from .structure_stops import build_channel_recovery_stop, build_reversal_structure_stop
 
 
 class AdvancedStrategyDetectorMixin:
@@ -56,7 +57,8 @@ class AdvancedStrategyDetectorMixin:
 
         if cycle == "趋势多":
             if curr.low <= ema20[-1] * 1.003 and curr.close > ema20[-1]:
-                stop = curr.low - (atr if atr > 0 else curr.low * 0.002)
+                pullback_low = min(candle.low for candle in candles[-5:])
+                stop = build_channel_recovery_stop("BUY", candles, curr.high, pullback_low, atr)
                 target = curr.close + (curr.close - stop) * 2.5
 
                 return PASignal(
@@ -80,7 +82,8 @@ class AdvancedStrategyDetectorMixin:
 
         elif cycle == "趋势空":
             if curr.high >= ema20[-1] * 0.997 and curr.close < ema20[-1]:
-                stop = curr.high + (atr if atr > 0 else curr.high * 0.002)
+                pullback_high = max(candle.high for candle in candles[-5:])
+                stop = build_channel_recovery_stop("SELL", candles, pullback_high, curr.low, atr)
                 target = curr.close - (stop - curr.close) * 2.5
 
                 return PASignal(
@@ -323,7 +326,14 @@ class AdvancedStrategyDetectorMixin:
                             if big_bars >= 5 or small_bars >= 10:
                                 reversal = CandlePatterns.is_reversal_bar(curr, prev)
                                 if reversal == "空头反转":
-                                    stop = max(curr.high, right_shoulder) + 0.5 * atr if atr > 0 else curr.high * 1.003
+                                    stop = build_reversal_structure_stop(
+                                        "SELL",
+                                        candles,
+                                        curr.high,
+                                        curr.low,
+                                        atr,
+                                        reference_levels=[head_high, left_shoulder, right_shoulder],
+                                    )
                                     risk = stop - curr.close
                                     target = curr.close - risk * 2.5
 
@@ -378,7 +388,14 @@ class AdvancedStrategyDetectorMixin:
                 if big_bars >= 5 or small_bars >= 10:
                     reversal = CandlePatterns.is_reversal_bar(curr, prev)
                     if reversal == "多头反转":
-                        stop = min(curr.low, right_shoulder_low) - 0.5 * atr if atr > 0 else curr.low * 0.997
+                        stop = build_reversal_structure_stop(
+                            "BUY",
+                            candles,
+                            curr.high,
+                            curr.low,
+                            atr,
+                            reference_levels=[head_low, left_shoulder_low, right_shoulder_low],
+                        )
                         risk = curr.close - stop
                         target = curr.close + risk * 2.5
 

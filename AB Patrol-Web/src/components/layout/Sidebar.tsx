@@ -49,7 +49,7 @@ const navGroups: NavGroup[] = [
     title: 'Patrol',
     items: [
       { href: '/', label: 'Patrol 首页', icon: LayoutDashboard },
-      { href: '/pa-bot', label: 'PA交易 Crypto', icon: Bot },
+      { href: '/pa-bot', label: 'PA交易', icon: Bot },
       { href: '/data-overview', label: '数据总览', icon: Database },
       { href: '/chart', label: 'K线图表', icon: CandlestickChart },
       { href: '/scanner', label: '市场扫描', icon: Scan },

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 const QUICK_LINKS = [
-  { href: "/pa-bot", label: "PA交易 Crypto", desc: "Al Brooks 巡逻总览、重点品种与最新决策", icon: ShieldCheck },
+  { href: "/pa-bot", label: "PA交易", desc: "Al Brooks 巡逻总览、重点品种与最新决策", icon: ShieldCheck },
   { href: "/execution", label: "交易总览", desc: "执行状态、分配、Bot 概况", icon: WalletCards },
   { href: "/chart", label: "K线图表", desc: "图表与市场结构观察入口", icon: CandlestickChart },
   { href: "/scanner", label: "市场扫描", desc: "扫描结果与监控入口", icon: ScanSearch },
@@ -124,7 +124,7 @@ export default function HomePage() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-3xl">
                 <h1 className="text-4xl font-semibold leading-tight tracking-tight text-white md:text-5xl">
-                  PA交易 Crypto
+                  PA交易
                   <span className="block text-slate-400">实时控制台</span>
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400 md:text-base">

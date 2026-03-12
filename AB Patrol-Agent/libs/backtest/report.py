@@ -76,6 +76,8 @@ class BacktestResult:
     signals_blocked_rr: int = 0
     signals_blocked_strategy: int = 0
     signals_blocked_route: int = 0
+    route_block_reasons: dict = field(default_factory=dict)
+    entry_block_reasons: dict = field(default_factory=dict)
 
     # 配置
     threshold: int = 80
@@ -96,6 +98,8 @@ class BacktestResult:
                       signals_blocked_bg: int = 0, signals_blocked_score: int = 0,
                       signals_blocked_rr: int = 0, signals_blocked_strategy: int = 0,
                       signals_blocked_route: int = 0,
+                      route_block_reasons: dict | None = None,
+                      entry_block_reasons: dict | None = None,
                       days: int = 0,
                       initial_capital: float = 10000.0) -> "BacktestResult":
         """从 SimExchange 生成结果"""
@@ -111,6 +115,8 @@ class BacktestResult:
                 signals_generated=signals_generated,
                 initial_capital=initial_capital,
                 ending_equity=initial_capital,
+                route_block_reasons=dict(route_block_reasons or {}),
+                entry_block_reasons=dict(entry_block_reasons or {}),
             )
 
         wins = [t for t in trades if t.result == "WIN"]
@@ -204,6 +210,8 @@ class BacktestResult:
             signals_blocked_rr=signals_blocked_rr,
             signals_blocked_strategy=signals_blocked_strategy,
             signals_blocked_route=signals_blocked_route,
+            route_block_reasons=dict(route_block_reasons or {}),
+            entry_block_reasons=dict(entry_block_reasons or {}),
             threshold=threshold,
             days=days,
             by_strategy=by_strategy,
@@ -227,6 +235,11 @@ class BacktestResult:
                 "higher_follow_through": t.higher_follow_through,
                 "trendline_break_confirmed": t.trendline_break_confirmed,
                 "failed_breakout_evidence": t.failed_breakout_evidence,
+                "signal_bar_quality": round(t.signal_bar_quality, 4),
+                "signal_bar_tail_ratio": round(t.signal_bar_tail_ratio, 4),
+                "signal_bar_close_position": round(t.signal_bar_close_position, 4),
+                "reclaimed_prior_close": t.reclaimed_prior_close,
+                "broke_micro_extreme": t.broke_micro_extreme,
                 "requires_second_entry": t.requires_second_entry,
                 "acceptance_ready": t.acceptance_ready,
                 "executable_signal_ready": t.executable_signal_ready,
@@ -242,6 +255,11 @@ class BacktestResult:
                 "prior_leg_context": t.prior_leg_context,
                 "prior_leg_bars": t.prior_leg_bars,
                 "prior_leg_overlap_ratio": round(t.prior_leg_overlap_ratio, 4),
+                "playbook_id": t.playbook_id,
+                "playbook_family": t.playbook_family,
+                "order_bias": t.order_bias,
+                "signal_stage": t.signal_stage,
+                "signal_stage_reason": t.signal_stage_reason,
                 "management_style": t.management_style, "route_style": t.route_style,
                 "reentry_attempt": t.reentry_attempt,
                 "risk_percent": round(t.risk_percent, 4),
@@ -277,6 +295,14 @@ class BacktestResult:
         print(f"  盈亏比拦截: {self.signals_blocked_rr}")
         print(f"  策略过滤拦截: {self.signals_blocked_strategy}")
         print(f"  路由拦截: {self.signals_blocked_route}")
+        if self.route_block_reasons:
+            print("  路由主因:")
+            for reason, count in sorted(self.route_block_reasons.items(), key=lambda item: (-item[1], item[0]))[:5]:
+                print(f"    - {reason}: {count}")
+        if self.entry_block_reasons:
+            print("  入场主因:")
+            for reason, count in sorted(self.entry_block_reasons.items(), key=lambda item: (-item[1], item[0]))[:5]:
+                print(f"    - {reason}: {count}")
         print(f"  评分阈值: {self.threshold}")
 
         print("\n  === 交易统计 ===")
@@ -358,6 +384,8 @@ class BacktestResult:
                 "blocked_rr": self.signals_blocked_rr,
                 "blocked_strategy": self.signals_blocked_strategy,
                 "blocked_route": self.signals_blocked_route,
+                "route_block_reasons": self.route_block_reasons,
+                "entry_block_reasons": self.entry_block_reasons,
             },
             "by_strategy": self.by_strategy,
             "by_background": self.by_background,

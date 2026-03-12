@@ -1,208 +1,159 @@
-# cTrader 配置指南
+# cTrader 接入说明
 
-## 概述
+> 更新于 2026-03-11
 
-cTrader 是一个专业的外汇交易平台，支持外汇、黄金、指数等多种资产。
+本文只描述当前仓库里已经落地并验证通过的 cTrader 方案。
 
-## 获取 API 凭证
+## 1. 当前真实状态
 
-### 1. 注册 cTrader 账户
+当前 Patrol 主栈已经切到：
 
-访问：https://ctrader.com/
+- `exchange=ctrader`
+- `mode=demo`
+- `market_profile=multi_asset`
 
-### 2. 创建 Demo 账户
+已验证能力：
 
-1. 登录 cTrader
-2. 选择 "Demo Account"
-3. 记录账户 ID
+- 官方 Open API 认证成功
+- execution-service 可读取余额、持仓、挂单
+- execution-service 可读取外汇 / 贵金属 / 指数 K 线
+- Demo 账户可真实开平仓
 
-### 3. 获取 API 凭证
+## 2. 当前实现不是旧 REST 壳
 
-1. 访问：https://openapi.ctrader.com/
-2. 创建应用
-3. 获取：
-   - Client ID
-   - Client Secret
-   - Access Token
+当前 cTrader 接入已经不是之前那套伪 REST 壳。
 
-## 配置步骤
+真实实现是：
 
-### 1. 编辑 config/.env
+- `runtime/adapters/ctrader_openapi_client.py`
+  - 直接走 cTrader Open API protobuf 协议
+- `runtime/adapters/ctrader_adapter.py`
+  - Patrol 侧薄封装
+- `services/execution-service/src/executor.py`
+  - 通过 execution-service 暴露统一交易接口
+
+所以现在的下单链是：
+
+`Patrol Runtime -> execution-service -> cTrader Open API`
+
+## 3. 根配置
+
+当前统一使用根配置：
+
+`/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/config/.env`
+
+关键变量：
 
 ```bash
-# cTrader 配置
-AB_PATROL_CTRADER_CLIENT_ID=your_client_id
-AB_PATROL_CTRADER_CLIENT_SECRET=your_client_secret
-AB_PATROL_CTRADER_ACCESS_TOKEN=your_access_token
-AB_PATROL_CTRADER_ACCOUNT_ID=your_account_id
-AB_PATROL_CTRADER_DEMO=1  # 1 = Demo, 0 = Live
+AB_PATROL_EXCHANGE=ctrader
+AB_PATROL_CTRADER_CLIENT_ID=...
+AB_PATROL_CTRADER_CLIENT_SECRET=...
+AB_PATROL_CTRADER_ACCESS_TOKEN=...
+AB_PATROL_CTRADER_ACCOUNT_ID=...
+AB_PATROL_CTRADER_DEMO=1
 ```
 
-### 2. 测试连接
+说明：
 
-```python
-from adapters.ctrader_adapter import CTraderAdapter
+- `AB_PATROL_CTRADER_DEMO=1` 表示 Demo
+- execution-service 默认也会从这份根 `.env` 读取，不再依赖旧的 service 内部污染配置
 
-config = {
-    "client_id": "your_client_id",
-    "client_secret": "your_client_secret",
-    "access_token": "your_access_token",
-    "account_id": "your_account_id",
-    "demo": True,
-}
+## 4. 当前测试用观察名单
 
-adapter = CTraderAdapter(config)
-account_info = adapter.get_account_info()
-print(account_info)
+当前 Patrol 多资产默认观察名单是：
+
+- 外汇：`EURUSD`、`GBPUSD`、`USDJPY`
+- 贵金属：`XAUUSD`
+- 指数：`US 30`、`US TECH 100`
+
+当前 `symbols.json` 中也已经同步成账户真实可交易名：
+
+- `US 30`
+- `US 500`
+- `US TECH 100`
+- `GERMANY 40`
+- `UK 100`
+
+注意：
+
+- 不要再写旧名 `US30 / NAS100 / GER40 / UK100`
+- Web fallback 现在已经允许带空格的指数代码
+
+## 5. 当前已验证的测试项
+
+已经做过的真实验收：
+
+- `GET /health`
+  - 返回 `exchange=ctrader`
+  - 返回 `mode=demo`
+  - 返回 `trading_enabled=true`
+- `GET /balance`
+  - 返回 Demo 账户 `USD` 余额
+- `GET /positions`
+  - 可返回真实持仓
+- `GET /klines/{symbol}`
+  - `EURUSD / XAUUSD / US 30 / US TECH 100` 可取 K 线
+- `POST /order`
+  - 已通过 Demo 账户真实下过 `EURUSD`
+- `POST /order/{symbol}/close`
+  - 已通过 Demo 账户真实平过 `EURUSD`
+
+## 6. 快速验证命令
+
+```bash
+curl http://127.0.0.1:8092/health
+curl http://127.0.0.1:8092/balance
+curl "http://127.0.0.1:8092/klines/EURUSD?interval=5m&limit=5"
+curl "http://127.0.0.1:8092/klines/XAUUSD?interval=5m&limit=5"
+curl "http://127.0.0.1:8092/klines/US%2030?interval=5m&limit=5"
+curl "http://127.0.0.1:8092/klines/US%20TECH%20100?interval=5m&limit=5"
 ```
 
-## 支持的品种
+如果要让 Patrol 主循环使用 cTrader：
 
-### 外汇（10 个主流货币对）
-- EURUSD - 欧元/美元
-- GBPUSD - 英镑/美元
-- USDJPY - 美元/日元
-- AUDUSD - 澳元/美元
-- USDCAD - 美元/加元
-- NZDUSD - 纽元/美元
-- USDCHF - 美元/瑞郎
-- EURGBP - 欧元/英镑
-- EURJPY - 欧元/日元
-- GBPJPY - 英镑/日元
-
-### 贵金属（2 个）
-- XAUUSD - 黄金/美元
-- XAGUSD - 白银/美元
-
-### 指数（5 个）
-- US30 - 道琼斯指数
-- US500 - 标普 500
-- NAS100 - 纳斯达克 100
-- GER40 - 德国 DAX
-- UK100 - 英国富时 100
-
-## Lots 转换
-
-cTrader 使用 lots 作为交易单位：
-
-### 外汇
-- 1 lot = 100,000 units
-- 0.01 lot = 1,000 units (micro lot)
-
-### 黄金
-- 1 lot = 100 oz
-- 0.01 lot = 1 oz
-
-### 指数
-- 1 lot = 1 contract
-
-## 示例
-
-### 下单示例
-
-```python
-# 做多 EURUSD
-result = adapter.place_order(
-    symbol="EURUSD",
-    side="BUY",
-    quantity=100000,  # 1 lot
-    order_type="MARKET",
-    stop_loss=1.0800,
-    take_profit=1.0900,
-)
+```bash
+cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent"
+./scripts/start.sh recover --execute
 ```
 
-### 查询持仓
+## 7. 当前 Web / TG 展示
 
-```python
-positions = adapter.get_positions()
-for pos in positions:
-    print(f"{pos['symbol']}: {pos['side']} {pos['quantity']}")
-```
+当前多资产接通后：
 
-### 平仓
+- Query 卡片标题显示 `PA交易 Multi-Asset`
+- TG 图表标题显示 `PA交易 Multi-Asset`
+- Web `/pa-bot` 会从 runtime/query 聚合里读取：
+  - `exchange=ctrader`
+  - `marketProfile=multi_asset`
+  - 多资产焦点品种
 
-```python
-result = adapter.close_position(
-    symbol="EURUSD",
-    quantity=50000,  # 部分平仓 0.5 lot
-)
-```
+## 8. 常见问题
 
-## 注意事项
+### 1. execution 已是 cTrader，但 runtime 还是 Crypto
 
-### 1. Demo 账户限制
-- 虚拟资金
-- 可能有延迟
-- 部分功能受限
+这是旧缓存问题，不是 API 没接通。
 
-### 2. API 限流
-- 每秒最多 10 个请求
-- 超过限制会被暂时封禁
+当前已经修复：
 
-### 3. 交易时间
-- 外汇：周一 00:00 - 周六 00:00 (GMT)
-- 黄金：周一 01:00 - 周六 00:00 (GMT)
-- 指数：根据市场而定
+- wrapper 启动时强制 source 根 `.env`
+- `env_loader.py` 以项目 `.env` 为准
+- runtime 会在交易所切换时重置不兼容的 market cache
 
-### 4. 点差和佣金
-- Demo 账户点差可能与实盘不同
-- 注意佣金计算
+### 2. 指数代码显示不出来
 
-## 故障排查
+优先检查是不是还在用旧代码名。  
+当前应使用：
 
-### 连接失败
-```
-Error: Connection refused
-```
-**解决方案：**
-1. 检查 API 凭证
-2. 确认账户状态
-3. 检查网络连接
+- `US 30`
+- `US TECH 100`
+- `GERMANY 40`
+- `UK 100`
 
-### 认证失败
-```
-Error: Invalid access token
-```
-**解决方案：**
-1. 重新生成 Access Token
-2. 检查 Token 是否过期
-3. 确认 Client ID/Secret 正确
+### 3. 有连接但没有订单
 
-### 下单失败
-```
-Error: Insufficient margin
-```
-**解决方案：**
-1. 检查账户余额
-2. 减少交易量
-3. 调整杠杆
+当前如果 `positions=0 / orders=0`，优先看最新 cycle。  
+现在多资产主链常见原因是：
 
-## 最佳实践
-
-### 1. 使用 Demo 账户测试
-在实盘前充分测试策略
-
-### 2. 控制交易频率
-避免触发 API 限流
-
-### 3. 监控账户状态
-定期检查余额和保证金
-
-### 4. 设置止损
-每笔交易都设置止损
-
-### 5. 记录交易日志
-便于回测和优化
-
-## 参考资源
-
-- cTrader 官网：https://ctrader.com/
-- Open API 文档：https://help.ctrader.com/open-api/
-- 社区论坛：https://ctrader.com/forum/
-
-## 支持
-
-如有问题，请联系：
-- cTrader 支持：support@ctrader.com
-- 社区论坛：https://ctrader.com/forum/
+- 当前只到 `watching`
+- 当前结构仍是 `TR 边缘限价单环境`
+- 没有升级成 `executable`

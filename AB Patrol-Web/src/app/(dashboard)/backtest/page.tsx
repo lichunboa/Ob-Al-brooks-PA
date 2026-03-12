@@ -144,7 +144,7 @@ interface HistoricalResult {
  * 常量
  * ============================================================ */
 
-const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'DOGEUSDT', 'AAVEUSDT', 'ADAUSDT', 'AVAXUSDT'];
+const SYMBOLS = ['BTCUSDT', 'SOLUSDT'];
 const TIMEFRAMES = ['5m', '15m', '30m', '1h'];
 
 type TabId = 'training' | 'run' | 'history' | 'matrix';

@@ -10,6 +10,7 @@ Al Brooks 价格行为分析工具函数
 """
 
 import json
+import re
 from typing import Any
 
 from .parsing import first_float, normalize_refs
@@ -26,6 +27,19 @@ STATUS_PRIORITY = {
     "in_trade": 4,
     "manage": 5,
 }
+
+SIGNAL_EVENT_PATTERN = re.compile(r"^(?:signal_trigger|hl_signal):([HL])(\d+)")
+
+
+def signal_event_ranks(events: list[str]) -> list[tuple[str, int]]:
+    """提取 H1/H2/L1/L2 的等级。"""
+    ranks: list[tuple[str, int]] = []
+    for event in events:
+        match = SIGNAL_EVENT_PATTERN.match(str(event or "").strip())
+        if not match:
+            continue
+        ranks.append((match.group(1), int(match.group(2))))
+    return ranks
 
 
 # ===== 核心函数 =====
@@ -379,6 +393,11 @@ def derive_trade_execution_semantics(base: dict[str, Any], filter_meta: dict[str
     has_zone = planned_trade.get("entry_zone") not in (None, "", [], {})
     has_plan = has_trade_plan(base)
     allow_executable = bool(filter_meta.get("allow_executable"))
+    signal_rank = int(filter_meta.get("signal_rank") or 0)
+    has_signal_trigger = bool(filter_meta.get("has_signal_trigger"))
+    requires_second_entry = bool(filter_meta.get("requires_second_entry"))
+    acceptance_ready = bool(filter_meta.get("acceptance_ready"))
+    executable_signal_ready = not requires_second_entry or signal_rank >= 2 or (has_signal_trigger and acceptance_ready)
 
     if stage_family == "watch_only" or status in {"watching", "cooldown"}:
         stage = "WATCH"
@@ -390,7 +409,7 @@ def derive_trade_execution_semantics(base: dict[str, Any], filter_meta: dict[str
         stage = "COUNTERTREND_PROBE"
         mode = "COUNTERTREND_PROBE"
     elif stage_family == "limit_edge":
-        if allow_executable and exact_entry is not None:
+        if allow_executable and exact_entry is not None and executable_signal_ready:
             stage = "EXECUTABLE_LIMIT"
         elif allow_executable and has_zone:
             stage = "CANDIDATE_LIMIT"
@@ -400,7 +419,7 @@ def derive_trade_execution_semantics(base: dict[str, Any], filter_meta: dict[str
             stage = "PRE_SIGNAL"
         mode = "LIMIT_PLAN"
     elif stage_family == "stop_continuation":
-        if allow_executable and exact_entry is not None:
+        if allow_executable and exact_entry is not None and executable_signal_ready:
             stage = "EXECUTABLE_STOP"
         elif has_plan or has_zone or status in {"entry_ready", "entry_ready_blocked"}:
             stage = "CANDIDATE_STOP"
@@ -440,6 +459,10 @@ def derive_trade_execution_semantics(base: dict[str, Any], filter_meta: dict[str
         "needs_exact_trigger": order_type in {"LIMIT", "STOP_MARKET", "TAKE_PROFIT_MARKET"} and exact_entry is None,
         "has_entry_price": exact_entry is not None,
         "has_entry_zone": has_zone,
+        "signal_rank": signal_rank,
+        "requires_second_entry": requires_second_entry,
+        "acceptance_ready": acceptance_ready,
+        "executable_signal_ready": executable_signal_ready,
         "stage_rule_source_refs": normalize_refs(filter_meta.get("source_refs")),
         "stage_rule_summary": str(filter_meta.get("summary") or "").strip(),
     }
@@ -473,6 +496,10 @@ def build_execution_semantics(
         "needs_exact_trigger": semantics.get("needs_exact_trigger"),
         "has_entry_price": semantics.get("has_entry_price"),
         "has_entry_zone": semantics.get("has_entry_zone"),
+        "signal_rank": semantics.get("signal_rank"),
+        "requires_second_entry": semantics.get("requires_second_entry"),
+        "acceptance_ready": semantics.get("acceptance_ready"),
+        "executable_signal_ready": semantics.get("executable_signal_ready"),
         "brooks_label": filter_meta.get("label"),
         "upgrade_condition": filter_meta.get("upgrade_condition"),
         "brooks_rule": filter_meta.get("brooks_rule"),

@@ -556,8 +556,15 @@ def render_status_card(snapshot: dict[str, Any]) -> str:
     last_failure_at = snapshot.get("last_failure_at") or "-"
     last_failure_reason = snapshot.get("last_failure_reason") or "-"
     mode_label = "自动交易" if not runtime.get("dry_run", True) else "观察模式"
+    runtime_exchange = str(runtime.get("exchange") or execution.get("health", {}).get("exchange") or "").lower()
+    runtime_profile = str(runtime.get("market_profile") or "").lower()
+    title_text = "PA交易 Crypto"
+    if runtime_exchange == "ctrader" or "multi" in runtime_profile:
+        title_text = "PA交易 Multi-Asset"
+    elif runtime_exchange == "okx" or "swap" in runtime_profile:
+        title_text = "PA交易 OKX"
     lines = [
-        "PA交易 Crypto",
+        title_text,
         f"overall_health: {overall_health}",
         f"patrol: {'UP' if snapshot['patrol_live'] else 'DOWN'} | pid: {snapshot['patrol_pid'] or '-'}",
         f"query-service: {'UP' if snapshot['query_live'] else 'DOWN'} | pid: {snapshot['query_pid'] or '-'}",

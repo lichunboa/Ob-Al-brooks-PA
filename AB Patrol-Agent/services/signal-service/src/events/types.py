@@ -35,6 +35,17 @@ class SignalEvent:
 
     # 扩展数据
     extra: dict[str, Any] = field(default_factory=dict)
+    stop_loss: float = 0.0
+    take_profit: float = 0.0
+    entry_trigger: float = 0.0
+    entry_type: str = ""
+    signal_bar_high: float = 0.0
+    signal_bar_low: float = 0.0
+    probability: float = 0.0
+    cycle: str = ""
+    confirmation_needed: bool = False
+    market_state: str = ""
+    strategy_recommendation: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
@@ -54,6 +65,17 @@ class SignalEvent:
             "subcategory": self.subcategory,
             "table": self.table,
             "extra": self.extra,
+            "stop_loss": self.stop_loss,
+            "take_profit": self.take_profit,
+            "entry_trigger": self.entry_trigger,
+            "entry_type": self.entry_type,
+            "signal_bar_high": self.signal_bar_high,
+            "signal_bar_low": self.signal_bar_low,
+            "probability": self.probability,
+            "cycle": self.cycle,
+            "confirmation_needed": self.confirmation_needed,
+            "market_state": self.market_state,
+            "strategy_recommendation": self.strategy_recommendation,
         }
 
     @classmethod
@@ -81,4 +103,15 @@ class SignalEvent:
             subcategory=data.get("subcategory", ""),
             table=data.get("table", ""),
             extra=data.get("extra", {}),
+            stop_loss=float(data.get("stop_loss", 0.0) or 0.0),
+            take_profit=float(data.get("take_profit", 0.0) or 0.0),
+            entry_trigger=float(data.get("entry_trigger", 0.0) or 0.0),
+            entry_type=data.get("entry_type", ""),
+            signal_bar_high=float(data.get("signal_bar_high", 0.0) or 0.0),
+            signal_bar_low=float(data.get("signal_bar_low", 0.0) or 0.0),
+            probability=float(data.get("probability", 0.0) or 0.0),
+            cycle=data.get("cycle", ""),
+            confirmation_needed=bool(data.get("confirmation_needed", False)),
+            market_state=data.get("market_state", ""),
+            strategy_recommendation=data.get("strategy_recommendation", {}),
         )

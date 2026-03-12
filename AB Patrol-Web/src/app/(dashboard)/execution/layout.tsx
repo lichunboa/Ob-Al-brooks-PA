@@ -5,20 +5,28 @@ import { ExecutionProvider, useExecutionContext } from '@/contexts/ExecutionCont
 import { Wallet, RefreshCw, ArrowLeftRight } from 'lucide-react';
 import { switchExchange } from '@/lib/executionApi';
 
+const EXCHANGE_OPTIONS = [
+  { value: 'binance', label: 'Binance Demo' },
+  { value: 'ctrader', label: 'cTrader Demo' },
+  { value: 'okx', label: 'OKX Demo' },
+] as const;
+
 function ExecutionHeader() {
   const { isConnected, isLoading, error, health, refresh } = useExecutionContext();
   const [switching, setSwitching] = useState(false);
 
   const currentExchange = health?.exchange || 'binance';
-  const exchangeLabel = currentExchange === 'okx' ? 'OKX' : 'Binance';
+  const exchangeLabel =
+    currentExchange === 'okx' ? 'OKX' : currentExchange === 'ctrader' ? 'cTrader' : 'Binance';
   const modeLabel = health?.mode === 'demo' ? 'Demo' : health?.mode === 'testnet' ? '测试网' : '主网';
 
-  const handleSwitch = async () => {
-    const target = currentExchange === 'okx' ? 'binance' : 'okx';
-    if (!confirm(`切换到 ${target === 'okx' ? 'OKX' : 'Binance'} Demo？需要重启服务。`)) return;
+  const handleSwitch = async (target: 'okx' | 'binance' | 'ctrader') => {
+    if (target === currentExchange) return;
+    const option = EXCHANGE_OPTIONS.find((item) => item.value === target);
+    if (!confirm(`切换到 ${option?.label || target}？需要重启服务。`)) return;
     setSwitching(true);
     try {
-      await switchExchange(target as 'okx' | 'binance', 'demo');
+      await switchExchange(target, 'demo');
       alert(`已保存。请重启 execution-service 生效。`);
     } catch (e) {
       alert(`切换失败: ${e}`);
@@ -43,19 +51,28 @@ function ExecutionHeader() {
             {isConnected ? `${exchangeLabel} ${modeLabel}` : '未连接'}
           </span>
           {health?.version && <span className="text-slate-500 text-xs">v{health.version}</span>}
-          {isConnected && (
-            <button
-              onClick={handleSwitch}
-              disabled={switching}
-              className="ml-1 p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-700 rounded transition-colors disabled:opacity-50"
-              title={`切换到 ${currentExchange === 'okx' ? 'Binance' : 'OKX'}`}
-            >
-              <ArrowLeftRight className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
       </div>
       <div className="flex items-center gap-3">
+        {isConnected ? (
+          <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 p-1">
+            <ArrowLeftRight className="ml-2 h-3.5 w-3.5 text-slate-500" />
+            {EXCHANGE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handleSwitch(option.value)}
+                disabled={switching || option.value === currentExchange}
+                className={`rounded-md px-3 py-1.5 text-xs transition-colors disabled:cursor-default ${
+                  option.value === currentExchange
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {error && <span className="text-red-400 text-sm max-w-xs truncate">{error}</span>}
         <button
           onClick={() => refresh()}

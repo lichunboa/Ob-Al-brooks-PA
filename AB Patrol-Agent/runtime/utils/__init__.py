@@ -52,6 +52,11 @@ from .brooks_analysis import (
     order_type_cn,
 )
 
+from .target_magnets import (
+    build_target_magnets,
+    resolve_target_path,
+)
+
 from .bar_analysis import (
     bar_range,
     compact_bar_record,
@@ -120,6 +125,8 @@ __all__ = [
     "candidate_stage_cn",
     "execution_mode_cn",
     "order_type_cn",
+    "build_target_magnets",
+    "resolve_target_path",
     # bar_analysis
     "bar_range",
     "compact_bar_record",

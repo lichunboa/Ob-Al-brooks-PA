@@ -172,6 +172,7 @@ def classify_management_style(
     timeframe: str = "",
     entry_type: str = "STOP",
     route_style: str = "",
+    playbook_id: str = "",
 ) -> str:
     """把策略映射到回测专用管理模板。"""
     label = normalize_strategy_label(signal_type)
@@ -183,17 +184,23 @@ def classify_management_style(
     tf = normalize_strategy_label(timeframe)
     order_type = normalize_strategy_label(entry_type).upper()
     route_key = normalize_strategy_label(route_style)
+    playbook_key = normalize_strategy_label(playbook_id)
 
-    # Brooks 原课里 5m 交易区间优先 BLSHS: limit + scalp。
+    # Brooks 原课里 5m 纯 TR 优先 BLSHS: limit + scalp。
+    # 但 broad channel 不能一概按 TR scalp 管理，否则会把顺势恢复和 reversal swing 一起压扁。
     if tf == "5m" and (
-        market_key in {"tight_range", "broad_range"}
-        or higher_key in {"tight_range", "broad_range"}
-        or route_key in {
-            "tr_blshs_limit",
-            "higher_tr_limit_reversal",
-            "tr_leg_limit_pullback",
-            "broad_channel_limit_reversal",
+        playbook_key in {
+            "TR1_BLSHS",
+            "TR2_FAILED_BO_FADE",
+            "TR3_SECOND_LEG_TRAP",
+            "R2_TR_EDGE_REVERSAL",
+            "T6_TR_LEG_FIRST_PULLBACK",
+            "T6_TR_LEG_CHANNEL_RECOVERY",
+            "T6_TR_LEG_EMA_RECOVERY",
         }
+        or market_key == "tight_range"
+        or higher_key in {"tight_range", "broad_range"}
+        or route_key in {"tr_blshs_limit", "higher_tr_limit_reversal", "tr_leg_limit_pullback"}
     ):
         if order_type == "LIMIT" or label in {
             "高1",
@@ -209,6 +216,9 @@ def classify_management_style(
             "头肩底MTR",
         }:
             return "brooks_tr_blshs"
+
+    if playbook_key == "R1_BROAD_CHANNEL_REVERSAL":
+        return "brooks_wedge_reversal"
 
     if label in {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"}:
         return "brooks_scalp"

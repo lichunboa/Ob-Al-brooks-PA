@@ -1,5 +1,5 @@
 """
-交易执行器 - 使用 ccxt 连接交易所（支持 OKX / Binance）
+交易执行器 - 支持 Binance / OKX / cTrader
 """
 import json
 import logging
@@ -12,6 +12,8 @@ from .config import (
     EXCHANGE, EXCHANGE_MODE,
     OKX_API_KEY, OKX_SECRET, OKX_PASSPHRASE,
     BINANCE_API_KEY, BINANCE_SECRET, BINANCE_MODE,
+    CTRADER_ACCESS_TOKEN, CTRADER_ACCOUNT_ID, CTRADER_BASE_URL,
+    CTRADER_CLIENT_ID, CTRADER_CLIENT_SECRET, CTRADER_DEMO, ACCOUNT_ASSET,
     SHARED_WORKSPACE,
 )
 from .models import OrderRequest, OrderResponse, OrderSide, OrderType, Position, Balance, PositionSide, OpenOrder, TradeHistory, AccountSummary
@@ -20,15 +22,27 @@ from .trading_state import get_trading_state_manager
 from .bot_registry import BotRegistryMixin
 from .kline_analyzer import KlineAnalyzerMixin
 
+try:
+    from runtime.adapters.ctrader_adapter import CTraderAdapter
+except ModuleNotFoundError:  # pragma: no cover - 兼容直接进入服务目录执行
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[3]
+    if str(root) not in sys.path:
+        sys.path.append(str(root))
+    from runtime.adapters.ctrader_adapter import CTraderAdapter
+
 logger = logging.getLogger(__name__)
 
 class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
-    """合约交易执行器（支持 OKX / Binance）"""
+    """统一交易执行器。"""
 
     def __init__(self, risk_manager: RiskManager):
         self.risk_manager = risk_manager
-        self.exchange_name = EXCHANGE  # "okx" or "binance"
+        self.exchange_name = EXCHANGE
         self.mode = EXCHANGE_MODE
+        self.account_asset = ACCOUNT_ASSET
 
         if EXCHANGE == "okx":
             self.exchange = ccxt.okx({
@@ -44,6 +58,18 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
                 self.exchange.set_sandbox_mode(True)
                 logger.info("使用 OKX Demo Trading (sandbox mode)")
             logger.info(f"OKXExecutor 初始化完成 (mode={self.mode})")
+        elif EXCHANGE == "ctrader":
+            self.exchange = CTraderAdapter(
+                {
+                    "client_id": CTRADER_CLIENT_ID,
+                    "client_secret": CTRADER_CLIENT_SECRET,
+                    "access_token": CTRADER_ACCESS_TOKEN,
+                    "account_id": CTRADER_ACCOUNT_ID,
+                    "base_url": CTRADER_BASE_URL,
+                    "demo": CTRADER_DEMO,
+                }
+            )
+            logger.info("cTrader 执行器初始化完成 (mode=%s, demo=%s)", self.mode, CTRADER_DEMO)
         else:
             self.exchange = ccxt.binanceusdm({
                 'apiKey': BINANCE_API_KEY,
@@ -68,6 +94,113 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
 
         # 缓存的交易费率
         self._cached_fees = {}
+
+    async def _sync_bot_margin_state(self, bot_id: str) -> None:
+        """按实时持仓刷新 bot 的占用保证金与持仓数。"""
+        if not bot_id:
+            return
+        try:
+            curr_pos = await self.get_positions()
+            bot_pos = [p for p in curr_pos if bot_id in self.get_position_bot_ids(p.symbol)]
+
+            used = 0.0
+            for position in bot_pos:
+                value = self.quantity_to_account_notional(
+                    position.symbol,
+                    position.quantity,
+                    position.mark_price,
+                )
+                if position.leverage > 0:
+                    used += value / position.leverage
+                else:
+                    used += value
+
+            mgr = get_trading_state_manager()
+            mgr.update_bot_positions(bot_id, len(bot_pos), used)
+            logger.info("Bot %s 资金占用已更新: 持仓%s笔, 占用$%.2f", bot_id, len(bot_pos), used)
+        except Exception as exc:
+            logger.warning("更新 Bot %s 资金占用失败: %s", bot_id, exc)
+
+    def get_symbol_info(self, symbol: str) -> dict:
+        """获取品种规格，失败时返回保守默认值。"""
+        try:
+            if hasattr(self.exchange, "get_symbol_info"):
+                return self.exchange.get_symbol_info(symbol) or {}
+        except Exception as exc:
+            logger.warning("获取品种规格失败 %s: %s", symbol, exc)
+        return {
+            "symbol": symbol,
+            "base_asset": "",
+            "quote_asset": self.account_asset,
+            "min_quantity": 0.0,
+            "max_quantity": 0.0,
+            "quantity_step": 0.0,
+            "tick_size": 0.0,
+            "lot_size": 0.0,
+        }
+
+    def account_notional_to_quantity(self, symbol: str, notional: float, price: float) -> float:
+        """把账户货币口径名义价值转换为下单数量。"""
+        target_notional = max(0.0, float(notional or 0.0))
+        if target_notional <= 0:
+            return 0.0
+        if self.exchange_name != "ctrader":
+            return target_notional / price if price > 0 else 0.0
+
+        info = self.get_symbol_info(symbol)
+        base_asset = str(info.get("base_asset") or "").upper()
+        quote_asset = str(info.get("quote_asset") or "").upper()
+        account_asset = str(self.account_asset or "").upper()
+
+        if base_asset and base_asset == account_asset:
+            return target_notional
+        if quote_asset and quote_asset == account_asset:
+            return target_notional / price if price > 0 else 0.0
+        return target_notional / price if price > 0 else 0.0
+
+    def quantity_to_account_notional(self, symbol: str, quantity: float, price: float) -> float:
+        """把下单数量换算为账户货币口径名义价值。"""
+        actual_quantity = max(0.0, float(quantity or 0.0))
+        if actual_quantity <= 0:
+            return 0.0
+        if self.exchange_name != "ctrader":
+            return actual_quantity * max(price, 0.0)
+
+        info = self.get_symbol_info(symbol)
+        base_asset = str(info.get("base_asset") or "").upper()
+        quote_asset = str(info.get("quote_asset") or "").upper()
+        account_asset = str(self.account_asset or "").upper()
+
+        if base_asset and base_asset == account_asset:
+            return actual_quantity
+        if quote_asset and quote_asset == account_asset:
+            return actual_quantity * max(price, 0.0)
+        return actual_quantity * max(price, 0.0)
+
+    def snap_quantity_to_symbol(self, symbol: str, quantity: float) -> float:
+        """把数量向下贴合到交易所允许的最小单位。"""
+        desired = max(0.0, float(quantity or 0.0))
+        if desired <= 0:
+            return 0.0
+        if self.exchange_name == "ctrader" and hasattr(self.exchange, "client"):
+            try:
+                volume = self.exchange.client.quantity_to_volume(symbol, desired)
+                return float(self.exchange.client.volume_to_quantity(volume))
+            except Exception as exc:
+                logger.warning("cTrader 数量贴合失败 %s: %s", symbol, exc)
+
+        info = self.get_symbol_info(symbol)
+        min_qty = max(0.0, float(info.get("min_quantity") or 0.0))
+        step = max(0.0, float(info.get("quantity_step") or 0.0))
+        snapped = desired
+        if step > 0:
+            snapped = float(int(desired / step)) * step
+        if min_qty > 0 and snapped < min_qty:
+            snapped = min_qty if desired >= min_qty else 0.0
+        max_qty = max(0.0, float(info.get("max_quantity") or 0.0))
+        if max_qty > 0:
+            snapped = min(snapped, max_qty)
+        return max(0.0, snapped)
 
     @staticmethod
     def _is_timestamp_error(exc: Exception) -> bool:
@@ -101,6 +234,9 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
 
     def fetch_trading_fees(self) -> dict:
         """从币安获取实际交易费率（启动时调用一次）"""
+        if self.exchange_name == "ctrader":
+            logger.info("cTrader 不使用交易所费率同步")
+            return {}
         try:
             markets = self.exchange.load_markets()
             for symbol in ['BTC/USDT:USDT', 'ETH/USDT:USDT',
@@ -133,6 +269,9 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
     def _check_connection(self) -> bool:
         """检查连接"""
         try:
+            if self.exchange_name == "ctrader":
+                account = self.exchange.get_account_info()
+                return "error" not in account
             self._call_with_time_sync("fetch_time", self.exchange.fetch_time)
             return True
         except Exception as e:
@@ -142,6 +281,41 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
     async def get_balance(self) -> list[Balance]:
         """获取账户余额（扩展版 - 包含更多交易所信息）"""
         try:
+            if self.exchange_name == "ctrader":
+                info = self.exchange.get_account_info()
+                if not info or info.get("error"):
+                    return []
+                balance = float(info.get("balance", 0))
+                equity = float(info.get("equity", balance))
+                margin = float(info.get("margin", 0))
+                free_margin = float(info.get("free_margin", balance))
+                unrealized_pnl = equity - balance
+                margin_level = float(info.get("margin_level", 0)) if info.get("margin_level") is not None else None
+                risk_level = "safe"
+                if margin_level is not None and margin_level > 0:
+                    if margin_level < 1.2:
+                        risk_level = "danger"
+                    elif margin_level < 2.0:
+                        risk_level = "warning"
+                return [
+                    Balance(
+                        asset=self.account_asset,
+                        balance=balance,
+                        available=free_margin,
+                        unrealized_pnl=unrealized_pnl,
+                        equity=equity,
+                        margin_ratio=margin_level,
+                        initial_margin=margin,
+                        total_wallet_balance=equity,
+                        total_margin_balance=equity,
+                        total_position_margin=margin,
+                        total_order_margin=0.0,
+                        available_balance=free_margin,
+                        margin_level=margin_level,
+                        risk_level=risk_level,
+                    )
+                ]
+
             balance = self._call_with_time_sync("fetch_balance", self.exchange.fetch_balance)
 
             # 简化版：只返回 USDT
@@ -276,6 +450,37 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
     async def get_positions(self) -> list[Position]:
         """获取持仓"""
         try:
+            if self.exchange_name == "ctrader":
+                positions = self.exchange.get_positions()
+                result = []
+                for pos in positions:
+                    side = PositionSide.LONG if str(pos.get("side", "")).upper() == "BUY" else PositionSide.SHORT
+                    quantity = abs(float(pos.get("quantity", 0) or 0))
+                    if quantity <= 0:
+                        continue
+                    mark_price = float(pos.get("current_price", pos.get("entry_price", 0)) or 0)
+                    margin = float(pos.get("margin", 0) or 0)
+                    notional = self.quantity_to_account_notional(
+                        str(pos.get("symbol", "")),
+                        quantity,
+                        mark_price,
+                    )
+                    leverage = max(1, round(notional / margin)) if margin > 0 else 1
+                    result.append(
+                        Position(
+                            symbol=str(pos.get("symbol", "")).upper(),
+                            side=side,
+                            quantity=quantity,
+                            entry_price=float(pos.get("entry_price", 0) or 0),
+                            mark_price=mark_price,
+                            unrealized_pnl=float(pos.get("unrealized_pnl", 0) or 0),
+                            leverage=leverage,
+                            margin_type="cross",
+                            liquidation_price=None,
+                        )
+                    )
+                return result
+
             positions = self._call_with_time_sync("fetch_positions", self.exchange.fetch_positions)
             result = []
 
@@ -338,6 +543,9 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
 
     async def set_leverage(self, symbol: str, leverage: int) -> bool:
         """设置杠杆"""
+        if self.exchange_name == "ctrader":
+            logger.info("cTrader 当前不通过 execution-service 设置杠杆，跳过: %s %sx", symbol, leverage)
+            return True
         # 风控检查
         ok, msg = self.risk_manager.check_leverage(leverage)
         if not ok:
@@ -362,14 +570,28 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
             logger.warning(f"设置杠杆失败 {symbol} {leverage}x: {e} — 继续使用当前杠杆")
             return False
 
-    async def place_order(self, request: OrderRequest, max_positions: int = 10, daily_loss_limit: float = 0, bot_id: str = "") -> OrderResponse:
+    async def place_order(
+        self,
+        request: OrderRequest,
+        max_positions: int = 10,
+        daily_loss_limit: float = 0,
+        bot_id: str = "",
+        position_limit: float | None = None,
+    ) -> OrderResponse:
         """下单"""
         # 统一标准化 symbol 为 ccxt 格式: SOLUSDT / SOLUSDT:USDT → SOL/USDT:USDT
         symbol = self._normalize_symbol_for_ccxt(request.symbol)
 
         # 风控检查
         positions = await self.get_positions()
-        position_size = request.quantity * (request.price or 0)  # 估算仓位大小
+        estimated_price = request.price or 0
+        if self.exchange_name == "ctrader" and estimated_price <= 0:
+            estimated_price = float(self.exchange.get_market_price(symbol) or 0)
+        position_size = self.quantity_to_account_notional(
+            symbol,
+            request.quantity,
+            estimated_price,
+        )
 
         # V3.2→V3.9: 跨品种相关性检查 — per-bot 独立（每个 bot 只看自己的持仓）
         # Claude PA (独立交易员) 不受相关性风控限制
@@ -407,7 +629,9 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
         # Claude PA (独立交易员) 跳过所有风控检查
         ok, msg = self.risk_manager.check_can_open(
             position_size, len(positions), max_positions=max_positions,
-            daily_loss_limit=daily_loss_limit, bot_id=bot_id or request.bot_id or "",
+            daily_loss_limit=daily_loss_limit,
+            bot_id=bot_id or request.bot_id or "",
+            max_position_size_override=position_limit,
         )
         if not ok and not request.reduce_only and request.signal_source != "claude-pa":
             return OrderResponse(
@@ -422,6 +646,102 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
         # 设置杠杆
         if request.leverage:
             await self.set_leverage(symbol, request.leverage)
+
+        if self.exchange_name == "ctrader":
+            try:
+                order_type = "LIMIT" if request.order_type == OrderType.LIMIT else "MARKET"
+                order = self.exchange.place_order(
+                    symbol=symbol,
+                    side=request.side.value,
+                    quantity=request.quantity,
+                    order_type=order_type,
+                    price=request.price,
+                    stop_loss=request.stop_loss,
+                    take_profit=request.take_profit,
+                )
+                if (
+                    not order.get("success")
+                    and str(order.get("error") or "").upper() == "INVALID_REQUEST"
+                    and (request.stop_loss is not None or request.take_profit is not None)
+                ):
+                    logger.warning(
+                        "cTrader 市价单附带 SL/TP 被拒绝，回退为先开仓后补改: %s %s",
+                        symbol,
+                        order.get("error"),
+                    )
+                    order = self.exchange.place_order(
+                        symbol=symbol,
+                        side=request.side.value,
+                        quantity=request.quantity,
+                        order_type=order_type,
+                        price=request.price,
+                        stop_loss=None,
+                        take_profit=None,
+                    )
+                if not order.get("success"):
+                    return OrderResponse(
+                        success=False,
+                        symbol=symbol,
+                        side=request.side.value,
+                        quantity=request.quantity,
+                        status="FAILED",
+                        message=str(order.get("error") or "cTrader 下单失败"),
+                    )
+
+                order_id = str(order.get("order_id") or "")
+                if request.bot_id:
+                    strat = request.strategy or request.signal_source or "auto"
+                    self._register_order(order_id, request.bot_id, symbol, strategy=strat)
+                    if not request.reduce_only:
+                        self.register_position(
+                            symbol,
+                            request.bot_id,
+                            strategy=strat,
+                            quantity=request.quantity,
+                            side=request.side.value,
+                        )
+                        await self._sync_bot_margin_state(request.bot_id)
+                        if request.stop_loss is not None or request.take_profit is not None:
+                            modify_result = self.exchange.modify_position(
+                                symbol,
+                                stop_loss=request.stop_loss,
+                                take_profit=request.take_profit,
+                            )
+                            if not modify_result.get("success"):
+                                logger.warning(
+                                    "cTrader 开仓后补改 SL/TP 失败: %s",
+                                    modify_result.get("error"),
+                                )
+
+                logger.info(
+                    "cTrader 订单已提交: %s %s %s @ %s [bot=%s]",
+                    symbol,
+                    request.side.value,
+                    request.quantity,
+                    order.get("filled_price") or request.price or "MARKET",
+                    request.bot_id or "unknown",
+                )
+                return OrderResponse(
+                    success=True,
+                    order_id=order_id,
+                    symbol=symbol,
+                    side=request.side.value,
+                    quantity=request.quantity,
+                    price=float(order.get("filled_price")) if order.get("filled_price") is not None else request.price,
+                    status="PLACED",
+                    message=None,
+                    bot_id=request.bot_id,
+                )
+            except Exception as e:
+                logger.error(f"cTrader 下单失败: {e}")
+                return OrderResponse(
+                    success=False,
+                    symbol=symbol,
+                    side=request.side.value,
+                    quantity=request.quantity,
+                    status="FAILED",
+                    message=str(e),
+                )
 
         try:
             # 下主订单
@@ -494,27 +814,7 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
                 if not request.reduce_only:
                     self.register_position(symbol, request.bot_id, strategy=strat,
                                            quantity=request.quantity, side=request.side.value)
-
-                    # V3.2: P1 修复 - 实时更新 Bot 持仓资金占用
-                    try:
-                        # 重新获取持仓以确保数据最新
-                        curr_pos = await self.get_positions()
-                        bot_pos = [p for p in curr_pos if request.bot_id in self.get_position_bot_ids(p.symbol)]
-
-                        used = 0.0
-                        for p in bot_pos:
-                            # 估算占用保证金 = 名义价值 / 杠杆
-                            val = p.quantity * p.mark_price
-                            if p.leverage > 0:
-                                used += val / p.leverage
-                            else:
-                                used += val  # fallback
-
-                        mgr = get_trading_state_manager()
-                        mgr.update_bot_positions(request.bot_id, len(bot_pos), used)
-                        logger.info(f"Bot {request.bot_id} 资金占用已更新: 持仓{len(bot_pos)}笔, 占用${used:.1f}")
-                    except Exception as e:
-                        logger.warning(f"更新 Bot 资金占用失败: {e}")
+                    await self._sync_bot_margin_state(request.bot_id)
 
             response = OrderResponse(
                 success=True,
@@ -647,6 +947,42 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
             else:
                 close_qty = quantity or pos.quantity
 
+            if self.exchange_name == "ctrader":
+                response = self.exchange.close_position(pos.symbol, close_qty)
+                if response.get("success"):
+                    effective_bot = bot_id or self.get_position_bot_id(symbol)
+                    if effective_bot:
+                        self.risk_manager.record_bot_pnl(effective_bot, pos.unrealized_pnl)
+                        self.unregister_position(symbol, effective_bot)
+                    else:
+                        self.risk_manager.record_pnl(pos.unrealized_pnl)
+                        self.unregister_position(symbol)
+                    try:
+                        self.exchange.cancel_all_orders(pos.symbol)
+                    except Exception:
+                        pass
+                    if effective_bot:
+                        await self._sync_bot_margin_state(effective_bot)
+                    return OrderResponse(
+                        success=True,
+                        order_id=str(response.get("order_id") or ""),
+                        symbol=pos.symbol,
+                        side=close_side.value,
+                        quantity=close_qty,
+                        price=float(response.get("filled_price")) if response.get("filled_price") is not None else None,
+                        status="CLOSED",
+                        message=None,
+                        bot_id=effective_bot,
+                    )
+                return OrderResponse(
+                    success=False,
+                    symbol=pos.symbol,
+                    side=close_side.value,
+                    quantity=close_qty,
+                    status="FAILED",
+                    message=str(response.get("error") or "cTrader 平仓失败"),
+                )
+
             request = OrderRequest(
                 symbol=symbol,
                 side=close_side,
@@ -729,6 +1065,25 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
                     "message": f"未找到 {symbol} 持仓",
                 }
 
+            if self.exchange_name == "ctrader":
+                result = self.exchange.modify_position(pos.symbol, take_profit=new_take_profit)
+                if result.get("success"):
+                    logger.info("cTrader 止盈已更新: %s -> %s", pos.symbol, new_take_profit)
+                    return {
+                        "success": True,
+                        "status": "MODIFIED",
+                        "symbol": symbol,
+                        "old_take_profit_orders": [],
+                        "new_take_profit": new_take_profit,
+                        "new_order_id": None,
+                    }
+                return {
+                    "success": False,
+                    "status": "FAILED",
+                    "symbol": symbol,
+                    "message": str(result.get("error") or "cTrader 修改止盈失败"),
+                }
+
             pos_symbol = pos.symbol
             open_orders = await self.get_open_orders(pos_symbol)
             cancelled: list[str] = []
@@ -779,6 +1134,14 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
     async def cancel_all_orders(self, symbol: Optional[str] = None) -> bool:
         """取消所有订单"""
         try:
+            if self.exchange_name == "ctrader":
+                result = self.exchange.cancel_all_orders(symbol)
+                ok = bool(result.get("success"))
+                if ok:
+                    logger.info("cTrader 已取消挂单 (symbol=%s)", symbol or "ALL")
+                else:
+                    logger.warning("cTrader 取消挂单失败: %s", result.get("error"))
+                return ok
             if symbol:
                 self._call_with_time_sync("cancel_all_orders", self.exchange.cancel_all_orders, self._normalize_symbol_for_ccxt(symbol))
                 try:
@@ -807,6 +1170,30 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
     async def get_open_orders(self, symbol: Optional[str] = None) -> list[OpenOrder]:
         """获取挂单"""
         try:
+            if self.exchange_name == "ctrader":
+                orders = self.exchange.get_open_orders(symbol)
+                result = []
+                for order in orders:
+                    order_id = str(order.get("order_id", ""))
+                    bot_id = self._lookup_bot_id(order_id)
+                    result.append(
+                        OpenOrder(
+                            order_id=order_id,
+                            symbol=str(order.get("symbol", "")).upper(),
+                            side=str(order.get("side", "")).upper(),
+                            order_type=str(order.get("type", "")).upper(),
+                            quantity=float(order.get("quantity", 0) or 0),
+                            price=float(order.get("price")) if order.get("price") is not None else None,
+                            stop_price=None,
+                            status=str(order.get("status", "")),
+                            reduce_only=False,
+                            created_at=None,
+                            bot_id=bot_id,
+                            client_order_id=None,
+                        )
+                    )
+                return result
+
             orders = []
             if symbol:
                 ccxt_sym = self._normalize_symbol_for_ccxt(symbol)
@@ -867,6 +1254,9 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
     ) -> list[TradeHistory]:
         """获取交易历史"""
         try:
+            if self.exchange_name == "ctrader":
+                logger.info("cTrader 交易历史接口尚未接入，返回空列表")
+                return []
             if symbol:
                 ccxt_sym = self._normalize_symbol_for_ccxt(symbol)
                 trades = self._call_with_time_sync("fetch_my_trades", self.exchange.fetch_my_trades, ccxt_sym, limit=limit)
@@ -931,6 +1321,29 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
     async def get_account_summary(self) -> Optional[AccountSummary]:
         """获取账户汇总信息"""
         try:
+            if self.exchange_name == "ctrader":
+                balances = await self.get_balance()
+                balance = balances[0] if balances else None
+                positions = await self.get_positions()
+                open_orders = await self.get_open_orders()
+                if not balance:
+                    return None
+                position_value = sum(p.quantity * p.mark_price for p in positions)
+                return AccountSummary(
+                    total_balance=balance.balance,
+                    available_balance=balance.available,
+                    total_unrealized_pnl=balance.unrealized_pnl,
+                    total_margin_balance=balance.total_margin_balance or balance.balance,
+                    position_count=len(positions),
+                    total_position_value=position_value,
+                    open_order_count=len(open_orders),
+                    today_realized_pnl=0.0,
+                    today_trade_count=0,
+                    today_commission=0.0,
+                    margin_ratio=balance.margin_ratio,
+                    can_trade=True,
+                )
+
             # 获取余额
             balance = self.exchange.fetch_balance()
             info = balance.get('info', {})
@@ -977,3 +1390,15 @@ class BinanceExecutor(BotRegistryMixin, KlineAnalyzerMixin):
         except Exception as e:
             logger.error(f"获取账户汇总失败: {e}")
             return None
+
+    async def recover_bot_map_from_binance(self) -> dict:
+        """恢复 bot 映射；cTrader 当前仅返回空恢复结果。"""
+        if self.exchange_name == "ctrader":
+            open_orders = await self.get_open_orders()
+            return {
+                "recovered_orders": 0,
+                "recovered_positions": 0,
+                "total_open": len(open_orders),
+                "exchange": "ctrader",
+            }
+        return await BotRegistryMixin.recover_bot_map_from_binance(self)

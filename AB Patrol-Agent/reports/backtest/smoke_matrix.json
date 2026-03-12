@@ -1,0 +1,112 @@
+{
+  "generated_at": "2026-03-11T09:30:21.160191",
+  "config": {
+    "symbols": [
+      "BTCUSDT"
+    ],
+    "timeframes": [
+      "5m"
+    ],
+    "mode": "split",
+    "thresholds": [
+      80
+    ],
+    "segments": [
+      {
+        "label": "S1",
+        "start": "2026-03-06",
+        "end": "2026-03-11",
+        "days": 5
+      }
+    ],
+    "max_hold": 48,
+    "fee_rate": 0.0004,
+    "cache_dir": "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/backtest_cache",
+    "parquet": "data/backtest_cache/BTCUSDT_2025-12-11_2026-03-11.parquet",
+    "goals": {
+      "win_rate": 85.0,
+      "trades_per_day": 50.0,
+      "profit_factor": 1.5
+    }
+  },
+  "runs": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "5m",
+      "timeframes": [
+        "5m"
+      ],
+      "threshold": 80,
+      "segment": "S1",
+      "start": "2026-03-06",
+      "end": "2026-03-11",
+      "days": 5,
+      "total_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "scratches": 0,
+      "win_rate": 0.0,
+      "trades_per_day": 0.0,
+      "total_pnl": 0.0,
+      "avg_win": 0.0,
+      "avg_loss": 0.0,
+      "best_trade": 0.0,
+      "worst_trade": 0.0,
+      "max_drawdown": 0.0,
+      "profit_factor": 0.0,
+      "signals_generated": 50,
+      "signals_passed": 0,
+      "signals_blocked_bg": 0,
+      "signals_blocked_score": 0,
+      "signals_blocked_rr": 0,
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    }
+  ],
+  "summary": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "5m",
+      "threshold": 80,
+      "segments": 1,
+      "days": 5,
+      "total_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "total_pnl": 0.0,
+      "gross_profit": 0.0,
+      "gross_loss": 0.0,
+      "signals_generated": 50,
+      "signals_passed": 0,
+      "max_drawdown": 0.0,
+      "win_rate": 0.0,
+      "trades_per_day": 0.0,
+      "profit_factor": 0.0
+    }
+  ],
+  "top": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "5m",
+      "threshold": 80,
+      "segments": 1,
+      "days": 5,
+      "total_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "total_pnl": 0.0,
+      "gross_profit": 0.0,
+      "gross_loss": 0.0,
+      "signals_generated": 50,
+      "signals_passed": 0,
+      "max_drawdown": 0.0,
+      "win_rate": 0.0,
+      "trades_per_day": 0.0,
+      "profit_factor": 0.0
+    }
+  ]
+}

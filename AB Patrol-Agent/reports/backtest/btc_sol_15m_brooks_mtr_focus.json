@@ -1,0 +1,2205 @@
+{
+  "generated_at": "2026-03-11T17:22:04.679817",
+  "config": {
+    "symbols": [
+      "BTCUSDT",
+      "SOLUSDT"
+    ],
+    "timeframes": [
+      "15m"
+    ],
+    "mode": "split",
+    "thresholds": [
+      55,
+      60
+    ],
+    "segments": [
+      {
+        "label": "S1",
+        "start": "2026-02-09",
+        "end": "2026-03-11",
+        "days": 30
+      },
+      {
+        "label": "S2",
+        "start": "2026-01-10",
+        "end": "2026-02-09",
+        "days": 30
+      },
+      {
+        "label": "S3",
+        "start": "2025-12-11",
+        "end": "2026-01-10",
+        "days": 30
+      }
+    ],
+    "max_hold": 48,
+    "fee_rate": 0.0004,
+    "cache_dir": "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/backtest_cache",
+    "parquet": "",
+    "engine_threshold_overrides": {
+      "15m": 70
+    },
+    "strategy_profile": "brooks_mtr_focus",
+    "strategy_whitelist": [
+      "头肩顶MTR",
+      "双重顶",
+      "双重底",
+      "头肩底MTR",
+      "突破回调"
+    ],
+    "strategy_blacklist": [
+      "MAG 20/20 Setup",
+      "ioi突破",
+      "低2",
+      "ii突破",
+      "20均线缺口",
+      "第一均线缺口",
+      "楔形底",
+      "高2",
+      "高1",
+      "楔形顶",
+      "收线追进",
+      "低1"
+    ],
+    "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+    "management_profile": "brooks_pdf",
+    "goals": {
+      "win_rate": 85.0,
+      "trades_per_day": 50.0,
+      "profit_factor": 1.5
+    }
+  },
+  "runs": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 55,
+      "segment": "S1",
+      "start": "2026-02-09",
+      "end": "2026-03-11",
+      "days": 30,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "total_trades": 19,
+      "wins": 5,
+      "losses": 14,
+      "scratches": 0,
+      "win_rate": 26.31578947368421,
+      "trades_per_day": 0.6333333333333333,
+      "total_pnl": 4.0190689226223375,
+      "avg_win": 1.8264807888889674,
+      "avg_loss": -0.3652382158444643,
+      "best_trade": 3.1798171541127678,
+      "worst_trade": -1.2311290754090776,
+      "max_drawdown": 2.0421104849072194,
+      "profit_factor": 1.7859975740822582,
+      "signals_generated": 280,
+      "signals_passed": 27,
+      "signals_blocked_bg": 3,
+      "signals_blocked_score": 18,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 216,
+      "by_strategy": {
+        "双重顶": {
+          "trades": 3,
+          "wins": 0,
+          "losses": 3,
+          "scratches": 0,
+          "pnl": -0.19419733176953435,
+          "gross_profit": 0.0,
+          "gross_loss": 0.19419733176953435,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 6,
+          "wins": 3,
+          "losses": 3,
+          "scratches": 0,
+          "pnl": 5.033651194785205,
+          "gross_profit": 7.0623012327502614,
+          "gross_loss": 2.0286500379650567,
+          "win_rate": 50.0,
+          "profit_factor": 3.4812811971425446
+        },
+        "头肩顶MTR": {
+          "trades": 3,
+          "wins": 1,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": 0.3716015278394674,
+          "gross_profit": 1.417987665903585,
+          "gross_loss": 1.0463861380641175,
+          "win_rate": 33.33333333333333,
+          "profit_factor": 1.3551284887307038
+        },
+        "双重底": {
+          "trades": 7,
+          "wins": 1,
+          "losses": 6,
+          "scratches": 0,
+          "pnl": -1.1919864682328007,
+          "gross_profit": 0.6521150457909909,
+          "gross_loss": 1.8441015140237917,
+          "win_rate": 14.285714285714285,
+          "profit_factor": 0.35362209771635034
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": true
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 55,
+      "segment": "S2",
+      "start": "2026-01-10",
+      "end": "2026-02-09",
+      "days": 30,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "total_trades": 31,
+      "wins": 4,
+      "losses": 26,
+      "scratches": 1,
+      "win_rate": 12.903225806451612,
+      "trades_per_day": 1.0333333333333334,
+      "total_pnl": -2.5038486614407782,
+      "avg_win": 1.64626196543869,
+      "avg_loss": -0.3491767912414845,
+      "best_trade": 2.9443289340455236,
+      "worst_trade": -1.5670320409311267,
+      "max_drawdown": 6.429342371681045,
+      "profit_factor": 0.725337645453058,
+      "signals_generated": 284,
+      "signals_passed": 54,
+      "signals_blocked_bg": 4,
+      "signals_blocked_score": 10,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 200,
+      "by_strategy": {
+        "头肩顶MTR": {
+          "trades": 6,
+          "wins": 1,
+          "losses": 5,
+          "scratches": 0,
+          "pnl": -0.9289815592472646,
+          "gross_profit": 0.4833592231733838,
+          "gross_loss": 1.4123407824206484,
+          "win_rate": 16.666666666666664,
+          "profit_factor": 0.34223979735608967
+        },
+        "双重顶": {
+          "trades": 5,
+          "wins": 1,
+          "losses": 4,
+          "scratches": 0,
+          "pnl": -0.36695689320397257,
+          "gross_profit": 1.3756556259934374,
+          "gross_loss": 1.7426125191974098,
+          "win_rate": 20.0,
+          "profit_factor": 0.7894214065597436
+        },
+        "双重底": {
+          "trades": 11,
+          "wins": 1,
+          "losses": 9,
+          "scratches": 1,
+          "pnl": -0.4899035426970707,
+          "gross_profit": 1.7817040785424154,
+          "gross_loss": 2.2613076703225445,
+          "win_rate": 9.090909090909092,
+          "profit_factor": 0.787908740559961
+        },
+        "头肩底MTR": {
+          "trades": 9,
+          "wins": 1,
+          "losses": 8,
+          "scratches": 0,
+          "pnl": -0.7180066662924706,
+          "gross_profit": 2.9443289340455236,
+          "gross_loss": 3.662335600337994,
+          "win_rate": 11.11111111111111,
+          "profit_factor": 0.8039484239985527
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 55,
+      "segment": "S3",
+      "start": "2025-12-11",
+      "end": "2026-01-10",
+      "days": 30,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "total_trades": 24,
+      "wins": 3,
+      "losses": 21,
+      "scratches": 0,
+      "win_rate": 12.5,
+      "trades_per_day": 0.8,
+      "total_pnl": -5.0225750111488585,
+      "avg_win": 0.6189724996679831,
+      "avg_loss": -0.327594881435848,
+      "best_trade": 1.2017048376417792,
+      "worst_trade": -1.3567671687864824,
+      "max_drawdown": 5.02257501114886,
+      "profit_factor": 0.2699207094510963,
+      "signals_generated": 283,
+      "signals_passed": 40,
+      "signals_blocked_bg": 6,
+      "signals_blocked_score": 17,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 193,
+      "by_strategy": {
+        "双重顶": {
+          "trades": 8,
+          "wins": 0,
+          "losses": 8,
+          "scratches": 0,
+          "pnl": -2.727249868756168,
+          "gross_profit": 0.0,
+          "gross_loss": 2.727249868756168,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "双重底": {
+          "trades": 6,
+          "wins": 1,
+          "losses": 5,
+          "scratches": 0,
+          "pnl": -1.7650768537281727,
+          "gross_profit": 1.2017048376417792,
+          "gross_loss": 2.9667816913699516,
+          "win_rate": 16.666666666666664,
+          "profit_factor": 0.4050533415173112
+        },
+        "头肩顶MTR": {
+          "trades": 4,
+          "wins": 1,
+          "losses": 3,
+          "scratches": 0,
+          "pnl": 0.30269501592463416,
+          "gross_profit": 0.5126950159246391,
+          "gross_loss": 0.2100000000000049,
+          "win_rate": 25.0,
+          "profit_factor": 2.4414048377363193
+        },
+        "头肩底MTR": {
+          "trades": 6,
+          "wins": 1,
+          "losses": 5,
+          "scratches": 0,
+          "pnl": -0.8329433045891524,
+          "gross_profit": 0.14251764543753098,
+          "gross_loss": 0.9754609500266834,
+          "win_rate": 16.666666666666664,
+          "profit_factor": 0.14610287109251524
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 60,
+      "segment": "S1",
+      "start": "2026-02-09",
+      "end": "2026-03-11",
+      "days": 30,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "total_trades": 8,
+      "wins": 3,
+      "losses": 5,
+      "scratches": 0,
+      "win_rate": 37.5,
+      "trades_per_day": 0.26666666666666666,
+      "total_pnl": 1.9062485896112984,
+      "avg_win": 1.1391258883401263,
+      "avg_loss": -0.3022258150818161,
+      "best_trade": 1.417987665903585,
+      "worst_trade": -1.2311290754090776,
+      "max_drawdown": 1.3011290754090872,
+      "profit_factor": 2.261473040676723,
+      "signals_generated": 280,
+      "signals_passed": 12,
+      "signals_blocked_bg": 3,
+      "signals_blocked_score": 33,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 216,
+      "by_strategy": {
+        "双重顶": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.07000000000000955,
+          "gross_profit": 0.0,
+          "gross_loss": 0.07000000000000955,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": 0.11614587791672548,
+          "gross_profit": 1.347274953325803,
+          "gross_loss": 1.2311290754090776,
+          "win_rate": 50.0,
+          "profit_factor": 1.0943409429901838
+        },
+        "头肩顶MTR": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": 1.3479876659035859,
+          "gross_profit": 1.417987665903585,
+          "gross_loss": 0.06999999999999906,
+          "win_rate": 50.0,
+          "profit_factor": 20.256966655765773
+        },
+        "双重底": {
+          "trades": 3,
+          "wins": 1,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": 0.5121150457909964,
+          "gross_profit": 0.6521150457909909,
+          "gross_loss": 0.13999999999999452,
+          "win_rate": 33.33333333333333,
+          "profit_factor": 4.657964612792974
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": true
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 60,
+      "segment": "S2",
+      "start": "2026-01-10",
+      "end": "2026-02-09",
+      "days": 30,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "total_trades": 2,
+      "wins": 0,
+      "losses": 2,
+      "scratches": 0,
+      "win_rate": 0.0,
+      "trades_per_day": 0.06666666666666667,
+      "total_pnl": -0.14000000000000584,
+      "avg_win": 0,
+      "avg_loss": -0.07000000000000292,
+      "best_trade": -0.06999999999999722,
+      "worst_trade": -0.07000000000000864,
+      "max_drawdown": 0.14000000000000584,
+      "profit_factor": 0.0,
+      "signals_generated": 284,
+      "signals_passed": 4,
+      "signals_blocked_bg": 4,
+      "signals_blocked_score": 60,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 200,
+      "by_strategy": {
+        "头肩顶MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.07000000000000864,
+          "gross_profit": 0.0,
+          "gross_loss": 0.07000000000000864,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "双重顶": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.06999999999999722,
+          "gross_profit": 0.0,
+          "gross_loss": 0.06999999999999722,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 60,
+      "segment": "S3",
+      "start": "2025-12-11",
+      "end": "2026-01-10",
+      "days": 30,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "total_trades": 4,
+      "wins": 0,
+      "losses": 4,
+      "scratches": 0,
+      "win_rate": 0.0,
+      "trades_per_day": 0.13333333333333333,
+      "total_pnl": -1.0088058985795736,
+      "avg_win": 0,
+      "avg_loss": -0.2522014746448934,
+      "best_trade": -0.07000000000000807,
+      "worst_trade": -0.4531084771171893,
+      "max_drawdown": 1.0088058985795738,
+      "profit_factor": 0.0,
+      "signals_generated": 283,
+      "signals_passed": 11,
+      "signals_blocked_bg": 6,
+      "signals_blocked_score": 46,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 193,
+      "by_strategy": {
+        "双重顶": {
+          "trades": 3,
+          "wins": 0,
+          "losses": 3,
+          "scratches": 0,
+          "pnl": -0.6902455101392062,
+          "gross_profit": 0.0,
+          "gross_loss": 0.6902455101392062,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "双重底": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.3185603884403675,
+          "gross_profit": 0.0,
+          "gross_loss": 0.3185603884403675,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 55,
+      "segment": "S1",
+      "start": "2026-02-09",
+      "end": "2026-03-11",
+      "days": 30,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "total_trades": 19,
+      "wins": 3,
+      "losses": 15,
+      "scratches": 1,
+      "win_rate": 15.789473684210526,
+      "trades_per_day": 0.6333333333333333,
+      "total_pnl": -2.2295714554017785,
+      "avg_win": 2.059352449316533,
+      "avg_loss": -0.5624638832943669,
+      "best_trade": 2.847891464836149,
+      "worst_trade": -1.7345881730037418,
+      "max_drawdown": 3.2765374064042927,
+      "profit_factor": 0.7322612208466959,
+      "signals_generated": 293,
+      "signals_passed": 34,
+      "signals_blocked_bg": 1,
+      "signals_blocked_score": 9,
+      "signals_blocked_rr": 1,
+      "signals_blocked_strategy": 233,
+      "by_strategy": {
+        "头肩底MTR": {
+          "trades": 4,
+          "wins": 0,
+          "losses": 4,
+          "scratches": 0,
+          "pnl": -0.5100488997554908,
+          "gross_profit": 0.0,
+          "gross_loss": 0.5100488997554908,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "双重底": {
+          "trades": 6,
+          "wins": 1,
+          "losses": 5,
+          "scratches": 0,
+          "pnl": -1.3474077600858425,
+          "gross_profit": 2.847891464836149,
+          "gross_loss": 4.195299224921991,
+          "win_rate": 16.666666666666664,
+          "profit_factor": 0.6788291638218258
+        },
+        "头肩顶MTR": {
+          "trades": 5,
+          "wins": 1,
+          "losses": 3,
+          "scratches": 1,
+          "pnl": -0.6127893204041543,
+          "gross_profit": 1.6410068059539344,
+          "gross_loss": 2.2831255724222155,
+          "win_rate": 20.0,
+          "profit_factor": 0.718754511699046
+        },
+        "双重顶": {
+          "trades": 4,
+          "wins": 1,
+          "losses": 3,
+          "scratches": 0,
+          "pnl": 0.2406745248437091,
+          "gross_profit": 1.689159077159515,
+          "gross_loss": 1.448484552315806,
+          "win_rate": 25.0,
+          "profit_factor": 1.1661560866899987
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 55,
+      "segment": "S2",
+      "start": "2026-01-10",
+      "end": "2026-02-09",
+      "days": 30,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "total_trades": 28,
+      "wins": 5,
+      "losses": 19,
+      "scratches": 4,
+      "win_rate": 17.857142857142858,
+      "trades_per_day": 0.9333333333333333,
+      "total_pnl": -0.8973354117430449,
+      "avg_win": 1.579492683808314,
+      "avg_loss": -0.47605750055613644,
+      "best_trade": 3.8685805208944006,
+      "worst_trade": -2.5693933637284805,
+      "max_drawdown": 5.36454403305768,
+      "profit_factor": 0.8731213539071772,
+      "signals_generated": 295,
+      "signals_passed": 56,
+      "signals_blocked_bg": 5,
+      "signals_blocked_score": 9,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 210,
+      "by_strategy": {
+        "双重底": {
+          "trades": 6,
+          "wins": 0,
+          "losses": 4,
+          "scratches": 2,
+          "pnl": -1.3062628907453027,
+          "gross_profit": 0.0,
+          "gross_loss": 1.400677493722136,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 8,
+          "wins": 1,
+          "losses": 5,
+          "scratches": 2,
+          "pnl": 1.19181573736488,
+          "gross_profit": 3.8685805208944006,
+          "gross_loss": 2.832643860334664,
+          "win_rate": 12.5,
+          "profit_factor": 1.3657136977457327
+        },
+        "头肩顶MTR": {
+          "trades": 7,
+          "wins": 3,
+          "losses": 4,
+          "scratches": 0,
+          "pnl": -1.2328477716923456,
+          "gross_profit": 1.8862950435408665,
+          "gross_loss": 3.1191428152332126,
+          "win_rate": 42.857142857142854,
+          "profit_factor": 0.6047478923788335
+        },
+        "双重顶": {
+          "trades": 7,
+          "wins": 1,
+          "losses": 6,
+          "scratches": 0,
+          "pnl": 0.4499595133297236,
+          "gross_profit": 2.1425878546063033,
+          "gross_loss": 1.6926283412765797,
+          "win_rate": 14.285714285714285,
+          "profit_factor": 1.265834798081169
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 55,
+      "segment": "S3",
+      "start": "2025-12-11",
+      "end": "2026-01-10",
+      "days": 30,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "total_trades": 3,
+      "wins": 0,
+      "losses": 3,
+      "scratches": 0,
+      "win_rate": 0.0,
+      "trades_per_day": 0.1,
+      "total_pnl": -1.505012861793426,
+      "avg_win": 0,
+      "avg_loss": -0.501670953931142,
+      "best_trade": -0.06999999999999798,
+      "worst_trade": -1.128495193415286,
+      "max_drawdown": 1.5050128617934262,
+      "profit_factor": 0.0,
+      "signals_generated": 296,
+      "signals_passed": 3,
+      "signals_blocked_bg": 9,
+      "signals_blocked_score": 50,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 223,
+      "by_strategy": {
+        "头肩顶MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -1.128495193415286,
+          "gross_profit": 0.0,
+          "gross_loss": 1.128495193415286,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.06999999999999798,
+          "gross_profit": 0.0,
+          "gross_loss": 0.06999999999999798,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "双重顶": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.30651766837814204,
+          "gross_profit": 0.0,
+          "gross_loss": 0.30651766837814204,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 60,
+      "segment": "S1",
+      "start": "2026-02-09",
+      "end": "2026-03-11",
+      "days": 30,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "total_trades": 2,
+      "wins": 0,
+      "losses": 2,
+      "scratches": 0,
+      "win_rate": 0.0,
+      "trades_per_day": 0.06666666666666667,
+      "total_pnl": -0.13999999999998997,
+      "avg_win": 0,
+      "avg_loss": -0.06999999999999498,
+      "best_trade": -0.0699999999999943,
+      "worst_trade": -0.06999999999999565,
+      "max_drawdown": 0.13999999999998997,
+      "profit_factor": 0.0,
+      "signals_generated": 293,
+      "signals_passed": 2,
+      "signals_blocked_bg": 1,
+      "signals_blocked_score": 41,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 233,
+      "by_strategy": {
+        "头肩底MTR": {
+          "trades": 2,
+          "wins": 0,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": -0.13999999999998997,
+          "gross_profit": 0.0,
+          "gross_loss": 0.13999999999998997,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 60,
+      "segment": "S2",
+      "start": "2026-01-10",
+      "end": "2026-02-09",
+      "days": 30,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "total_trades": 2,
+      "wins": 0,
+      "losses": 2,
+      "scratches": 0,
+      "win_rate": 0.0,
+      "trades_per_day": 0.06666666666666667,
+      "total_pnl": -0.5833521633609644,
+      "avg_win": 0,
+      "avg_loss": -0.2916760816804822,
+      "best_trade": -0.07000000000000935,
+      "worst_trade": -0.513352163360955,
+      "max_drawdown": 0.5833521633609644,
+      "profit_factor": 0.0,
+      "signals_generated": 295,
+      "signals_passed": 3,
+      "signals_blocked_bg": 5,
+      "signals_blocked_score": 62,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 210,
+      "by_strategy": {
+        "双重底": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.07000000000000935,
+          "gross_profit": 0.0,
+          "gross_loss": 0.07000000000000935,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.513352163360955,
+          "gross_profit": 0.0,
+          "gross_loss": 0.513352163360955,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe_set": "15m",
+      "timeframes": [
+        "15m"
+      ],
+      "threshold": 60,
+      "segment": "S3",
+      "start": "2025-12-11",
+      "end": "2026-01-10",
+      "days": 30,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "total_trades": 2,
+      "wins": 0,
+      "losses": 2,
+      "scratches": 0,
+      "win_rate": 0.0,
+      "trades_per_day": 0.06666666666666667,
+      "total_pnl": -1.198495193415284,
+      "avg_win": 0,
+      "avg_loss": -0.599247596707642,
+      "best_trade": -0.06999999999999798,
+      "worst_trade": -1.128495193415286,
+      "max_drawdown": 1.198495193415284,
+      "profit_factor": 0.0,
+      "signals_generated": 296,
+      "signals_passed": 2,
+      "signals_blocked_bg": 9,
+      "signals_blocked_score": 51,
+      "signals_blocked_rr": 0,
+      "signals_blocked_strategy": 223,
+      "by_strategy": {
+        "头肩顶MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -1.128495193415286,
+          "gross_profit": 0.0,
+          "gross_loss": 1.128495193415286,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        "头肩底MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.06999999999999798,
+          "gross_profit": 0.0,
+          "gross_loss": 0.06999999999999798,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      },
+      "error": null,
+      "goals": {
+        "win_rate_ok": false,
+        "trades_per_day_ok": false,
+        "profit_factor_ok": false
+      }
+    }
+  ],
+  "summary": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "threshold": 60,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "segments": 3,
+      "days": 90,
+      "total_trades": 14,
+      "wins": 3,
+      "losses": 11,
+      "total_pnl": 0.7574426910317189,
+      "gross_profit": 3.417377665020379,
+      "gross_loss": 2.65993497398866,
+      "signals_generated": 847,
+      "signals_passed": 27,
+      "signals_blocked_strategy": 609,
+      "max_drawdown": 1.3011290754090872,
+      "strategy_stats": {
+        "双重顶": {
+          "trades": 5,
+          "wins": 0,
+          "losses": 5,
+          "scratches": 0,
+          "pnl": -0.830245510139213,
+          "gross_profit": 0.0,
+          "gross_loss": 0.830245510139213
+        },
+        "头肩底MTR": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": 0.11614587791672548,
+          "gross_profit": 1.347274953325803,
+          "gross_loss": 1.2311290754090776
+        },
+        "头肩顶MTR": {
+          "trades": 3,
+          "wins": 1,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": 1.2779876659035772,
+          "gross_profit": 1.417987665903585,
+          "gross_loss": 0.1400000000000077
+        },
+        "双重底": {
+          "trades": 4,
+          "wins": 1,
+          "losses": 3,
+          "scratches": 0,
+          "pnl": 0.19355465735062893,
+          "gross_profit": 0.6521150457909909,
+          "gross_loss": 0.458560388440362
+        }
+      },
+      "win_rate": 21.428571428571427,
+      "trades_per_day": 0.15555555555555556,
+      "profit_factor": 1.2847598525673387,
+      "top_strategies": [
+        {
+          "label": "头肩顶MTR",
+          "trades": 3,
+          "wins": 1,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": 1.2779876659035772,
+          "win_rate": 33.33333333333333,
+          "profit_factor": 10.128483327882194
+        },
+        {
+          "label": "双重底",
+          "trades": 4,
+          "wins": 1,
+          "losses": 3,
+          "scratches": 0,
+          "pnl": 0.19355465735062893,
+          "win_rate": 25.0,
+          "profit_factor": 1.4220919691928462
+        },
+        {
+          "label": "头肩底MTR",
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": 0.11614587791672548,
+          "win_rate": 50.0,
+          "profit_factor": 1.0943409429901838
+        },
+        {
+          "label": "双重顶",
+          "trades": 5,
+          "wins": 0,
+          "losses": 5,
+          "scratches": 0,
+          "pnl": -0.830245510139213,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "threshold": 55,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "segments": 3,
+      "days": 90,
+      "total_trades": 74,
+      "wins": 12,
+      "losses": 61,
+      "total_pnl": -3.5073547499672992,
+      "gross_profit": 17.574369305203547,
+      "gross_loss": 21.071424104253904,
+      "signals_generated": 847,
+      "signals_passed": 121,
+      "signals_blocked_strategy": 609,
+      "max_drawdown": 6.429342371681045,
+      "strategy_stats": {
+        "双重顶": {
+          "trades": 16,
+          "wins": 1,
+          "losses": 15,
+          "scratches": 0,
+          "pnl": -3.2884040937296746,
+          "gross_profit": 1.3756556259934374,
+          "gross_loss": 4.664059719723112
+        },
+        "头肩底MTR": {
+          "trades": 21,
+          "wins": 5,
+          "losses": 16,
+          "scratches": 0,
+          "pnl": 3.4827012239035815,
+          "gross_profit": 10.149147812233316,
+          "gross_loss": 6.666446588329734
+        },
+        "头肩顶MTR": {
+          "trades": 13,
+          "wins": 3,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": -0.25468501548316297,
+          "gross_profit": 2.414041905001608,
+          "gross_loss": 2.668726920484771
+        },
+        "双重底": {
+          "trades": 24,
+          "wins": 3,
+          "losses": 20,
+          "scratches": 1,
+          "pnl": -3.446966864658044,
+          "gross_profit": 3.635523961975186,
+          "gross_loss": 7.072190875716288
+        }
+      },
+      "win_rate": 16.216216216216218,
+      "trades_per_day": 0.8222222222222222,
+      "profit_factor": 0.8340380421490178,
+      "top_strategies": [
+        {
+          "label": "头肩底MTR",
+          "trades": 21,
+          "wins": 5,
+          "losses": 16,
+          "scratches": 0,
+          "pnl": 3.4827012239035815,
+          "win_rate": 23.809523809523807,
+          "profit_factor": 1.522422429664462
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 13,
+          "wins": 3,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": -0.25468501548316297,
+          "win_rate": 23.076923076923077,
+          "profit_factor": 0.9045668503853891
+        },
+        {
+          "label": "双重顶",
+          "trades": 16,
+          "wins": 1,
+          "losses": 15,
+          "scratches": 0,
+          "pnl": -3.2884040937296746,
+          "win_rate": 6.25,
+          "profit_factor": 0.2949481157319111
+        },
+        {
+          "label": "双重底",
+          "trades": 24,
+          "wins": 3,
+          "losses": 20,
+          "scratches": 1,
+          "pnl": -3.446966864658044,
+          "win_rate": 12.5,
+          "profit_factor": 0.5140590837923292
+        }
+      ]
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe_set": "15m",
+      "threshold": 55,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "segments": 3,
+      "days": 90,
+      "total_trades": 50,
+      "wins": 8,
+      "losses": 37,
+      "total_pnl": -4.631919728938249,
+      "gross_profit": 14.075520766991168,
+      "gross_loss": 18.98706362177552,
+      "signals_generated": 884,
+      "signals_passed": 93,
+      "signals_blocked_strategy": 666,
+      "max_drawdown": 5.36454403305768,
+      "strategy_stats": {
+        "头肩底MTR": {
+          "trades": 13,
+          "wins": 1,
+          "losses": 10,
+          "scratches": 2,
+          "pnl": 0.6117668376093911,
+          "gross_profit": 3.8685805208944006,
+          "gross_loss": 3.412692760090153
+        },
+        "双重底": {
+          "trades": 12,
+          "wins": 1,
+          "losses": 9,
+          "scratches": 2,
+          "pnl": -2.6536706508311454,
+          "gross_profit": 2.847891464836149,
+          "gross_loss": 5.595976718644127
+        },
+        "头肩顶MTR": {
+          "trades": 13,
+          "wins": 4,
+          "losses": 8,
+          "scratches": 1,
+          "pnl": -2.9741322855117858,
+          "gross_profit": 3.527301849494801,
+          "gross_loss": 6.530763581070714
+        },
+        "双重顶": {
+          "trades": 12,
+          "wins": 2,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": 0.3841163697952907,
+          "gross_profit": 3.831746931765818,
+          "gross_loss": 3.4476305619705276
+        }
+      },
+      "win_rate": 16.0,
+      "trades_per_day": 0.5555555555555556,
+      "profit_factor": 0.7413216202029526,
+      "top_strategies": [
+        {
+          "label": "头肩底MTR",
+          "trades": 13,
+          "wins": 1,
+          "losses": 10,
+          "scratches": 2,
+          "pnl": 0.6117668376093911,
+          "win_rate": 7.6923076923076925,
+          "profit_factor": 1.133585937221083
+        },
+        {
+          "label": "双重顶",
+          "trades": 12,
+          "wins": 2,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": 0.3841163697952907,
+          "win_rate": 16.666666666666664,
+          "profit_factor": 1.1114145970372606
+        },
+        {
+          "label": "双重底",
+          "trades": 12,
+          "wins": 1,
+          "losses": 9,
+          "scratches": 2,
+          "pnl": -2.6536706508311454,
+          "win_rate": 8.333333333333332,
+          "profit_factor": 0.5089176756843579
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 13,
+          "wins": 4,
+          "losses": 8,
+          "scratches": 1,
+          "pnl": -2.9741322855117858,
+          "win_rate": 30.76923076923077,
+          "profit_factor": 0.5401055796474725
+        }
+      ]
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe_set": "15m",
+      "threshold": 60,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "segments": 3,
+      "days": 90,
+      "total_trades": 6,
+      "wins": 0,
+      "losses": 6,
+      "total_pnl": -1.9218473567762384,
+      "gross_profit": 0.0,
+      "gross_loss": 1.9218473567762384,
+      "signals_generated": 884,
+      "signals_passed": 7,
+      "signals_blocked_strategy": 666,
+      "max_drawdown": 1.198495193415284,
+      "strategy_stats": {
+        "头肩底MTR": {
+          "trades": 4,
+          "wins": 0,
+          "losses": 4,
+          "scratches": 0,
+          "pnl": -0.7233521633609429,
+          "gross_profit": 0.0,
+          "gross_loss": 0.7233521633609429
+        },
+        "双重底": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.07000000000000935,
+          "gross_profit": 0.0,
+          "gross_loss": 0.07000000000000935
+        },
+        "头肩顶MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -1.128495193415286,
+          "gross_profit": 0.0,
+          "gross_loss": 1.128495193415286
+        }
+      },
+      "win_rate": 0.0,
+      "trades_per_day": 0.06666666666666667,
+      "profit_factor": 0.0,
+      "top_strategies": [
+        {
+          "label": "双重底",
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.07000000000000935,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "头肩底MTR",
+          "trades": 4,
+          "wins": 0,
+          "losses": 4,
+          "scratches": 0,
+          "pnl": -0.7233521633609429,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -1.128495193415286,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      ]
+    }
+  ],
+  "top": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "threshold": 60,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "segments": 3,
+      "days": 90,
+      "total_trades": 14,
+      "wins": 3,
+      "losses": 11,
+      "total_pnl": 0.7574426910317189,
+      "gross_profit": 3.417377665020379,
+      "gross_loss": 2.65993497398866,
+      "signals_generated": 847,
+      "signals_passed": 27,
+      "signals_blocked_strategy": 609,
+      "max_drawdown": 1.3011290754090872,
+      "strategy_stats": {
+        "双重顶": {
+          "trades": 5,
+          "wins": 0,
+          "losses": 5,
+          "scratches": 0,
+          "pnl": -0.830245510139213,
+          "gross_profit": 0.0,
+          "gross_loss": 0.830245510139213
+        },
+        "头肩底MTR": {
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": 0.11614587791672548,
+          "gross_profit": 1.347274953325803,
+          "gross_loss": 1.2311290754090776
+        },
+        "头肩顶MTR": {
+          "trades": 3,
+          "wins": 1,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": 1.2779876659035772,
+          "gross_profit": 1.417987665903585,
+          "gross_loss": 0.1400000000000077
+        },
+        "双重底": {
+          "trades": 4,
+          "wins": 1,
+          "losses": 3,
+          "scratches": 0,
+          "pnl": 0.19355465735062893,
+          "gross_profit": 0.6521150457909909,
+          "gross_loss": 0.458560388440362
+        }
+      },
+      "win_rate": 21.428571428571427,
+      "trades_per_day": 0.15555555555555556,
+      "profit_factor": 1.2847598525673387,
+      "top_strategies": [
+        {
+          "label": "头肩顶MTR",
+          "trades": 3,
+          "wins": 1,
+          "losses": 2,
+          "scratches": 0,
+          "pnl": 1.2779876659035772,
+          "win_rate": 33.33333333333333,
+          "profit_factor": 10.128483327882194
+        },
+        {
+          "label": "双重底",
+          "trades": 4,
+          "wins": 1,
+          "losses": 3,
+          "scratches": 0,
+          "pnl": 0.19355465735062893,
+          "win_rate": 25.0,
+          "profit_factor": 1.4220919691928462
+        },
+        {
+          "label": "头肩底MTR",
+          "trades": 2,
+          "wins": 1,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": 0.11614587791672548,
+          "win_rate": 50.0,
+          "profit_factor": 1.0943409429901838
+        },
+        {
+          "label": "双重顶",
+          "trades": 5,
+          "wins": 0,
+          "losses": 5,
+          "scratches": 0,
+          "pnl": -0.830245510139213,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      ]
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe_set": "15m",
+      "threshold": 55,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "segments": 3,
+      "days": 90,
+      "total_trades": 74,
+      "wins": 12,
+      "losses": 61,
+      "total_pnl": -3.5073547499672992,
+      "gross_profit": 17.574369305203547,
+      "gross_loss": 21.071424104253904,
+      "signals_generated": 847,
+      "signals_passed": 121,
+      "signals_blocked_strategy": 609,
+      "max_drawdown": 6.429342371681045,
+      "strategy_stats": {
+        "双重顶": {
+          "trades": 16,
+          "wins": 1,
+          "losses": 15,
+          "scratches": 0,
+          "pnl": -3.2884040937296746,
+          "gross_profit": 1.3756556259934374,
+          "gross_loss": 4.664059719723112
+        },
+        "头肩底MTR": {
+          "trades": 21,
+          "wins": 5,
+          "losses": 16,
+          "scratches": 0,
+          "pnl": 3.4827012239035815,
+          "gross_profit": 10.149147812233316,
+          "gross_loss": 6.666446588329734
+        },
+        "头肩顶MTR": {
+          "trades": 13,
+          "wins": 3,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": -0.25468501548316297,
+          "gross_profit": 2.414041905001608,
+          "gross_loss": 2.668726920484771
+        },
+        "双重底": {
+          "trades": 24,
+          "wins": 3,
+          "losses": 20,
+          "scratches": 1,
+          "pnl": -3.446966864658044,
+          "gross_profit": 3.635523961975186,
+          "gross_loss": 7.072190875716288
+        }
+      },
+      "win_rate": 16.216216216216218,
+      "trades_per_day": 0.8222222222222222,
+      "profit_factor": 0.8340380421490178,
+      "top_strategies": [
+        {
+          "label": "头肩底MTR",
+          "trades": 21,
+          "wins": 5,
+          "losses": 16,
+          "scratches": 0,
+          "pnl": 3.4827012239035815,
+          "win_rate": 23.809523809523807,
+          "profit_factor": 1.522422429664462
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 13,
+          "wins": 3,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": -0.25468501548316297,
+          "win_rate": 23.076923076923077,
+          "profit_factor": 0.9045668503853891
+        },
+        {
+          "label": "双重顶",
+          "trades": 16,
+          "wins": 1,
+          "losses": 15,
+          "scratches": 0,
+          "pnl": -3.2884040937296746,
+          "win_rate": 6.25,
+          "profit_factor": 0.2949481157319111
+        },
+        {
+          "label": "双重底",
+          "trades": 24,
+          "wins": 3,
+          "losses": 20,
+          "scratches": 1,
+          "pnl": -3.446966864658044,
+          "win_rate": 12.5,
+          "profit_factor": 0.5140590837923292
+        }
+      ]
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe_set": "15m",
+      "threshold": 55,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "segments": 3,
+      "days": 90,
+      "total_trades": 50,
+      "wins": 8,
+      "losses": 37,
+      "total_pnl": -4.631919728938249,
+      "gross_profit": 14.075520766991168,
+      "gross_loss": 18.98706362177552,
+      "signals_generated": 884,
+      "signals_passed": 93,
+      "signals_blocked_strategy": 666,
+      "max_drawdown": 5.36454403305768,
+      "strategy_stats": {
+        "头肩底MTR": {
+          "trades": 13,
+          "wins": 1,
+          "losses": 10,
+          "scratches": 2,
+          "pnl": 0.6117668376093911,
+          "gross_profit": 3.8685805208944006,
+          "gross_loss": 3.412692760090153
+        },
+        "双重底": {
+          "trades": 12,
+          "wins": 1,
+          "losses": 9,
+          "scratches": 2,
+          "pnl": -2.6536706508311454,
+          "gross_profit": 2.847891464836149,
+          "gross_loss": 5.595976718644127
+        },
+        "头肩顶MTR": {
+          "trades": 13,
+          "wins": 4,
+          "losses": 8,
+          "scratches": 1,
+          "pnl": -2.9741322855117858,
+          "gross_profit": 3.527301849494801,
+          "gross_loss": 6.530763581070714
+        },
+        "双重顶": {
+          "trades": 12,
+          "wins": 2,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": 0.3841163697952907,
+          "gross_profit": 3.831746931765818,
+          "gross_loss": 3.4476305619705276
+        }
+      },
+      "win_rate": 16.0,
+      "trades_per_day": 0.5555555555555556,
+      "profit_factor": 0.7413216202029526,
+      "top_strategies": [
+        {
+          "label": "头肩底MTR",
+          "trades": 13,
+          "wins": 1,
+          "losses": 10,
+          "scratches": 2,
+          "pnl": 0.6117668376093911,
+          "win_rate": 7.6923076923076925,
+          "profit_factor": 1.133585937221083
+        },
+        {
+          "label": "双重顶",
+          "trades": 12,
+          "wins": 2,
+          "losses": 10,
+          "scratches": 0,
+          "pnl": 0.3841163697952907,
+          "win_rate": 16.666666666666664,
+          "profit_factor": 1.1114145970372606
+        },
+        {
+          "label": "双重底",
+          "trades": 12,
+          "wins": 1,
+          "losses": 9,
+          "scratches": 2,
+          "pnl": -2.6536706508311454,
+          "win_rate": 8.333333333333332,
+          "profit_factor": 0.5089176756843579
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 13,
+          "wins": 4,
+          "losses": 8,
+          "scratches": 1,
+          "pnl": -2.9741322855117858,
+          "win_rate": 30.76923076923077,
+          "profit_factor": 0.5401055796474725
+        }
+      ]
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe_set": "15m",
+      "threshold": 60,
+      "strategy_profile": "brooks_mtr_focus",
+      "management_profile": "brooks_pdf",
+      "strategy_filter_description": "配置档=brooks_mtr_focus | 白名单=双重底/双重顶/头肩底MTR/头肩顶MTR/突破回调 | 黑名单=20均线缺口/MAG 20/20 Setup/ii突破/ioi突破/低1/低2/收线追进/楔形底/楔形顶/第一均线缺口/高1/高2",
+      "strategy_whitelist": [
+        "头肩顶MTR",
+        "双重顶",
+        "双重底",
+        "头肩底MTR",
+        "突破回调"
+      ],
+      "strategy_blacklist": [
+        "MAG 20/20 Setup",
+        "ioi突破",
+        "低2",
+        "ii突破",
+        "20均线缺口",
+        "第一均线缺口",
+        "楔形底",
+        "高2",
+        "高1",
+        "楔形顶",
+        "收线追进",
+        "低1"
+      ],
+      "filter_signature": "brooks_mtr_focus|双重底,双重顶,头肩底MTR,头肩顶MTR,突破回调|20均线缺口,MAG 20/20 Setup,ii突破,ioi突破,低1,低2,收线追进,楔形底,楔形顶,第一均线缺口,高1,高2|brooks_pdf",
+      "segments": 3,
+      "days": 90,
+      "total_trades": 6,
+      "wins": 0,
+      "losses": 6,
+      "total_pnl": -1.9218473567762384,
+      "gross_profit": 0.0,
+      "gross_loss": 1.9218473567762384,
+      "signals_generated": 884,
+      "signals_passed": 7,
+      "signals_blocked_strategy": 666,
+      "max_drawdown": 1.198495193415284,
+      "strategy_stats": {
+        "头肩底MTR": {
+          "trades": 4,
+          "wins": 0,
+          "losses": 4,
+          "scratches": 0,
+          "pnl": -0.7233521633609429,
+          "gross_profit": 0.0,
+          "gross_loss": 0.7233521633609429
+        },
+        "双重底": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.07000000000000935,
+          "gross_profit": 0.0,
+          "gross_loss": 0.07000000000000935
+        },
+        "头肩顶MTR": {
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -1.128495193415286,
+          "gross_profit": 0.0,
+          "gross_loss": 1.128495193415286
+        }
+      },
+      "win_rate": 0.0,
+      "trades_per_day": 0.06666666666666667,
+      "profit_factor": 0.0,
+      "top_strategies": [
+        {
+          "label": "双重底",
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -0.07000000000000935,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "头肩底MTR",
+          "trades": 4,
+          "wins": 0,
+          "losses": 4,
+          "scratches": 0,
+          "pnl": -0.7233521633609429,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        },
+        {
+          "label": "头肩顶MTR",
+          "trades": 1,
+          "wins": 0,
+          "losses": 1,
+          "scratches": 0,
+          "pnl": -1.128495193415286,
+          "win_rate": 0.0,
+          "profit_factor": 0.0
+        }
+      ]
+    }
+  ]
+}

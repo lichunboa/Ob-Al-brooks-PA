@@ -1236,3 +1236,361 @@ V4 汇总结果：
 1. `TR edge / origin half / advantage zone` 的更细划分
 2. `H2/L2` 的专属 stop 模板，而不是继续用统一 stop 逻辑
 3. `磁体路径 / first target / trapped trader` 的更细 playbook 识别
+
+### V34-V37：Broad Channel 路由纠偏与失败样本复盘
+
+这轮主要不是继续压统一阈值，而是回到 Brooks 主干：
+
+- `broad_range` 不再一律当成纯 `TR`
+- `Broad Channel reversal` 与 `Broad Channel recovery`
+  必须和 `tight_range` 的 `BLSHS` 分开
+- `头肩 / MTR` 在 `Broad Channel` 里，第一笔更接近
+  `minor reversal / scalp more, swing less`
+
+主要参考：
+
+- `S4-strategy-match.md`
+- `S6-channel.md`
+- `S6-tr.md`
+- `13 Trading Ranges and Vacuums交易区和真空区.md`
+- `16F Limit orders on Reversal Trade on Channel...md`
+
+#### 已做
+
+1. `broad_range` 从纯 `TR` 路由中拆开
+2. `R1_BROAD_CHANNEL_REVERSAL`
+   - 增加 `failed_breakout / target_path_clear / second-leg trap`
+     约束
+3. `Broad Channel reversal`
+   - 管理模板不再直接走 `brooks_hs_reversal`
+   - 改成更保守的 `brooks_wedge_reversal`
+4. 尝试过但已证伪：
+   - 降低 `TR midline / session_open` 磁体权重
+   - 降低统一 `H2/L2 executable` 分数门槛
+
+#### 最新烟测
+
+- `btc_5m_v34_broad_range_route_smoke.json`
+- `btc_5m_v35_broad_range_refined_smoke.json`
+- `btc_5m_v36_target_magnet_soften_smoke.json`
+- `btc_5m_v37_h2_floor_smoke.json`
+- `sol_5m_v34_broad_range_route_smoke.json`
+- `sol_5m_v35_broad_range_refined_smoke.json`
+- `sol_5m_v36_target_magnet_soften_smoke.json`
+- `sol_hsb_v34_context_audit.json`
+
+当前最值得记住的结果：
+
+- `BTCUSDT 5m`
+  - 交易 `9`
+  - 胜率 `33.3%`
+  - 日均 `0.21`
+  - `PF 1.04`
+  - 账户收益 `+0.05%`
+  - 账户回撤 `0.47%`
+- `SOLUSDT 5m`
+  - 交易 `4`
+  - 胜率 `25.0%`
+  - 日均 `0.10`
+  - `PF 0.16`
+  - 账户收益 `-0.17%`
+  - 账户回撤 `0.17%`
+
+#### 结论
+
+- `Broad Channel` 的总路由方向已经比之前更接近 Brooks
+- 但这轮没有形成新的全局净提升基线
+- 当前真正的问题已经更聚焦：
+  - `R1_BROAD_CHANNEL_REVERSAL` 里仍混入假 reversal
+  - `H2/L2` 的 `second-leg trap / first target / trapped side`
+    识别仍偏粗
+  - 频率低的主因，已经不是统一阈值，而是 playbook 细分不足
+
+### V38-V42：这几轮已明确证伪的“提频捷径”
+
+这几轮重点不是新增稳定基线，而是排除几条会把系统带偏的方向。
+
+#### 1. 直接移除外围指标门槛，不是当前主解
+
+报告：
+
+- `all4_5m_global_brooks_v38_price_action_only.json`
+
+做法：
+
+- 把 `Wyckoff / RSI / OBV / No Demand` 硬拦截降成诊断层
+
+结果：
+
+- `BTCUSDT 5m`
+  - 日均 `0.31`
+  - `PF 0.50`
+- `ETHUSDT 5m`
+  - 日均 `0.12`
+  - `PF 0.00`
+- `BNBUSDT 5m`
+  - 日均 `0.21`
+  - `PF 0.58`
+- `SOLUSDT 5m`
+  - 日均 `0.10`
+  - `PF 0.16`
+
+结论：
+
+- Brooks 原课确实强调“价格行为 + EMA”，不是 RSI/OBV 系统
+- 但在当前实现里，直接删外围门槛只会放大
+  `state/playbook/context` 尚未做细导致的坏单
+- 这条路不进入主基线
+
+#### 2. 仅凭高周期边缘去放宽 5m BLSHS，会增加频率但显著伤害质量
+
+报告：
+
+- `btc_sol_5m_v41_higher_tf_edge_blshs.json`
+- `btc_sol_5m_v42_higher_tf_edge_limit_only.json`
+
+结果：
+
+- `BTCUSDT 5m`
+  - 日均 `0.21 -> 0.40`
+  - `PF 1.04 -> 0.83`
+- `SOLUSDT 5m`
+  - 日均 `0.10 -> 0.17`
+  - `PF 0.16 -> 0.65`
+
+结论：
+
+- `15m` 边缘只能是加分项，不能替代
+  - `failed breakout`
+  - `trapped trader`
+  - `second-leg trap`
+  - `target path clear`
+- 否则只是把更多低质量 `H2/L2` 推成 executable
+
+#### 3. LIMIT 单统一加宽止损，也不是当前主解
+
+报告：
+
+- `btc_sol_5m_v39_limit_ft_relax.json`
+- `btc_sol_5m_v40_limit_wide_stop.json`
+
+结论：
+
+- 对 `BTC/SOL 5m` 基本没有形成净变化
+- 当前最大瓶颈仍然更靠前：
+  - `宽通道逆势单仍需靠近边缘或优势区`
+  - `宽通道顺势恢复缺少 follow-through`
+  - `H2/L2 前方近端磁体和 trapped side 太近`
+  - `止损没有放到结构位外`
+
+#### 当前更清晰的下一步
+
+不要再优先做这些：
+
+- 统一放宽 route
+- 统一放宽 limit stop
+- 统一删除外围门槛
+
+更应该做的是：
+
+1. 让 `TR / Broad Channel` 主动产出 Brooks 专用 setup，而不是先产出趋势单再被后置过滤挡掉
+2. 把 `TR2 / TR3 / R2` 的证据做细：
+   - `failed breakout`
+   - `trapped trader`
+   - `second-leg trap`
+3. 继续把 `state-first` 做进信号生成层，而不只是放在 `runner` 的后置路由
+
+#### 4. 2026-03-12 架构纠偏：活跃回测链不再叠外围指标层
+
+本轮代码审查后，活跃回测链已正式纠偏：
+
+- 移除 `BackgroundAnalyzer`
+- 移除 `ScoringEngine`
+- 移除 `Wyckoff / RSI / OBV / No Demand`
+- 移除 `quality_score / min_q`
+- 移除 `daily / h4` 背景硬过滤
+
+新的权威口径是：
+
+- 回测执行分数直接沿用真实 `PA Engine` 的 `strength`
+- 回测只保留 `Brooks route consistency + entry readiness + management template`
+- `cfg.threshold` 改成覆盖真实引擎的全局 `signal_threshold`
+- 不再把 `cfg.threshold` 当成第二套后置全局执行门槛
+
+因此，从这一轮开始：
+
+- 旧的 `v38 price_action_only` 只能说明“当时的污染链一旦直接拔门槛会出问题”
+- 不能再把它当成“Brooks 纯化必然失败”的证据
+- 后续所有新报告，都必须以这次架构纠偏后的 `runner.py` 为前提来解读
+
+残留技术债：
+
+- `services/api-service/src/routers/backtest.py` 仍指向旧 `tools/backtest_tool.py`
+- 该旧脚本内部还保留自己的 `BackgroundAnalyzer / ScoringEngine`
+- 当前权威实验入口仍应以 `tools/backtest_matrix.py` 和 `libs/backtest/runner.py` 为准
+
+#### 5. 2026-03-12 `state-first` 前移后的统一基线：频率恢复，质量仍需继续打磨
+
+报告：
+
+- `all4_5m_global_brooks_v44_state_first.json`
+
+这轮做了两件重要事情：
+
+1. `pa_engine.py` 增加最小 `state-first` 生成层预筛
+   - `tight_range / broad_range / weak_trend_*` 不再先放出一批趋势单，再全靠后置路由裁
+2. `services/api-service/src/routers/backtest.py` 已切到 `libs.backtest.runner`
+   - API 不再调用旧 `backtest_tool.py`
+
+统一口径结果：
+
+- `BTCUSDT 5m`: 胜率 `24.8%`，日均 `7.21`，`PF 0.94`，账户收益 `-1.82%`，账户回撤 `3.02%`
+- `ETHUSDT 5m`: 胜率 `23.0%`，日均 `8.71`，`PF 0.44`，账户收益 `-6.48%`，账户回撤 `6.91%`
+- `BNBUSDT 5m`: 胜率 `22.2%`，日均 `9.00`，`PF 0.47`，账户收益 `-7.77%`，账户回撤 `8.01%`
+- `SOLUSDT 5m`: 胜率 `20.2%`，日均 `9.21`，`PF 0.48`，账户收益 `-7.49%`，账户回撤 `7.54%`
+
+和 `v43` 比：
+
+- `BTCUSDT 5m`
+  - `交易 132 -> 101`
+  - `PF 0.85 -> 0.94`
+  - `账户收益 -3.98% -> -1.82%`
+  - `账户回撤 4.74% -> 3.02%`
+- `SOLUSDT 5m`
+  - `交易 171 -> 129`
+  - `PF 0.36 -> 0.48`
+  - `账户收益 -10.75% -> -7.49%`
+  - `账户回撤 10.78% -> 7.54%`
+
+本轮结论：
+
+- 频率问题已经不再是主矛盾
+- 当前主矛盾是生成层质量
+- 后面不应再优先做“统一放宽过滤”
+- 应继续围绕 Brooks 课件，把这几类 playbook 前推到生成层：
+  - `TR2 Failed BO Fade`
+  - `TR3 2nd Leg Trap`
+  - `R2 TR Edge Reversal`
+  - `T6 Broad Channel Recovery`
+
+#### 6. 2026-03-12 第二轮纠偏：`急赴磁体` 降回上下文，不再当独立 setup
+
+报告：
+
+- `all4_5m_global_brooks_v45_no_magnet_setup.json`
+
+这轮针对 `v44` 的最大公共亏损源下刀：
+
+- `急赴磁体`
+
+它在 `v44` 里的表现说明：
+
+- 更像“磁体/真空效应上下文”
+- 不是当前实现精度下足够稳定的独立 entry setup
+
+因此本轮调整为：
+
+- `pa_engine.py` 不再直接生成 `急赴磁体` 订单信号
+- 保留 magnet 语义给后续 `target path / blocking magnet / minimum objective` 使用
+
+结果：
+
+- `BTCUSDT 5m`: 胜率 `31.2%`，日均 `3.43`，`PF 1.16`，账户收益 `+0.62%`，账户回撤 `0.82%`
+- `ETHUSDT 5m`: 胜率 `21.6%`，日均 `3.64`，`PF 0.48`，账户收益 `-2.60%`，账户回撤 `3.06%`
+- `BNBUSDT 5m`: 胜率 `22.4%`，日均 `3.50`，`PF 0.55`，账户收益 `-2.37%`，账户回撤 `2.63%`
+- `SOLUSDT 5m`: 胜率 `15.8%`，日均 `4.07`，`PF 0.44`，账户收益 `-2.71%`，账户回撤 `3.42%`
+
+和 `v44` 比：
+
+- `BTC`
+  - `PF 0.94 -> 1.16`
+  - `账户收益 -1.82% -> +0.62%`
+  - `账户回撤 3.02% -> 0.82%`
+- `ETH`
+  - `账户收益 -6.48% -> -2.60%`
+  - `账户回撤 6.91% -> 3.06%`
+- `BNB`
+  - `账户收益 -7.77% -> -2.37%`
+  - `账户回撤 8.01% -> 2.63%`
+- `SOL`
+  - `账户收益 -7.49% -> -2.71%`
+  - `账户回撤 7.54% -> 3.42%`
+
+结论：
+
+- 这轮改善是实打实的净改善
+- 频率被砍掉了一半左右，但现在更接近“Brooks 有效机会”而不是“伪机会”
+- 下一步要继续打的不是 magnet，而是：
+  - `高2/低2` 在 `Broad Channel / TR` 中的升级条件
+  - `failed breakout / trapped trader / second-leg trap` 证据前置
+
+#### 7. 2026-03-12 第三轮纠偏：`TR H2/L2` 补回生成层，随后验证 `stop structure` 与 second-entry 证据
+
+这轮先修了一个结构性漏单问题：
+
+- `TR means BLSHS`
+- 路由层允许 `TR 边缘 H2/L2`
+- 但生成层之前没有在 `cycle == 区间` 里产出 `H2/L2`
+
+于是先补回：
+
+- `cycle == 区间` 时生成 `detect_h2_l2()`
+
+然后连续跑了两轮验证：
+
+- `all4_5m_global_brooks_v50_dynamic_stop_buffer.json`
+- `all4_5m_global_brooks_v51_second_entry_evidence.json`
+
+`v50` 做的是：
+
+- 把固定 `0.1%` 的 `stop_structure_ok` 判定改成动态缓冲
+
+结果：
+
+- `BTCUSDT 5m`: 胜率 `22.6%`，日均 `4.43`，`PF 0.69`
+- `ETHUSDT 5m`: 胜率 `17.6%`，日均 `4.86`，`PF 0.42`
+- `BNBUSDT 5m`: 胜率 `23.5%`，日均 `3.64`，`PF 0.60`
+- `SOLUSDT 5m`: 胜率 `17.1%`，日均 `5.00`，`PF 0.32`
+
+这说明：
+
+- 固定百分比确实误杀了一部分 5m 单
+- 但把这层放开后，放出来的大量单并不成熟
+- 所以核心问题不是“止损太严”，而是“second entry 上下文不够”
+
+`v51` 做的是：
+
+- `第二腿陷阱` 必须有 `failed breakout / trapped trader / trendline break`
+- `区间/弱趋势里的 H2/L2` 不能只靠形态升级为 executable，必须有失败突破或趋势线破坏证据
+
+结果：
+
+- `BTCUSDT 5m`: 胜率 `31.4%`，日均 `2.50`，`PF 1.01`，账户收益 `+0.14%`，账户回撤 `0.90%`
+- `BNBUSDT 5m`: 胜率 `32.4%`，日均 `2.43`，`PF 1.09`，账户收益 `-0.69%`，账户回撤 `1.41%`
+- `ETHUSDT 5m`: 胜率 `18.9%`，日均 `2.64`，`PF 0.59`，账户收益 `-2.60%`，账户回撤 `2.83%`
+- `SOLUSDT 5m`: 胜率 `11.4%`，日均 `3.14`，`PF 0.21`，账户收益 `-2.80%`，账户回撤 `3.38%`
+
+和 `v50` 比：
+
+- `BTC`
+  - `PF 0.69 -> 1.01`
+  - `账户收益 -2.52% -> +0.14%`
+  - `日均 4.43 -> 2.50`
+- `BNB`
+  - `PF 0.60 -> 1.09`
+  - `账户收益 -2.82% -> -0.69%`
+  - `日均 3.64 -> 2.43`
+- `ETH`
+  - `PF 0.42 -> 0.59`
+  - `账户收益 -6.31% -> -2.60%`
+- `SOL`
+  - `PF 0.32 -> 0.21`
+  - `账户收益 -4.98% -> -2.80%`
+
+策略级结论：
+
+- `高2` 在 `BTC/BNB` 上已经接近可用
+- `低2` 与 `第二腿陷阱` 仍然是当前最大的公共亏损源
+- 所以下一步不该再动统一 stop buffer，而是继续细化：
+  - `高2/低2` 的 candidate -> executable 升级条件
+  - `第二腿陷阱` 的 trapped trader / failed breakout 证据

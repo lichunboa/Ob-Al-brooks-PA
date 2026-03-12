@@ -92,11 +92,11 @@ class RuleEngine:
     ) -> Dict[str, Any]:
         """提取市场状态（从 runtime_state.json 的 symbols 字段）"""
 
-        market_state_str = data.get("market_state", "")
-        stage = data.get("stage", "")
-        thesis = data.get("thesis", "")
-        pre_signal = data.get("pre_signal", {})
-        planned_trade = data.get("planned_trade", {})
+        market_state_str = str(data.get("market_state") or "")
+        stage = str(data.get("stage") or "")
+        thesis = str(data.get("thesis") or "")
+        pre_signal = data.get("pre_signal", {}) if isinstance(data.get("pre_signal"), dict) else {}
+        planned_trade = data.get("planned_trade", {}) if isinstance(data.get("planned_trade"), dict) else {}
 
         # 解析多周期状态
         timeframes = {}
@@ -144,7 +144,7 @@ class RuleEngine:
             "stage": stage,
             "pre_signal": pre_signal,
             "planned_trade": planned_trade,
-            "status": data.get("status", ""),
+            "status": str(data.get("status") or ""),
         }
 
     def _identify_strategies(

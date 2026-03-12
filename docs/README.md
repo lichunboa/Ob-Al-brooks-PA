@@ -2,116 +2,67 @@
 
 > 更新于 2026-03-11
 
-当前项目文档统一遵循一个前提：
-
-- 完整 `AB Console-Obsidian` Al Brooks 知识库是最高权威
-- `AB Patrol-Agent/knowledge/patrol-l1/canonical/` 是理论规范层
-- `SKILL/S` 是面向 agent 的可执行子集
-- 升级期默认暂停自动交易，先做 parity / 回放 / demo 验证
-
-## 当前三套主系统
+当前项目只有三套真实主系统：
 
 | 系统 | 根目录 | 当前定位 |
 | --- | --- | --- |
-| `AB Patrol-Agent` | `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent` | 当前后端与巡逻主脑，负责巡逻、分析、决策、交易前校验、执行链与 sidecar 服务 |
-| `AB Patrol-Web` | `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Web` | 当前独立 Web 展示层，读取 Patrol Runtime / API / Query Service |
-| `AB Console-Obsidian` | `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Obsidian` | Al Brooks 知识库、复盘、Obsidian 插件与课程材料 |
+| `AB Patrol-Agent` | `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent` | 当前后端、巡逻主脑、规则引擎、执行桥和 sidecar 服务 |
+| `AB Patrol-Web` | `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Web` | 当前独立 Web，读取 Patrol Runtime / Query Service / Execution Service |
+| `AB Console-Obsidian` | `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Obsidian` | Al Brooks 知识库、复盘资料与 Obsidian 插件 |
 
-## 历史说明
-
-- `AB Console-Backend` 已在 2026-03-10 迁移完成并删除。
-- 所有明显带旧路径、旧架构快照的历史文档，已统一归档到 `docs/archive/`。
-- 归档文档只用于追溯迁移背景，不再作为当前操作依据。
-
-## 当前真实运行方式
-
-当前交易主链是：
+## 当前交易主线
 
 ```text
-完整 Al Brooks 知识库
-  -> Canonical Rulebook
-  -> 原始 SKILL.md + S0-S7
-  -> AB Patrol-Agent
-  -> codex_cli 长会话决策
-  -> patrol_trade.py 交易前校验
+AB Console-Obsidian
+  -> AB Patrol-Agent/knowledge/patrol-l1
+  -> runtime/pa_runtime.py loop/run_cycle
+  -> execution 快照 + market cache + phase plan
+  -> should_use_llm()
+       -> 未触发: rule_engine_decision()
+       -> 触发: prompt_builder + providers
+  -> hydrate_open_order_action() / execute_action()
   -> execution-service
-  -> Binance demo
-  -> Query Service / Web / TG 可见
+  -> query-service / sync-service / vis-service
+  -> AB Patrol-Web / 控制脚本 / Telegram 可见
 ```
 
-其中：
+当前实际配置与运行结论：
 
-- `codex_cli` 是当前默认决策执行层。
-- `OpenClaw` 负责 host / TG operator / 工作区记忆，不再是唯一决策后端。
-- `watchdog` 负责卡死恢复。
-- `Query Service + Web + TG` 负责可见性。
-- 自动交易在升级期默认关闭；显式 `--execute` 才会恢复。
+- `AB_PATROL_DECISION_PROVIDER=openclaw`
+- `AB_PATROL_LLM_TRIGGER_OPTIMIZATION=1`
+- `AB_PATROL_RULE_ENGINE_PRIORITY=0`
+- `AB_PATROL_FORCE_LLM=0`
+- `execution-service` 当前 `trading_enabled=true`
+- Patrol 最新 cycle 里的 `OPEN_ORDER` 结果仍是 `DRY_RUN_VALIDATED`，说明巡逻主链当前只做仓位计算与订单载荷生成，不实际发送订单
 
-## 最重要的当前文档
+因此，当前模式不是“每轮都调 LLM”，也不是“全局永久纯代码”；更准确地说是：
+
+- 巡逻编排、开仓候选、持仓管理、执行桥接，已经主要是代码路径
+- LLM 只在触发器命中时介入
+- Patrol 当前实际执行仍是 `dry_run`
+
+## 当前权威文档
 
 | 文档 | 说明 |
 | --- | --- |
-| [AGENTS.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AGENTS.md) | 当前仓库真实结构、开发约束与运行入口 |
+| [AGENTS.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AGENTS.md) | 当前仓库协作约束、命令约束与开发规范 |
+| [CURRENT_TRADING_FLOW.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/CURRENT_TRADING_FLOW.md) | 当前真实交易流程、LLM 触发逻辑、执行链和模块调用关系 |
+| [FOLDER_STRUCTURE.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/FOLDER_STRUCTURE.md) | 当前完整目录与功能结构 |
 | [ROOT_LAYOUT.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/ROOT_LAYOUT.md) | 顶层目录边界，区分主目录、运行产物、历史资料与个人工作区 |
-| [backend/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/backend/README.md) | 当前后端与 sidecar 服务入口 |
-| [web/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/web/README.md) | 当前独立 Web 入口 |
-| [AB Patrol-Agent/docs/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/README.md) | Patrol 主脑专属文档索引 |
-
-## 顶层目录边界
-
-- 当前真实主目录只有三套：`AB Patrol-Agent/`、`AB Patrol-Web/`、`AB Console-Obsidian/`
-- `docs/` 是项目级说明入口，不承载运行时代码
-- `📁 开发文档/`、`春波的笔记/`、`🦁 交易员控制台 (Trader Command)/` 当前视为历史/个人工作区，不作为默认运行路径
-- 详细边界说明见 [ROOT_LAYOUT.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/ROOT_LAYOUT.md)
-
-## 分系统入口
-
-### AB Patrol-Agent
-
-- [AB Patrol-Agent/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/README.md)
-- [AB Patrol-Agent/docs/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/README.md)
-
-### AB Patrol-Web
-
-- [AB Patrol-Web/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Web/README.md)
-
-### 后端与本地开发
-
-- [backend/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/backend/README.md)
-
-### AB Console-Obsidian / 知识库
-
-- [OBSIDIAN-NOTES-STRUCTURE.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/OBSIDIAN-NOTES-STRUCTURE.md)
+| [backend/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/backend/README.md) | Patrol 后端与 sidecar 服务入口 |
+| [web/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/web/README.md) | Patrol Web 入口 |
+| [AB Patrol-Agent/docs/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/README.md) | Patrol 主脑内部文档索引 |
 
 ## 历史归档
 
-- [archive/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/archive/README.md)
-- [archive/CURRENT_SYSTEM_OVERVIEW_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/archive/CURRENT_SYSTEM_OVERVIEW_20260308.md)
-- [archive/PROJECT_BOUNDARIES_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/archive/PROJECT_BOUNDARIES_20260308.md)
-- [archive/local-dev.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/archive/local-dev.md)
+- `AB Console-Backend` 已在 2026-03-10 删除。
+- 带旧路径、旧架构、03-10 过程性报告与一次性计划文档，统一归档到 `docs/archive/`。
+- Patrol 主脑那批过程文档已统一收进 `docs/archive/patrol-agent/`。
+- 当前默认入口见 [archive/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/archive/README.md)。
 
-## 当前已修与未修
+## 分系统入口
 
-### 已修
-
-- `P×R` 规则已对齐回 `S5-evaluation`
-- `S6` 路由已从单路由增强到多路由
-- `S7` 动作已扩展到加仓 / 分批减仓 / 撤挂单 / 调整止损 / 调整止盈
-- `execution-service` 已补 Binance 时间同步恢复
-- `AB Patrol-Web` 已独立为单独 Web 项目
-- Canonical Rulebook 已接入 Patrol 运行时知识选择
-
-### 仍未完成
-
-- `codex_cli` 决策仍会有 timeout，稳定性还不够
-- 新架构下首笔自然自动成交还没稳定复现
-- `S7-management` 还缺新架构下的 live 仓位管理闭环验证
-- `query-service / watchdog` 的长期驻留仍有不稳定迹象
-- 代码中仍有部分流程编排型硬规则，需要继续下放给 agent
-
-## 运行入口
-
-### Patrol 主线
+- Patrol 主线：
 
 ```bash
 cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent"
@@ -119,15 +70,12 @@ cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent"
 ./scripts/start.sh status
 ```
 
-### Patrol Web
+- Patrol Web：
 
 ```bash
 cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Web"
 bash scripts/start.sh
 ```
 
-### Finder 启动工具
-
-- `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/📁 启动工具/🚀 一键启动.command`
-- `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/📁 启动工具/📊 状态检查.command`
-- `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/📁 启动工具/🌐 AB Patrol Web.command`
+- Obsidian 知识库结构：
+  [OBSIDIAN-NOTES-STRUCTURE.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/OBSIDIAN-NOTES-STRUCTURE.md)

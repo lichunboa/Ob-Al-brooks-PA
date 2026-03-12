@@ -69,7 +69,8 @@ class Config:
             if strict_provider:
                 raise RuntimeError("AB Patrol-Agent direct provider requested, but API base/model are not configured")
             decision_provider = fallback_provider
-        data_root = agent_root / "data" / "pa_trader"
+        data_root_raw = os.getenv("AB_PATROL_DATA_ROOT", "").strip()
+        data_root = Path(data_root_raw) if data_root_raw else (agent_root / "data" / "pa_trader")
         return cls(
             vault_root=vault_root,
             agent_root=agent_root,

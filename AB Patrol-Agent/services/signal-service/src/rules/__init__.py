@@ -1,6 +1,8 @@
 """
-信号规则汇总
-导出所有规则列表
+legacy PG 信号规则汇总。
+
+这套规则链保留仅为了兼容旧 PG / SQLite 引擎，
+不是当前默认的 Brooks / PA 活跃链路。
 """
 
 from .base import ConditionType, SignalRule
