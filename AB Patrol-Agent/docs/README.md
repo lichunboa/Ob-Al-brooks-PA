@@ -14,6 +14,8 @@
   - 当前策略覆盖、live / 回测主链、交易链断点
 - `STRATEGY_COVERAGE_AUDIT.md`
   - 按 `S4` 的 15 个 Brooks playbook 审计当前覆盖率
+- `KNOWLEDGE_IMPLEMENTATION_AUDIT.md`
+  - `SKILL/S0-S7` 与当前代码实现的对照审计
 - `BROOKS_LOGIC_MAP.md`
   - Brooks 理论步骤与当前代码映射
 - `LLM_TRIGGER_CONFIG.md`

@@ -1,6 +1,6 @@
 # 策略覆盖审计
 
-> 更新于 2026-03-12
+> 更新于 2026-03-13
 
 本文档回答两个问题：
 
@@ -26,48 +26,38 @@
 
 ## 二、S4 的 15 个 playbook 是否已覆盖
 
-### 已有独立 Brooks 路由的策略：8 / 15
+### 已有独立 Brooks 路由的策略：15 / 15
 
 | S4 ID | 基线名称 | 当前代码状态 | 对应代码路由 |
 |---|---|---|---|
 | T1 | H1/L1 after BO | 已覆盖 | `T1_FIRST_PULLBACK` |
 | T2 | H2/L2 in Channel | 已覆盖 | `T2_TREND_H2` / `T2_BROAD_CHANNEL_RECOVERY` |
 | T3 | EMA PB (MAG) | 已覆盖 | `T3_TREND_EMA` / `T3_BROAD_CHANNEL_EMA` |
+| T4 | Wedge PB | 已覆盖 | `T4_WEDGE_PULLBACK` |
 | T5 | Buy/Sell The Close | 已覆盖 | `T5_BREAKOUT_CHASE` |
 | T6 | Channel 内 PB | 已覆盖 | `T6_TR_LEG_FIRST_PULLBACK` / `T6_TR_LEG_CHANNEL_RECOVERY` / `T6_TR_LEG_EMA_RECOVERY` |
+| R1 | MTR 5 条件 | 已覆盖 | `R1_BROAD_CHANNEL_REVERSAL` |
+| R2 | Climax Reversal | 已覆盖 | `R2_TR_EDGE_REVERSAL` |
+| R3 | Channel Line BO Fade | 已覆盖 | `R3_CHANNEL_LINE_BO_FADE` |
 | TR1 | BLSHS | 已覆盖 | `TR1_BLSHS` |
 | TR2 | Failed BO Fade | 已覆盖 | `TR2_FAILED_BO_FADE` |
 | TR3 | 2nd Leg Trap | 已覆盖 | `TR3_SECOND_LEG_TRAP` |
-
-### 有信号或近似路由，但还没落成独立 playbook 的策略：4 / 15
-
-| S4 ID | 基线名称 | 当前状态 | 现状说明 |
-|---|---|---|---|
-| T4 | Wedge PB | 部分覆盖 | 有 `楔形顶/底` 信号，但主要被归进 reversal 家族，没有独立 `T4_*` 路由 |
-| R1 | MTR 5 条件 | 部分覆盖 | 有 `R1_BROAD_CHANNEL_REVERSAL` 和 `头肩MTR` / DT / DB / Wedge，但 MTR 五条件没有独立成一条清晰 playbook |
-| R2 | Climax Reversal | 部分覆盖 | 有 `R2_TR_EDGE_REVERSAL`，但它覆盖的是更宽泛的 TR edge reversal，高潮反转没有单独隔离 |
-| R3 | Channel Line BO Fade | 部分覆盖 | 语义大概率被吸收到 `R1/R2`，当前没有独立的 `R3_*` 路由 |
-
-### 基线里有，但当前还没有独立实现的策略：3 / 15
-
-| S4 ID | 基线名称 | 当前状态 | 现状说明 |
-|---|---|---|---|
-| TR4 | Daily TR Fade | 缺失 | 没有独立 `playbook_id`，也没有专门的日线 TR fade 路由 |
-| S1 | HTF S/R Reversal | 缺失 | 有 higher timeframe 背景、HOY/LOY、关键位证据，但没有独立 S1 playbook |
-| S2 | Micro Channel | 缺失 | 有 ii/ioi/iii 与 micro gap 语义，但没有独立 Micro Channel playbook |
+| TR4 | Daily TR Fade | 已覆盖 | `TR4_DAILY_TR_FADE` |
+| S1 | HTF S/R Reversal | 已覆盖 | `S1_HTF_SR_REVERSAL` |
+| S2 | Micro Channel | 已覆盖 | `S2_MICRO_CHANNEL_REVERSAL` |
 
 ## 三、当前结论
 
-按 `S4` 的 15 个 playbook 来算，当前状态是：
+按 `S4` 的 15 个 playbook 来算，当前状态已经变成：
 
-- 已明确独立覆盖：8 个
-- 部分覆盖 / 被合并吸收：4 个
-- 还缺独立实现：3 个
+- 已具备独立 `playbook_id` 路由：15 个
+- 其中通过专属 detector 直接落地的仍然是基础主家族
+- `T4 / R3 / TR4 / S1 / S2` 当前属于“已有信号 + Brooks 上下文”的独立路由扩展
 
 也就是说：
 
-- 代码里已经不止“十几种信号”，但**还不是“十五个 S4 playbook 全部独立落地”**。
-- 当前更像是“信号种类很多，独立 playbook 路由还差最后一层收口”。
+- 现在已经不是“还缺 3 个 playbook”
+- 当前真正剩下的问题，是这些新补齐的 playbook 还没有各自独立的 profile、统计基线和专属 detector
 
 ## 四、当前代码里额外存在、但不在 S4 主表里的策略家族
 
@@ -114,14 +104,13 @@
 
 真正没收口的是：
 
-- `S4` 的 15 个 playbook 还没有一一变成稳定、清晰、互不重叠的独立路由层。
+- `S4` 的 15 个 playbook 虽然都已可路由，但其中一部分仍然依赖共享 detector + 上下文重分类。
 
 ## 六、建议的补齐顺序
 
 优先级从高到低：
 
-1. 把 `T4_WEDGE_PB` 从当前 reversal 大类里拆出来，单独建顺势楔形回调路由。
-2. 把 `R1 / R2 / R3` 的语义拆清，不要继续让 `R1_BROAD_CHANNEL_REVERSAL` / `R2_TR_EDGE_REVERSAL` 吃掉太多反转子类型。
-3. 补 `TR4_DAILY_TR_FADE`，因为它是 `S4` 里唯一当前完全缺位的 TR 子类。
-4. 把 `S1_HTF_SR_REVERSAL` 从现在的 higher timeframe 背景证据里提升成独立 playbook。
-5. 决定 `S2_MICRO_CHANNEL` 是用 `ii/ioi/iii` 演化出来，还是单独做 Micro Channel 检测与路由。
+1. 为 `T4 / R3 / TR4 / S1 / S2` 建立专属 profile、统计维度和报告标签。
+2. 继续把 `R1 / R2 / R3` 的失败条件与接受条件拆细，避免反转子类之间互相吃单。
+3. 决定 `S2_MICRO_CHANNEL` 长期是维持“上下文路由”，还是升级成专属 detector。
+4. 把 `TR4_DAILY_TR_FADE` 的开盘时段过滤做成统一配置，而不是只靠当前的早盘窗口启发式。

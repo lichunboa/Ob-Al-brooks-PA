@@ -20,13 +20,23 @@ import time
 from typing import Optional
 
 try:
-    from ..config import COOLDOWN_SECONDS, get_database_url
+    from ..config import (
+        COOLDOWN_SECONDS,
+        ENABLE_SESSION_STRENGTH_ADJUSTMENT,
+        get_database_url,
+    )
     from ..events import SignalEvent, SignalPublisher
     from ..storage.cooldown import get_cooldown_storage
 except ImportError:
-    from config import COOLDOWN_SECONDS, get_database_url
+    from config import COOLDOWN_SECONDS, ENABLE_SESSION_STRENGTH_ADJUSTMENT, get_database_url
     from events import SignalEvent, SignalPublisher
     from storage.cooldown import get_cooldown_storage
+
+from trading.market.playbook_router import (
+    build_daily_playbook_context,
+    infer_htf_sr_bias,
+    resolve_playbook_context,
+)
 
 from .base import BaseEngine
 from .pa.analysis import (
@@ -1510,18 +1520,18 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         # 从 K 线时间戳推算昨日高低点
         # crypto 24/7，以 UTC 0 点为日间分界
-        from datetime import timedelta, timezone
+        from datetime import datetime, timedelta
         try:
             curr_ts = curr.timestamp
             # 找当日 0 点（UTC+8 北京时间）
             beijing_offset = timedelta(hours=8)
-            curr_dt = curr_ts.replace(tzinfo=timezone.utc) + beijing_offset
+            curr_dt = curr_ts.replace(tzinfo=datetime.UTC) + beijing_offset
             today_start = curr_dt.replace(hour=0, minute=0, second=0, microsecond=0)
             today_start_utc = today_start - beijing_offset
 
             yesterday_candles = [
                 c for c in candles
-                if c.timestamp.replace(tzinfo=timezone.utc) < today_start_utc
+                if c.timestamp.replace(tzinfo=datetime.UTC) < today_start_utc
             ]
         except Exception:
             return None  # 时间戳解析失败时跳过
@@ -2021,55 +2031,88 @@ class PASignalEngine(BaseEngine):
         return False
 
     @staticmethod
-    def _resolve_playbook_id(signal_type: str, market_key: str) -> str:
-        """按当前状态给信号打一个最小 Brooks playbook 标签。"""
-        if signal_type == "第二腿陷阱":
-            return "TR3_SECOND_LEG_TRAP"
-        if signal_type == "看衰突破":
-            return "TR2_FAILED_BO_FADE"
-        if market_key == "tight_range":
-            if signal_type in CHANNEL_FIRST_PULLBACK_SIGNALS:
-                return "T6_TR_LEG_FIRST_PULLBACK"
-            if signal_type in CHANNEL_RECOVERY_SIGNALS:
-                return "T6_TR_LEG_CHANNEL_RECOVERY"
-            if signal_type in EMA_RECOVERY_SIGNALS:
-                return "T6_TR_LEG_EMA_RECOVERY"
-            if signal_type in BROOKS_REVERSAL_SIGNALS:
-                return "R2_TR_EDGE_REVERSAL"
-            return "TR1_BLSHS"
-        if market_key == "broad_range":
-            if signal_type in BROOKS_REVERSAL_SIGNALS:
-                return "R2_TR_EDGE_REVERSAL"
-            if signal_type in CHANNEL_FIRST_PULLBACK_SIGNALS:
-                return "T6_TR_LEG_FIRST_PULLBACK"
-            if signal_type in CHANNEL_RECOVERY_SIGNALS:
-                return "T6_TR_LEG_CHANNEL_RECOVERY"
-            if signal_type in EMA_RECOVERY_SIGNALS:
-                return "T6_TR_LEG_EMA_RECOVERY"
-            if signal_type in BREAKOUT_CHASE_SIGNALS:
-                return "T5_BREAKOUT_CHASE"
-        if market_key in {"weak_trend_bull", "weak_trend_bear"}:
-            if signal_type in BROOKS_REVERSAL_SIGNALS:
-                return "R1_BROAD_CHANNEL_REVERSAL"
-            if signal_type in CHANNEL_FIRST_PULLBACK_SIGNALS:
-                return "T1_FIRST_PULLBACK"
-            if signal_type in CHANNEL_RECOVERY_SIGNALS:
-                return "T2_BROAD_CHANNEL_RECOVERY"
-            if signal_type in EMA_RECOVERY_SIGNALS:
-                return "T3_BROAD_CHANNEL_EMA"
-            if signal_type in BREAKOUT_CHASE_SIGNALS:
-                return "T5_BREAKOUT_CHASE"
-        if signal_type in CHANNEL_FIRST_PULLBACK_SIGNALS:
-            return "T1_FIRST_PULLBACK"
-        if signal_type in CHANNEL_RECOVERY_SIGNALS:
-            return "T2_TREND_H2"
-        if signal_type in EMA_RECOVERY_SIGNALS:
-            return "T3_TREND_EMA"
-        if signal_type in BREAKOUT_CHASE_SIGNALS:
-            return "T5_BREAKOUT_CHASE"
-        if signal_type in BROOKS_REVERSAL_SIGNALS:
-            return "R0_FIRST_REVERSAL_PROBE"
-        return "UNCLASSIFIED"
+    def _resolve_playbook_id(signal: PASignal, market_key: str, extra: dict[str, float | str | int | bool]) -> str:
+        """按共享 Brooks 路由生成 playbook 标签。"""
+        playbook_id, _, _ = resolve_playbook_context(
+            str(getattr(signal, "signal_type", "") or ""),
+            str(market_key or ""),
+            higher_key=str(extra.get("higher_market_state", "") or ""),
+            direction=str(getattr(signal, "direction", "") or ""),
+            entry_type=str(getattr(signal, "entry_type", "STOP") or "STOP"),
+            extra=extra,
+        )
+        return playbook_id
+
+    @staticmethod
+    def _nearest_levels_from_swings(price: float, swings: list[dict]) -> tuple[float, float]:
+        """从 swing 列表里找到最近支撑和阻力。"""
+        supports = [
+            float(swing["price"])
+            for swing in swings
+            if swing.get("type") == "low" and float(swing["price"]) <= price
+        ]
+        resistances = [
+            float(swing["price"])
+            for swing in swings
+            if swing.get("type") == "high" and float(swing["price"]) >= price
+        ]
+        return (max(supports) if supports else 0.0, min(resistances) if resistances else 0.0)
+
+    def _build_extended_playbook_context(
+        self,
+        symbol: str,
+        timeframe: str,
+        candles: list[Candle],
+    ) -> dict[str, float | str | int | bool]:
+        """补充日线与更高周期关键位，支持特殊 playbook 路由。"""
+        if not candles:
+            return {}
+
+        current_price = float(candles[-1].close)
+        signal_time = candles[-1].timestamp
+        context: dict[str, float | str | int | bool] = {"signal_timeframe": timeframe}
+
+        daily_candles = self._fetch_candles(symbol, "1d", limit=8)
+        daily_context = build_daily_playbook_context(daily_candles, current_price, signal_time, timeframe)
+        if daily_context:
+            context.update(daily_context)
+
+        higher_tf = {
+            "1m": "15m",
+            "5m": "1h",
+            "15m": "4h",
+            "30m": "4h",
+            "1h": "1d",
+        }.get(timeframe, "")
+        if not higher_tf:
+            return context
+
+        higher_candles = self._fetch_candles(symbol, higher_tf, limit=60)
+        if len(higher_candles) < 3:
+            return context
+
+        higher_window = higher_candles[-40:] if len(higher_candles) >= 40 else higher_candles
+        higher_swings = CycleIdentifier._find_swings(higher_window)
+        nearest_support, nearest_resistance = self._nearest_levels_from_swings(current_price, higher_swings)
+        support_levels = [nearest_support] if nearest_support > 0 else []
+        resistance_levels = [nearest_resistance] if nearest_resistance > 0 else []
+
+        daily_prev_low = float(context.get("daily_prev_low", 0.0) or 0.0)
+        daily_prev_high = float(context.get("daily_prev_high", 0.0) or 0.0)
+        if daily_prev_low > 0:
+            support_levels.append(daily_prev_low)
+        if daily_prev_high > 0:
+            resistance_levels.append(daily_prev_high)
+
+        htf_sr_bias = infer_htf_sr_bias(current_price, support_levels, resistance_levels)
+        if htf_sr_bias:
+            context["htf_sr_bias"] = htf_sr_bias
+        if nearest_support > 0:
+            context["htf_support_level"] = nearest_support
+        if nearest_resistance > 0:
+            context["htf_resistance_level"] = nearest_resistance
+
+        return context
 
     def _annotate_state_first_context(
         self,
@@ -2079,7 +2122,8 @@ class PASignalEngine(BaseEngine):
         candles: list[Candle],
     ) -> dict[str, float | str]:
         """把 Brooks 路由判断需要的最小上下文提前写入信号。"""
-        snapshot = self._build_range_snapshot(market_state, candles, float(getattr(signal, "price", 0.0) or candles[-1].close))
+        current_price = float(getattr(signal, "price", 0.0) or candles[-1].close)
+        snapshot = self._build_range_snapshot(market_state, candles, current_price)
         extra = dict(getattr(signal, "extra", {}) or {})
         extra["market_state"] = market_key
         extra["follow_through"] = bool(getattr(market_state, "follow_through", False))
@@ -2090,7 +2134,7 @@ class PASignalEngine(BaseEngine):
         extra["range_zone"] = snapshot["range_zone"]
         extra["range_low"] = snapshot["range_low"]
         extra["range_high"] = snapshot["range_high"]
-        extra["playbook_id"] = self._resolve_playbook_id(str(getattr(signal, "signal_type", "") or ""), market_key)
+        extra["playbook_id"] = self._resolve_playbook_id(signal, market_key, extra)
         signal.extra = extra
         return snapshot
 
@@ -2190,7 +2234,7 @@ class PASignalEngine(BaseEngine):
 
         try:
             # 根据 timeframe 计算需要的 1m K 线数量
-            tf_minutes = {"1m": 1, "5m": 5, "15m": 15, "30m": 30, "1h": 60}
+            tf_minutes = {"1m": 1, "5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440}
             minutes = tf_minutes.get(timeframe, 5)
             raw_limit = limit * minutes + minutes  # 多取一些用于聚合
 
@@ -2520,6 +2564,13 @@ class PASignalEngine(BaseEngine):
                     sig.strength = max(50, sig.strength - 5)
                     sig.message = f"{sig.message} (⚠️ Stairs趋势衰竭)"
 
+        extended_playbook_context = self._build_extended_playbook_context(symbol, timeframe, candles)
+        for sig in signals:
+            extra = dict(getattr(sig, "extra", {}) or {})
+            extra["signal_timeframe"] = timeframe
+            extra.update(extended_playbook_context)
+            sig.extra = extra
+
         # 生成层先按 Brooks 状态做 playbook 预筛选，避免 TR / Broad Channel
         # 先生成趋势单，再全部扔给后置路由去裁掉。
         state_first_signals: list[PASignal] = []
@@ -2586,8 +2637,11 @@ class PASignalEngine(BaseEngine):
 
             # 日内时段调整
             session, session_factor = TradingSession.get_session()
-            sig.strength = TradingSession.adjust_signal_strength(sig.strength, session)
+            if ENABLE_SESSION_STRENGTH_ADJUSTMENT:
+                sig.strength = TradingSession.adjust_signal_strength(sig.strength, session)
             sig.extra["session"] = session
+            sig.extra["session_factor"] = session_factor if ENABLE_SESSION_STRENGTH_ADJUSTMENT else 1.0
+            sig.extra["session_adjustment_enabled"] = ENABLE_SESSION_STRENGTH_ADJUSTMENT
             sig.extra["timeframe_style"] = tf_config.get("style", "normal")
 
             # 计算等距测量目标（增强止盈目标）

@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+from trading.market.playbook_router import (
+    CHANNEL_LINE_FADE_PLAYBOOK,
+    DAILY_TR_FADE_PLAYBOOK,
+    HTF_SR_REVERSAL_PLAYBOOK,
+    MICRO_CHANNEL_REVERSAL_PLAYBOOK,
+    WEDGE_PULLBACK_PLAYBOOK,
+)
+
 from .models import Candle, PASignal
 
 TREND_PULLBACK_SIGNALS = {
@@ -199,7 +207,8 @@ def align_signal_stop_to_structure(signal: PASignal, candles: list[Candle], atr:
         signal.stop_loss = build_tr_failed_breakout_stop(
             str(signal.direction or ""),
             recent,
-            float(extra.get("breakout_extreme") or 0.0) or (signal_bar_high if str(signal.direction or "") == "SELL" else signal_bar_low),
+            float(extra.get("breakout_extreme") or 0.0)
+            or (signal_bar_high if str(signal.direction or "") == "SELL" else signal_bar_low),
             signal_bar_high,
             signal_bar_low,
             atr,
@@ -212,7 +221,8 @@ def align_signal_stop_to_structure(signal: PASignal, candles: list[Candle], atr:
         signal.stop_loss = build_tr_second_leg_trap_stop(
             str(signal.direction or ""),
             recent,
-            float(extra.get("second_leg_extreme") or 0.0) or (signal_bar_high if str(signal.direction or "") == "SELL" else signal_bar_low),
+            float(extra.get("second_leg_extreme") or 0.0)
+            or (signal_bar_high if str(signal.direction or "") == "SELL" else signal_bar_low),
             signal_bar_high,
             signal_bar_low,
             atr,
@@ -226,6 +236,11 @@ def align_signal_stop_to_structure(signal: PASignal, candles: list[Candle], atr:
         "R0_FIRST_REVERSAL_PROBE",
         "R1_BROAD_CHANNEL_REVERSAL",
         "R2_TR_EDGE_REVERSAL",
+        CHANNEL_LINE_FADE_PLAYBOOK,
+        DAILY_TR_FADE_PLAYBOOK,
+        HTF_SR_REVERSAL_PLAYBOOK,
+        MICRO_CHANNEL_REVERSAL_PLAYBOOK,
+        WEDGE_PULLBACK_PLAYBOOK,
     }:
         signal.stop_loss = build_reversal_structure_stop(
             str(signal.direction or ""),

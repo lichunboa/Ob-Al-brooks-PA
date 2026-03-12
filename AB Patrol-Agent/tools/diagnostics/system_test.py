@@ -155,7 +155,9 @@ def test_position_manager():
     try:
         from trading.position_management import (
             calculate_partial_close,
+            calculate_take_profit_adjustment,
             calculate_trailing_sl,
+            manage_position,
             premise_check,
             strength_check,
         )
@@ -206,6 +208,16 @@ def test_position_manager():
         print("✅ 分批止盈正常")
         print(f"   是否平仓: {partial['should_close']}")
         print(f"   平仓比例: {partial['close_ratio']}")
+
+        tp_adjustment = calculate_take_profit_adjustment(position, market_data, confidence=strength["confidence"])
+        print("✅ 止盈目标调整正常")
+        print(f"   是否调整: {tp_adjustment['should_modify']}")
+        print(f"   原因: {tp_adjustment['reason']}")
+
+        manager_result = manage_position(position, market_data)
+        print("✅ S7 总控正常")
+        print(f"   主动作: {manager_result['action']}")
+        print(f"   动作数: {len(manager_result.get('actions') or [])}")
 
         return True
     except Exception as e:

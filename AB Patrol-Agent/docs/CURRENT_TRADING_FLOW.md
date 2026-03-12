@@ -1,6 +1,6 @@
 # 当前交易流程与策略覆盖
 
-> 更新于 2026-03-12
+> 更新于 2026-03-13
 
 本文档只描述当前仓库里真实连通的两条交易链，不记录已经删除的旧链路。
 
@@ -88,16 +88,17 @@
 
 - `libs/backtest/runner.py`
 
-当前可路由到的 `playbook_id` 有 15 个：
+当前可路由到的 `playbook_id` 有 20 个，其中 `S4` 的 15 个基线 playbook 已全部具备独立路由：
 
-- `R0_FIRST_REVERSAL_PROBE`
 - `R1_BROAD_CHANNEL_REVERSAL`
 - `R2_TR_EDGE_REVERSAL`
+- `R3_CHANNEL_LINE_BO_FADE`
 - `T1_FIRST_PULLBACK`
 - `T2_BROAD_CHANNEL_RECOVERY`
 - `T2_TREND_H2`
 - `T3_BROAD_CHANNEL_EMA`
 - `T3_TREND_EMA`
+- `T4_WEDGE_PULLBACK`
 - `T5_BREAKOUT_CHASE`
 - `T6_TR_LEG_CHANNEL_RECOVERY`
 - `T6_TR_LEG_EMA_RECOVERY`
@@ -105,6 +106,10 @@
 - `TR1_BLSHS`
 - `TR2_FAILED_BO_FADE`
 - `TR3_SECOND_LEG_TRAP`
+- `TR4_DAILY_TR_FADE`
+- `S1_HTF_SR_REVERSAL`
+- `S2_MICRO_CHANNEL_REVERSAL`
+- `R0_FIRST_REVERSAL_PROBE`
 
 ## 二、当前真实连通的交易流程
 
@@ -124,7 +129,7 @@
 
 -> `trading/position_management/`
 
--> Premise / Strength / 分批止盈 / 移动止损
+-> Premise / Strength / 分批止盈 / 止盈目标调整 / 移动止损 / 显式加仓或撤单动作
 
 ### 2. 权威回测主链
 
@@ -160,9 +165,24 @@
 - 场景入口已经支持 `--parquet` / `--cache-dir`，本地可以直接复用缓存数据做冒烟。
 - 因此当前系统真实只有两条主链：`live 主链` 和 `权威回测主链`。
 
-## 三、当前最明确的 4 个断点
+## 三、当前最明确的 5 个断点
 
-### 1. `iii突破` 已纳入过滤与路由，但还缺专属策略经验沉淀
+### 1. `T4 / R3 / TR4 / S1 / S2` 已能独立路由，但仍主要依赖共享 detector + 上下文重分类
+
+当前这些 playbook 已经有独立 `playbook_id`：
+
+- `T4_WEDGE_PULLBACK`
+- `R3_CHANNEL_LINE_BO_FADE`
+- `TR4_DAILY_TR_FADE`
+- `S1_HTF_SR_REVERSAL`
+- `S2_MICRO_CHANNEL_REVERSAL`
+
+结果：
+
+- 它们已经进入 live 与权威回测主链，不再是“缺失策略”。
+- 但它们现在更多是“已有信号 + Brooks 上下文”的独立路由，不是完全专属 detector。
+
+### 2. `iii突破` 已纳入过滤与路由，但还缺专属策略经验沉淀
 
 `strategy_advanced.py` 会动态生成 `iii突破`。
 
@@ -178,7 +198,7 @@
 - `iii突破` 现在会进入和 `ii/ioi突破` 同一条突破追随链。
 - 但它仍然没有单独的 profile 经验、统计基线和策略说明，当前只是先按 breakout chase 统一处理。
 
-### 2. `LOY突破` 已登记进过滤层，但 profile 还没专门使用
+### 3. `LOY突破` 已登记进过滤层，但 profile 还没专门使用
 
 当前状态是：
 
@@ -192,7 +212,7 @@
 - 白名单 / 黑名单现在可以显式控制 `LOY突破`。
 - 但默认 profile 还没有把它单独纳入策略偏好，只是作为 breakout chase 家族成员存在。
 
-### 3. `急赴磁体` 仍被统计，但已经不是独立可执行 setup
+### 4. `急赴磁体` 仍被统计，但已经不是独立可执行 setup
 
 `pa_engine.py` 已明确写明：
 
@@ -204,7 +224,7 @@
 - 它属于上下文标签，不应再被当成“可执行策略数”直接计入交易策略口径。
 - 如果报告、报表、策略面板还把它和其它 setup 并列，就会造成“检测到了但不能交易”的认知混乱。
 
-### 4. 过滤层与 live 层的策略名集合还没完全对齐
+### 5. 过滤层与 live 层的策略名集合还没完全对齐
 
 当前集合差异是：
 
@@ -226,7 +246,8 @@
    - 至少 23 个 `signal_type`
    - 但其中 `急赴磁体` 已经不是独立可执行 setup
 2. 按回测可路由的 Brooks playbook 算：
-   - 15 个 `playbook_id`
+   - 20 个 `playbook_id`
+   - 其中 `S4` 基线 playbook 为 `15/15`
 如果问“当前真正比较完整、能作为主基准的策略链是哪条”，答案是：
 
 - `signal-service/pa_engine`
@@ -237,14 +258,14 @@
 
 优先级从高到低：
 
-1. 为 `iii突破` 和 `LOY突破` 建立独立的 profile 经验与统计口径，而不是只挂在 breakout chase 家族下面。
-2. 决定 `急赴磁体` 是彻底从策略集合剔除，还是在报告层显式标成“上下文，不可执行”。
-3. 清理 `20均线缺口` / `MAG 20/20 Setup` 这类旧命名，统一到当前 live 命名体系。
-4. 继续按 [STRATEGY_COVERAGE_AUDIT.md](STRATEGY_COVERAGE_AUDIT.md) 补齐 `S4` 里尚未独立落地的 playbook。
+1. 为 `T4 / R3 / TR4 / S1 / S2` 建立专属 detector / profile / 报告标签，而不是继续只靠上下文重分类。
+2. 为 `iii突破` 和 `LOY突破` 建立独立的 profile 经验与统计口径，而不是只挂在 breakout chase 家族下面。
+3. 决定 `急赴磁体` 是彻底从策略集合剔除，还是在报告层显式标成“上下文，不可执行”。
+4. 清理 `20均线缺口` / `MAG 20/20 Setup` 这类旧命名，统一到当前 live 命名体系。
 
 ## 六、本地冒烟验证
 
-2026-03-12 已在本地完成以下验证：
+2026-03-13 已在本地完成以下验证：
 
 - `uv run --no-project python tools/backtest/run_backtest.py ... --parquet data/backtest_cache/BTCUSDT_2025-12-11_2026-03-11.parquet`
   - 跑通，输出 25 个信号、7 笔交易。

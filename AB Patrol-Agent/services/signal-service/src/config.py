@@ -11,6 +11,12 @@ PROJECT_ROOT = SRC_DIR.parent
 REPO_ROOT = PROJECT_ROOT.parents[1]
 
 
+def _env_flag(name: str, default: str = "0") -> bool:
+    """把环境变量统一解析为布尔值。"""
+    value = str(os.environ.get(name, default) or "").strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
 # 数据库配置
 def get_database_url() -> str:
     """获取 TimescaleDB 连接 URL"""
@@ -47,6 +53,7 @@ DEFAULT_CHECK_INTERVAL = 60  # 秒
 COOLDOWN_SECONDS = 300  # 同一信号冷却时间
 # 数据新鲜度阈值（秒），超过则视为陈旧数据不参与信号计算
 DATA_MAX_AGE_SECONDS = int(os.environ.get("SIGNAL_DATA_MAX_AGE", "600"))
+ENABLE_SESSION_STRENGTH_ADJUSTMENT = _env_flag("PA_ENABLE_SESSION_STRENGTH_ADJUST", "0")
 
 # 历史记录配置
 MAX_RETENTION_DAYS = int(os.environ.get("SIGNAL_HISTORY_RETENTION_DAYS", "30"))

@@ -25,6 +25,17 @@ from pathlib import Path
 
 import pandas as pd
 
+from trading.market.playbook_router import (
+    CHANNEL_LINE_FADE_PLAYBOOK,
+    DAILY_TR_FADE_PLAYBOOK,
+    HTF_SR_REVERSAL_PLAYBOOK,
+    MICRO_CHANNEL_REVERSAL_PLAYBOOK,
+    WEDGE_PULLBACK_PLAYBOOK,
+    build_daily_playbook_context,
+    infer_htf_sr_bias,
+    resolve_playbook_context,
+)
+
 from .cycle_identifier import BACKTEST_STRATEGY_MATRIX, CycleIdentifier, classify_backtest_market_state
 from .data_loader import DataLoader
 from .market_replay import MarketReplay
@@ -380,8 +391,10 @@ class BacktestRunner:
                 )
                 market_state = self._build_market_state_context(event, candles_q)
                 higher_market_state = self._attach_higher_tf_context(event, replay)
+                self._attach_daily_playbook_context(event, replay)
                 self._apply_entry_route_adjustments(event, market_state, higher_market_state, candles_q)
                 self._attach_structure_context(event, candles_q, replay)
+                self._attach_htf_sr_context(event)
                 self._attach_playbook_context(event, market_state, higher_market_state)
                 extra = dict(getattr(event, "extra", {}) or {})
                 extra["background_label"] = self._compose_background_label(extra)
@@ -777,6 +790,51 @@ class BacktestRunner:
         event.extra = extra
         return snapshot["state"]
 
+    def _attach_daily_playbook_context(self, event, replay) -> None:
+        """补充日线 TR fade / 微通道所需的上下文。"""
+        daily_candles = replay.get_candles(event.symbol, "1d", limit=8)
+        if not daily_candles:
+            return
+
+        extra = dict(getattr(event, "extra", {}) or {})
+        daily_context = build_daily_playbook_context(
+            daily_candles,
+            float(getattr(event, "price", 0.0) or 0.0),
+            getattr(event, "timestamp", None),
+            str(getattr(event, "timeframe", "") or "5m"),
+        )
+        if daily_context:
+            extra.update(daily_context)
+        extra["signal_timeframe"] = str(getattr(event, "timeframe", "") or "5m")
+        event.extra = extra
+
+    def _attach_htf_sr_context(self, event) -> None:
+        """根据已经提取的高周期结构位，给 S1 路由提供方向偏置。"""
+        extra = dict(getattr(event, "extra", {}) or {})
+        price = float(getattr(event, "price", 0.0) or 0.0)
+        support_levels = [
+            float(value)
+            for value in [
+                extra.get("nearest_support"),
+                extra.get("higher_range_low"),
+                extra.get("daily_prev_low"),
+            ]
+            if float(value or 0.0) > 0
+        ]
+        resistance_levels = [
+            float(value)
+            for value in [
+                extra.get("nearest_resistance"),
+                extra.get("higher_range_high"),
+                extra.get("daily_prev_high"),
+            ]
+            if float(value or 0.0) > 0
+        ]
+        bias = infer_htf_sr_bias(price, support_levels, resistance_levels)
+        if bias:
+            extra["htf_sr_bias"] = bias
+        event.extra = extra
+
     @staticmethod
     def _nearest_levels_from_swings(
         price: float,
@@ -1021,7 +1079,14 @@ class BacktestRunner:
         playbook_id = str(playbook_id or "")
         reference_levels = [
             value
-            for value in [nearest_support, nearest_resistance, higher_range_low, higher_range_high]
+            for value in [
+                nearest_support,
+                nearest_resistance,
+                higher_range_low,
+                higher_range_high,
+                extra.get("daily_prev_low"),
+                extra.get("daily_prev_high"),
+            ]
             if float(value or 0.0) > 0
         ]
 
@@ -1051,7 +1116,16 @@ class BacktestRunner:
                 atr,
             )
 
-        if playbook_id in {"R0_FIRST_REVERSAL_PROBE", "R1_BROAD_CHANNEL_REVERSAL", "R2_TR_EDGE_REVERSAL"}:
+        if playbook_id in {
+            "R0_FIRST_REVERSAL_PROBE",
+            "R1_BROAD_CHANNEL_REVERSAL",
+            "R2_TR_EDGE_REVERSAL",
+            CHANNEL_LINE_FADE_PLAYBOOK,
+            DAILY_TR_FADE_PLAYBOOK,
+            HTF_SR_REVERSAL_PLAYBOOK,
+            MICRO_CHANNEL_REVERSAL_PLAYBOOK,
+            WEDGE_PULLBACK_PLAYBOOK,
+        }:
             return structure_stops.build_reversal_structure_stop(
                 direction,
                 candles_q,
@@ -1201,6 +1275,10 @@ class BacktestRunner:
             "R0_FIRST_REVERSAL_PROBE",
             "R1_BROAD_CHANNEL_REVERSAL",
             "R2_TR_EDGE_REVERSAL",
+            CHANNEL_LINE_FADE_PLAYBOOK,
+            DAILY_TR_FADE_PLAYBOOK,
+            HTF_SR_REVERSAL_PLAYBOOK,
+            MICRO_CHANNEL_REVERSAL_PLAYBOOK,
         }
 
         if direction == "BUY":
@@ -1581,72 +1659,19 @@ class BacktestRunner:
         signal_type: str,
         market_key: str,
         higher_key: str,
+        direction: str,
         entry_type: str,
         extra: dict,
     ) -> tuple[str, str, str]:
-        """按 Brooks 状态路由给候选单打上 playbook 标签。"""
-        if market_key == "tight_range":
-            if signal_type == "第二腿陷阱" or str(extra.get("playbook_hint") or "") == "TR3_SECOND_LEG_TRAP":
-                return "TR3_SECOND_LEG_TRAP", "tr", "STOP"
-            if signal_type == "看衰突破" or bool(extra.get("failed_breakout_evidence", False)):
-                return "TR2_FAILED_BO_FADE", "tr", "STOP"
-            if str(extra.get("prior_leg_context") or "") == "tr_second_leg":
-                return "TR3_SECOND_LEG_TRAP", "tr", "STOP"
-            return "TR1_BLSHS", "tr", "LIMIT"
-
-        if market_key == "broad_range":
-            if signal_type == "第二腿陷阱" or str(extra.get("playbook_hint") or "") == "TR3_SECOND_LEG_TRAP":
-                return "TR3_SECOND_LEG_TRAP", "tr", "STOP"
-            if signal_type == "看衰突破" or bool(extra.get("failed_breakout_evidence", False)):
-                return "TR2_FAILED_BO_FADE", "tr", "STOP"
-            if str(extra.get("prior_leg_context") or "") == "tr_second_leg":
-                return "TR3_SECOND_LEG_TRAP", "tr", "STOP"
-            if signal_type in BROOKS_REVERSAL_SIGNALS:
-                if higher_key in {"tight_range", "broad_range"}:
-                    return "R2_TR_EDGE_REVERSAL", "reversal", "LIMIT"
-                return "R1_BROAD_CHANNEL_REVERSAL", "reversal", "LIMIT"
-            if signal_type in CHANNEL_FIRST_PULLBACK_SIGNALS | CHANNEL_RECOVERY_SIGNALS:
-                if higher_key in {"tight_range", "broad_range"}:
-                    return "T6_TR_LEG_CHANNEL_RECOVERY", "channel", "LIMIT" if entry_type == "LIMIT" else "STOP"
-                return "T2_BROAD_CHANNEL_RECOVERY", "channel", "STOP"
-            if signal_type in EMA_RECOVERY_SIGNALS:
-                if higher_key in {"tight_range", "broad_range"}:
-                    return "T6_TR_LEG_EMA_RECOVERY", "channel", "LIMIT" if entry_type == "LIMIT" else "STOP"
-                return "T3_BROAD_CHANNEL_EMA", "channel", "STOP"
-            if signal_type in BREAKOUT_CHASE_SIGNALS:
-                return "T5_BREAKOUT_CHASE", "breakout", "STOP"
-            return "UNCLASSIFIED", "other", entry_type
-
-        if signal_type in BROOKS_REVERSAL_SIGNALS:
-            if higher_key in {"tight_range", "broad_range"}:
-                return "R2_TR_EDGE_REVERSAL", "reversal", "LIMIT"
-            if market_key in {"weak_trend_bull", "weak_trend_bear"}:
-                return "R1_BROAD_CHANNEL_REVERSAL", "reversal", "LIMIT"
-            return "R0_FIRST_REVERSAL_PROBE", "reversal", "STOP"
-
-        if signal_type in CHANNEL_FIRST_PULLBACK_SIGNALS:
-            if higher_key in {"tight_range", "broad_range"}:
-                return "T6_TR_LEG_FIRST_PULLBACK", "channel", "LIMIT" if entry_type == "LIMIT" else "STOP"
-            return "T1_FIRST_PULLBACK", "trend", "STOP"
-
-        if signal_type in CHANNEL_RECOVERY_SIGNALS:
-            if higher_key in {"tight_range", "broad_range"}:
-                return "T6_TR_LEG_CHANNEL_RECOVERY", "channel", "LIMIT" if entry_type == "LIMIT" else "STOP"
-            if market_key in {"weak_trend_bull", "weak_trend_bear"}:
-                return "T2_BROAD_CHANNEL_RECOVERY", "channel", "STOP"
-            return "T2_TREND_H2", "trend", "STOP"
-
-        if signal_type in EMA_RECOVERY_SIGNALS:
-            if higher_key in {"tight_range", "broad_range"}:
-                return "T6_TR_LEG_EMA_RECOVERY", "channel", "LIMIT" if entry_type == "LIMIT" else "STOP"
-            if market_key in {"weak_trend_bull", "weak_trend_bear"}:
-                return "T3_BROAD_CHANNEL_EMA", "channel", "STOP"
-            return "T3_TREND_EMA", "trend", "STOP"
-
-        if signal_type in BREAKOUT_CHASE_SIGNALS:
-            return "T5_BREAKOUT_CHASE", "breakout", "STOP"
-
-        return "UNCLASSIFIED", "other", entry_type
+        """按共享 Brooks 路由给候选单打上 playbook 标签。"""
+        return resolve_playbook_context(
+            signal_type,
+            market_key,
+            higher_key=higher_key,
+            direction=direction,
+            entry_type=entry_type,
+            extra=extra,
+        )
 
     @staticmethod
     def _attach_playbook_context(event, market_state, higher_market_state) -> None:
@@ -1663,6 +1688,7 @@ class BacktestRunner:
             str(getattr(event, "signal_type", "") or ""),
             str(market_key or ""),
             str(higher_key or ""),
+            str(getattr(event, "direction", "") or ""),
             entry_type,
             extra,
         )
@@ -1871,6 +1897,10 @@ class BacktestRunner:
                 "TR3_SECOND_LEG_TRAP",
                 "R1_BROAD_CHANNEL_REVERSAL",
                 "R2_TR_EDGE_REVERSAL",
+                CHANNEL_LINE_FADE_PLAYBOOK,
+                DAILY_TR_FADE_PLAYBOOK,
+                HTF_SR_REVERSAL_PLAYBOOK,
+                MICRO_CHANNEL_REVERSAL_PLAYBOOK,
             } or is_reversal:
                 if range_zone == "middle":
                     return False, "宽通道中部不做逆势 fade"
@@ -2157,7 +2187,7 @@ class BacktestRunner:
             ):
                 return block("candidate", "头肩底 MTR 所在的上下级结构仍在弱空，先等 failed breakout 证据")
 
-        if playbook_id == "R1_BROAD_CHANNEL_REVERSAL":
+        if playbook_id in {"R1_BROAD_CHANNEL_REVERSAL", CHANNEL_LINE_FADE_PLAYBOOK}:
             if (
                 not target_path_clear
                 and not failed_breakout_evidence

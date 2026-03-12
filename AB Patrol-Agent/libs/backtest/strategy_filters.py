@@ -12,6 +12,14 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from trading.market.playbook_router import (
+    CHANNEL_LINE_FADE_PLAYBOOK,
+    DAILY_TR_FADE_PLAYBOOK,
+    HTF_SR_REVERSAL_PLAYBOOK,
+    MICRO_CHANNEL_REVERSAL_PLAYBOOK,
+    WEDGE_PULLBACK_PLAYBOOK,
+)
+
 ALL_KNOWN_STRATEGIES = {
     "收线追进",
     "高1",
@@ -220,8 +228,12 @@ def classify_management_style(
         }:
             return "brooks_tr_blshs"
 
-    if playbook_key == "R1_BROAD_CHANNEL_REVERSAL":
+    if playbook_key in {"R1_BROAD_CHANNEL_REVERSAL", CHANNEL_LINE_FADE_PLAYBOOK}:
         return "brooks_wedge_reversal"
+    if playbook_key in {DAILY_TR_FADE_PLAYBOOK, HTF_SR_REVERSAL_PLAYBOOK, MICRO_CHANNEL_REVERSAL_PLAYBOOK}:
+        return "brooks_swing"
+    if playbook_key == WEDGE_PULLBACK_PLAYBOOK:
+        return "brooks_swing"
 
     if label in {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"}:
         return "brooks_scalp"
