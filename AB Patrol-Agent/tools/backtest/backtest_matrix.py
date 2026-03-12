@@ -29,7 +29,7 @@ from runtime.path_layout import backtest_reports_dir  # noqa: E402
 
 DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
 DEFAULT_TIMEFRAMES = ["5m", "15m", "1h"]
-DEFAULT_THRESHOLDS = [80]
+DEFAULT_THRESHOLDS = [0]
 
 
 @dataclass
@@ -576,7 +576,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--thresholds",
         default=",".join(str(item) for item in DEFAULT_THRESHOLDS),
-        help="全局引擎 signal_threshold 列表",
+        help="兼容旧参数，当前已忽略",
     )
     parser.add_argument("--days", type=int, default=30, help="单段回测天数")
     parser.add_argument("--segment-count", type=int, default=3, help="自动生成的行情段数")
@@ -586,10 +586,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-hold", type=int, default=48, help="最大持仓 K 线数")
     parser.add_argument("--fee-rate", type=float, default=0.0004, help="手续费率")
     parser.add_argument("--initial-capital", type=float, default=10000.0, help="初始资金")
-    parser.add_argument("--cache-dir", default=str(ROOT / "data" / "backtest_cache"), help="数据缓存目录")
+    parser.add_argument("--cache-dir", default=str(ROOT / "data" / "history" / "cache"), help="数据缓存目录")
     parser.add_argument("--parquet", default="", help="直接使用指定 Parquet 文件")
     parser.add_argument("--output", default="", help="JSON 输出路径")
-    parser.add_argument("--engine-thresholds", default="", help="覆盖 PA 引擎周期阈值，例如 5m:80,15m:70")
+    parser.add_argument("--engine-thresholds", default="", help="兼容旧参数，当前已忽略")
     parser.add_argument("--strategy-profile", default="", help="策略配置档，例如 brooks_pullback_core")
     parser.add_argument("--strategy-whitelist", default="", help="策略白名单，支持族别名，如 头肩MTR,双重顶底")
     parser.add_argument("--strategy-blacklist", default="", help="策略黑名单，支持族别名，如 均线缺口,收线追进")

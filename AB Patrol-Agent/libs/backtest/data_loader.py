@@ -3,7 +3,7 @@
 
 加载优先级:
   1. 本地 Parquet 缓存（最快）
-  2. HF Parquet 分片本地提取（data/hf_parquet/）
+  2. HF Parquet 分片本地提取（data/history/hf_parquet/）
   3. TimescaleDB 导出（Docker 运行时）
   4. 本地 CSV.gz 流式读取
   5. Binance API 下载（需 VPN）
@@ -24,6 +24,16 @@ class DataLoader:
     SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
     HF_DATASET = "123olp/binance-futures-ohlcv-2018-2026"
     CSV_GZ_FILE = "candles_1m.csv.gz"
+
+    @staticmethod
+    def _agent_root() -> Path:
+        """返回 AB Patrol-Agent 根目录。"""
+        return Path(__file__).parent.parent.parent
+
+    @staticmethod
+    def _history_root() -> Path:
+        """返回统一历史行情目录。"""
+        return DataLoader._agent_root() / "data" / "history"
 
     @staticmethod
     def _normalize_bound_timestamp(raw: str | None) -> pd.Timestamp | None:
@@ -83,7 +93,7 @@ class DataLoader:
                 return df
 
         # 方式1: HF Parquet 分片（本地已下载）
-        hf_parquet_dir = Path(__file__).parent.parent.parent / "data" / "hf_parquet"
+        hf_parquet_dir = DataLoader._history_root() / "hf_parquet"
         if hf_parquet_dir.exists() and any(hf_parquet_dir.glob("*.parquet")):
             df = DataLoader.load_from_hf_parquet(
                 symbol, start_date, end_date, parquet_dir=str(hf_parquet_dir),
@@ -164,10 +174,13 @@ class DataLoader:
         """查找已下载的 CSV.gz 文件"""
         search_paths = []
         if cache_dir:
-            search_paths.append(Path(cache_dir).parent / "hf_downloads" / DataLoader.CSV_GZ_FILE)
+            cache_path = Path(cache_dir)
+            search_paths.append(cache_path.parent / "hf_downloads" / DataLoader.CSV_GZ_FILE)
+            search_paths.append(cache_path.parent.parent / "hf_downloads" / DataLoader.CSV_GZ_FILE)
         search_paths.extend([
             Path.home() / ".cache" / "backtest" / DataLoader.CSV_GZ_FILE,
-            Path(__file__).parent.parent.parent / "data" / "hf_downloads" / DataLoader.CSV_GZ_FILE,
+            DataLoader._history_root() / "hf_downloads" / DataLoader.CSV_GZ_FILE,
+            DataLoader._agent_root() / "data" / "hf_downloads" / DataLoader.CSV_GZ_FILE,
         ])
         for p in search_paths:
             if p.exists():
@@ -445,7 +458,7 @@ class DataLoader:
         if not parquet_dir:
             parquet_dir = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-                "data", "hf_parquet"
+                "data", "history", "hf_parquet"
             )
 
         shards = sorted(

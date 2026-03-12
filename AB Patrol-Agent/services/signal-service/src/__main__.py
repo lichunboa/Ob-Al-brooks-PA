@@ -3,8 +3,6 @@ Signal Service 入口
 
 用法:
     python -m src                   # 启动默认 Brooks / PA 引擎
-    python -m src --engine pa       # 显式指定 Brooks / PA 引擎
-    python -m src --engine legacy-pg  # 启动 legacy PG 引擎
     python -m src --once            # 单次检查
     python -m src --stats           # 显示统计
 """
@@ -25,27 +23,15 @@ logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(description="Signal Service - 独立信号检测服务")
-    parser.add_argument(
-        "--engine",
-        choices=["pa", "legacy-pg"],
-        default="pa",
-        help="选择引擎：pa=Brooks/PA 主链，legacy-pg=旧 PG 规则引擎",
-    )
-    parser.add_argument("--pg", action="store_true", help="兼容旧参数，等价于 --engine legacy-pg")
     parser.add_argument("--once", action="store_true", help="单次检查")
     parser.add_argument("--interval", type=int, default=60, help="检查间隔（秒）")
     parser.add_argument("--stats", action="store_true", help="显示统计")
     parser.add_argument("--test", action="store_true", help="测试配置")
     args = parser.parse_args()
 
-    engine_name = "legacy-pg" if args.pg else str(args.engine or "pa")
+    engine_name = "pa"
 
     def _get_engine():
-        if engine_name == "legacy-pg":
-            from engines import get_pg_engine
-
-            return get_pg_engine()
-
         from engines import get_default_engine
 
         return get_default_engine()
@@ -56,15 +42,9 @@ def main():
         logger.info("=== Signal Service 配置测试 ===")
         logger.info(f"  PG URL: {get_database_url()[:50]}...")
         logger.info(f"  默认引擎: {engine_name}")
-        if engine_name == "legacy-pg":
-            from rules import RULE_COUNT, TABLE_COUNT
-
-            logger.info(f"  规则数: {RULE_COUNT}")
-            logger.info(f"  表数: {TABLE_COUNT}")
-        else:
-            engine = _get_engine()
-            logger.info(f"  Brooks symbols: {len(getattr(engine, 'symbols', []))}")
-            logger.info(f"  Brooks timeframes: {getattr(engine, 'timeframes', [])}")
+        engine = _get_engine()
+        logger.info(f"  Brooks symbols: {len(getattr(engine, 'symbols', []))}")
+        logger.info(f"  Brooks timeframes: {getattr(engine, 'timeframes', [])}")
         logger.info("✅ 配置测试通过")
         return
 

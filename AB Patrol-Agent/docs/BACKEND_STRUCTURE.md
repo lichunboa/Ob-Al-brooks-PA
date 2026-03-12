@@ -34,6 +34,10 @@ AB Patrol-Agent/
 ├── libs/                         共享库、数据库、历史回测框架
 ├── data/                         运行数据、缓存、日志、报告
 │   ├── pa_trader/                Patrol 运行态
+│   ├── history/                  统一历史行情目录
+│   │   ├── cache/                回测 Parquet 缓存
+│   │   ├── hf_downloads/         原始 CSV.gz 下载
+│   │   └── hf_parquet/           可选本地 Parquet 分片
 │   ├── run/                      PID、服务日志、launchd 包装
 │   └── reports/backtest/         回测报告
 └── docs/                         当前权威文档
@@ -82,6 +86,7 @@ AB Patrol-Agent/
 ### 7. `data/`
 
 - 所有运行产物统一落在 `data/`，不再散落在项目根目录。
+- 历史行情统一落在 `data/history/`，不再把原始 CSV 和窗口缓存散放在 `data/` 根层。
 - `data/run/` 只放 PID、服务日志和 launchd 包装文件。
 - `data/reports/` 只放回测、分析等生成型报告。
 

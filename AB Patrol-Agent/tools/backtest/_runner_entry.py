@@ -36,7 +36,7 @@ class ScenarioSpec:
     symbols: tuple[str, ...]
     start: str
     end: str
-    threshold: int = 80
+    threshold: int = 0
     timeframes: tuple[str, ...] = ("5m",)
 
 
@@ -191,7 +191,7 @@ def add_common_arguments(parser: argparse.ArgumentParser, *, multi: bool = False
     parser.add_argument("--start", default=None, help="开始日期 YYYY-MM-DD")
     parser.add_argument("--end", default=None, help="结束日期 YYYY-MM-DD")
     parser.add_argument("--balance", type=float, default=10000.0, help="初始资金")
-    parser.add_argument("--threshold", type=int, default=80, help="全局 signal_threshold")
+    parser.add_argument("--threshold", type=int, default=0, help="兼容旧参数，当前已忽略")
     parser.add_argument("--max-hold", type=int, default=48, help="最大持仓 K 线数")
     parser.add_argument("--fee", type=float, default=0.08, help="往返手续费百分比")
     parser.add_argument(
@@ -204,7 +204,7 @@ def add_common_arguments(parser: argparse.ArgumentParser, *, multi: bool = False
     parser.add_argument("--strategy-whitelist", default="", help="策略白名单，逗号分隔")
     parser.add_argument("--strategy-blacklist", default="", help="策略黑名单，逗号分隔")
     parser.add_argument("--management-profile", default="brooks_pdf", help="管理模板")
-    parser.add_argument("--engine-thresholds", default="", help="引擎阈值覆盖，如 5m:80,15m:72")
+    parser.add_argument("--engine-thresholds", default="", help="兼容旧参数，当前已忽略")
     parser.add_argument("--parquet", default=None, help="本地 Parquet 文件路径")
     parser.add_argument("--cache-dir", default=None, help="数据缓存目录")
     parser.add_argument("--output", default="", help="输出 JSON 报告路径")
@@ -246,7 +246,6 @@ def run_single_main() -> None:
     print(f"周期: {', '.join(config.timeframes)}")
     print(f"日期: {config.start_date or '-'} ~ {config.end_date or f'最近 {config.days} 天'}")
     print(f"初始资金: ${config.initial_capital:,.2f}")
-    print(f"阈值: {config.threshold}")
     print()
 
     result = BacktestRunner(config).run()
@@ -389,7 +388,7 @@ def run_scenario_main() -> None:
     parser.add_argument("--start", default=None, help="手动覆盖开始日期 YYYY-MM-DD")
     parser.add_argument("--end", default=None, help="手动覆盖结束日期 YYYY-MM-DD")
     parser.add_argument("--balance", type=float, default=10000.0, help="总资金")
-    parser.add_argument("--threshold", type=int, default=0, help="覆盖场景默认阈值")
+    parser.add_argument("--threshold", type=int, default=0, help="兼容旧参数，当前已忽略")
     parser.add_argument("--fee", type=float, default=0.08, help="往返手续费百分比")
     parser.add_argument("--max-hold", type=int, default=48, help="最大持仓 K 线数")
     parser.add_argument("--risk", type=float, default=None, help="旧参数，当前只保留兼容提示")
@@ -397,7 +396,7 @@ def run_scenario_main() -> None:
     parser.add_argument("--strategy-whitelist", default="", help="策略白名单，逗号分隔")
     parser.add_argument("--strategy-blacklist", default="", help="策略黑名单，逗号分隔")
     parser.add_argument("--management-profile", default="brooks_pdf", help="管理模板")
-    parser.add_argument("--engine-thresholds", default="", help="引擎阈值覆盖，如 5m:80,15m:72")
+    parser.add_argument("--engine-thresholds", default="", help="兼容旧参数，当前已忽略")
     parser.add_argument("--parquet", default=None, help="本地 Parquet 文件路径")
     parser.add_argument("--cache-dir", default=None, help="数据缓存目录")
     parser.add_argument("--output", default="", help="输出 JSON 报告路径")
@@ -414,7 +413,6 @@ def run_scenario_main() -> None:
     if args.hours and args.hours > 0:
         start_dt = max(start_dt, end_dt - timedelta(hours=args.hours))
     days = max(1, math.ceil((end_dt - start_dt).total_seconds() / 86400))
-    threshold = int(args.threshold) if int(args.threshold or 0) > 0 else spec.threshold
     run_count = max(1, len(symbols) * len(timeframes))
     per_run_balance = float(args.balance) / run_count
 
@@ -445,7 +443,7 @@ def run_scenario_main() -> None:
                 days=days,
                 start_date=start_dt.strftime("%Y-%m-%d"),
                 end_date=end_dt.strftime("%Y-%m-%d"),
-                threshold=threshold,
+                threshold=0,
                 balance=per_run_balance,
                 fee_percent=args.fee,
                 max_hold=args.max_hold,
@@ -496,7 +494,7 @@ def run_scenario_main() -> None:
                 "end": end_dt.strftime("%Y-%m-%d"),
                 "symbols": symbols,
                 "timeframes": timeframes,
-                "threshold": threshold,
+                "threshold": 0,
                 "balance": args.balance,
                 "per_run_balance": per_run_balance,
                 "parquet": args.parquet,

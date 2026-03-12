@@ -63,8 +63,8 @@ class RiskManager:
             "30m": 3,
             "1h": 2,
         }
-        # 真实过滤由各周期 signal_threshold 和后续 Brooks 路由负责；
-        # 这里不再额外叠加一个隐藏的硬下限。
+        # 真实过滤只交给 Brooks 路由与结构判断；
+        # 这里不再叠加额外分数下限。
         self.min_signal_strength = 0
 
     @staticmethod

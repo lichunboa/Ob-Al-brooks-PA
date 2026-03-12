@@ -1,58 +1,45 @@
-"""
-信号历史记录测试
-"""
-import json
+"""信号历史记录测试。"""
+
 from datetime import datetime
 
 
-def test_history_save_signal_event(tmp_path, sample_signal_event):
-    """SignalEvent 能正常落库"""
-    from src.storage.history import SignalHistory
+def test_history_normalize_signal_event(sample_signal_event):
+    """SignalEvent 能被规范化成 PG 历史记录。"""
+    from src.storage.history import PgSignalHistory
 
-    db_path = tmp_path / "history.db"
-    history = SignalHistory(db_path=str(db_path))
+    data = PgSignalHistory._normalize_signal(sample_signal_event, source="pa")
 
-    row_id = history.save(sample_signal_event, source="pg")
-    assert row_id > 0
-
-    records = history.get_recent(limit=1)
-    assert records
-    record = records[0]
-
-    assert record["message"] == sample_signal_event.message_key
-    extra = json.loads(record["extra"])
-    assert extra["message_key"] == sample_signal_event.message_key
-    assert extra["message_params"] == sample_signal_event.message_params
+    assert data["symbol"] == "BTCUSDT"
+    assert data["signal_type"] == "price_surge"
+    assert data["message"] == sample_signal_event.message_key
+    assert data["source"] == "pa"
+    assert data["extra"]["message_key"] == sample_signal_event.message_key
+    assert data["extra"]["message_params"] == sample_signal_event.message_params
 
 
-def test_history_save_pg_signal(tmp_path):
-    """PGSignal 能正常落库"""
-    from src.engines.pg_engine import PGSignal
-    from src.storage.history import SignalHistory
+def test_history_normalize_pa_signal():
+    """PASignal 能被规范化成 PG 历史记录。"""
+    from src.engines.pa.models import PASignal
+    from src.storage.history import PgSignalHistory
 
-    db_path = tmp_path / "history.db"
-    history = SignalHistory(db_path=str(db_path))
-
-    signal = PGSignal(
+    signal = PASignal(
         symbol="BTCUSDT",
-        signal_type="price_surge",
+        signal_type="高2",
         direction="BUY",
         strength=80,
-        message_key="signal.pg.msg.price_surge",
-        message_params={"pct": "3.5"},
+        message="趋势多双底 H2",
         timestamp=datetime.now(),
         timeframe="5m",
         price=50000.0,
-        extra={"change_pct": 3.5},
+        stop_loss=49800.0,
+        take_profit=50600.0,
+        extra={"playbook_hint": "T2_TREND_H2"},
     )
 
-    row_id = history.save(signal, source="pg")
-    assert row_id > 0
+    data = PgSignalHistory._normalize_signal(signal, source="pa")
 
-    records = history.get_recent(limit=1)
-    assert records
-    record = records[0]
-    assert record["signal_type"] == "price_surge"
-    extra = json.loads(record["extra"])
-    assert extra["message_key"] == "signal.pg.msg.price_surge"
-    assert extra["message_params"]["pct"] == "3.5"
+    assert data["symbol"] == "BTCUSDT"
+    assert data["signal_type"] == "高2"
+    assert data["message"] == "趋势多双底 H2"
+    assert data["source"] == "pa"
+    assert data["extra"]["playbook_hint"] == "T2_TREND_H2"

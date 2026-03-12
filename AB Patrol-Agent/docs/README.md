@@ -16,6 +16,8 @@
   - 按 `S4` 的 15 个 Brooks playbook 审计当前覆盖率
 - `KNOWLEDGE_IMPLEMENTATION_AUDIT.md`
   - `SKILL/S0-S7` 与当前代码实现的对照审计
+- `BROOKS_RULE_AUDIT.md`
+  - `runner.py` 规则按“教材硬规则 / 实现启发式”的对照审计
 - `BROOKS_LOGIC_MAP.md`
   - Brooks 理论步骤与当前代码映射
 - `LLM_TRIGGER_CONFIG.md`

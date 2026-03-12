@@ -58,12 +58,15 @@ TR_FADE_SIGNALS = {
 }
 
 
-def _buffer_size(reference_price: float, atr: float, atr_mult: float, price_mult: float, candles: list[Candle]) -> float:
-    """根据 ATR、价格与最近 K 线波动生成缓冲。"""
+def _buffer_size(
+    reference_price: float,
+    candles: list[Candle],
+) -> float:
+    """根据最近结构波动生成缓冲。"""
     recent_range = 0.0
     if candles:
         recent_range = max(float(candle.high) - float(candle.low) for candle in candles[-3:])
-    buffer_size = max(float(atr or 0.0) * atr_mult, abs(reference_price) * price_mult, recent_range * 0.08)
+    buffer_size = max(recent_range * 0.08, abs(reference_price) * 0.0001)
     if buffer_size <= 0:
         buffer_size = max(abs(reference_price) * 0.0002, 1e-9)
     return buffer_size
@@ -79,7 +82,7 @@ def build_trend_pullback_stop(
     """H1/H2/L1/L2 与趋势回调单的结构止损。"""
     recent = candles[-6:] if len(candles) >= 6 else candles
     reference_price = recent[-1].close if recent else 0.0
-    buffer_size = _buffer_size(reference_price, atr, 0.18, 0.00028, recent)
+    buffer_size = _buffer_size(reference_price, recent)
     if direction == "BUY":
         anchor = min([signal_bar_low, *[bar.low for bar in recent if bar.low > 0]])
         return anchor - buffer_size
@@ -97,7 +100,7 @@ def build_channel_recovery_stop(
     """T6 Broad Channel / TR leg 恢复单的结构止损。"""
     recent = candles[-8:] if len(candles) >= 8 else candles
     reference_price = recent[-1].close if recent else 0.0
-    buffer_size = _buffer_size(reference_price, atr, 0.22, 0.00032, recent)
+    buffer_size = _buffer_size(reference_price, recent)
     if direction == "BUY":
         anchor = min([signal_bar_low, *[bar.low for bar in recent if bar.low > 0]])
         return anchor - buffer_size
@@ -117,7 +120,7 @@ def build_reversal_structure_stop(
     recent = candles[-9:] if len(candles) >= 9 else candles
     levels = [float(level) for level in (reference_levels or []) if float(level) > 0]
     reference_price = recent[-1].close if recent else (levels[0] if levels else 0.0)
-    buffer_size = _buffer_size(reference_price, atr, 0.25, 0.00038, recent)
+    buffer_size = _buffer_size(reference_price, recent)
     if direction == "BUY":
         anchor = min([signal_bar_low, *[bar.low for bar in recent if bar.low > 0], *levels])
         return anchor - buffer_size
@@ -136,7 +139,7 @@ def build_tr_failed_breakout_stop(
     """TR2 Failed BO Fade 的止损。"""
     recent = candles[-5:] if len(candles) >= 5 else candles
     reference_price = recent[-1].close if recent else breakout_extreme
-    buffer_size = _buffer_size(reference_price, atr, 0.18, 0.00030, recent)
+    buffer_size = _buffer_size(reference_price, recent)
     if direction == "BUY":
         anchor = min([signal_bar_low, breakout_extreme, *[bar.low for bar in recent if bar.low > 0]])
         return anchor - buffer_size
@@ -155,7 +158,7 @@ def build_tr_second_leg_trap_stop(
     """TR3 Second Leg Trap 的止损。"""
     recent = candles[-6:] if len(candles) >= 6 else candles
     reference_price = recent[-1].close if recent else second_leg_extreme
-    buffer_size = _buffer_size(reference_price, atr, 0.20, 0.00032, recent)
+    buffer_size = _buffer_size(reference_price, recent)
     if direction == "BUY":
         anchor = min([signal_bar_low, second_leg_extreme, *[bar.low for bar in recent if bar.low > 0]])
         return anchor - buffer_size
@@ -163,15 +166,15 @@ def build_tr_second_leg_trap_stop(
     return anchor + buffer_size
 
 
-def _signal_profile(signal_type: str) -> tuple[int, float, float, str]:
-    """返回不同 playbook 的结构止损窗口与缓冲。"""
+def _signal_profile(signal_type: str) -> tuple[int, str]:
+    """返回不同 playbook 的结构止损窗口与家族。"""
     if signal_type in TREND_PULLBACK_SIGNALS:
-        return 5, 0.10, 0.00025, "trend_pullback"
+        return 5, "trend_pullback"
     if signal_type in REVERSAL_SIGNALS:
-        return 7, 0.14, 0.00035, "reversal"
+        return 7, "reversal"
     if signal_type in TR_FADE_SIGNALS:
-        return 6, 0.12, 0.00030, "tr_fade"
-    return 5, 0.10, 0.00025, "default"
+        return 6, "tr_fade"
+    return 5, "default"
 
 
 def align_signal_stop_to_structure(signal: PASignal, candles: list[Candle], atr: float = 0.0) -> PASignal:
@@ -187,13 +190,11 @@ def align_signal_stop_to_structure(signal: PASignal, candles: list[Candle], atr:
         return signal
 
     signal_type = str(signal.signal_type or "")
-    lookback, atr_mult, price_mult, family = _signal_profile(signal_type)
+    lookback, family = _signal_profile(signal_type)
     recent = candles[-lookback:] if len(candles) >= lookback else candles
     last_bar = recent[-1]
     entry_price = float(signal.price or last_bar.close)
-    buffer_size = max(float(atr or 0.0) * atr_mult, abs(entry_price) * price_mult)
-    if buffer_size <= 0:
-        buffer_size = max(abs(last_bar.high - last_bar.low) * 0.05, abs(entry_price) * 0.0002)
+    buffer_size = _buffer_size(entry_price, recent)
 
     signal_bar_high = float(signal.signal_bar_high or last_bar.high)
     signal_bar_low = float(signal.signal_bar_low or last_bar.low)

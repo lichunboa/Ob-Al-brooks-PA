@@ -9,6 +9,8 @@
 - **[数据目录说明](data/README.md)** - 运行产物与报告目录规则
 - **[运行时流程](docs/RUNTIME_FLOW.md)** - 系统运行流程图
 - **[Brooks 逻辑图](docs/BROOKS_LOGIC_MAP.md)** - Al Brooks 交易逻辑
+- **[Brooks 规则审计](docs/BROOKS_RULE_AUDIT.md)** - 回测门控的教材规则与工程启发式拆分
+- **[当前交易流程](docs/CURRENT_TRADING_FLOW.md)** - 当前 live / 权威回测主链与策略覆盖
 - **[cTrader 设置](docs/CTRADER_SETUP.md)** - 交易所配置
 
 ## 🚀 快速开始
@@ -55,7 +57,7 @@ cat data/reports/backtest/xxx.json | jq .
     ↓
 execution-service (8092) ← K线数据、订单执行
     ↓
-signal-service (8091) ← 信号生成（使用 indicators/batch）
+signal-service (8091) ← 只保留 Brooks / PA 主信号链
     ↓
 PA Trader (runtime/) ← 自动交易 + 持仓管理
     ↓
@@ -146,6 +148,7 @@ PA Trader (runtime/) ← 自动交易 + 持仓管理
 - `docs/RUNTIME_FLOW.md` - 巡逻运行链与状态流
 - `docs/CURRENT_TRADING_FLOW.md` - 当前策略覆盖与交易链断点
 - `docs/STRATEGY_COVERAGE_AUDIT.md` - 对照 S4 playbook 的覆盖审计
+- `docs/BROOKS_RULE_AUDIT.md` - 回测门控规则的教材对照审计
 
 ## 📈 回测结果示例
 

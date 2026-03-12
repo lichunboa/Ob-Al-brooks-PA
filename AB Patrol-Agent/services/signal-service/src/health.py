@@ -69,10 +69,6 @@ class HealthHandler(BaseHTTPRequestHandler):
         engine_check = self._check_engines()
         checks.append(engine_check)
         
-        # 检查 legacy 规则链是否仍可兼容加载
-        rules_check = self._check_rules()
-        checks.append(rules_check)
-        
         # 检查数据库
         db_check = self._check_database()
         checks.append(db_check)
@@ -138,22 +134,6 @@ class HealthHandler(BaseHTTPRequestHandler):
                 "message": str(e)
             }
     
-    def _check_rules(self) -> Dict[str, Any]:
-        try:
-            from rules import RULE_COUNT
-            
-            return {
-                "name": "legacy_rules",
-                "status": "healthy" if RULE_COUNT > 0 else "degraded",
-                "message": f"legacy PG 规则兼容保留，当前可加载 {RULE_COUNT} 条"
-            }
-        except Exception as e:
-            return {
-                "name": "legacy_rules",
-                "status": "unhealthy",
-                "message": f"legacy 规则加载失败: {str(e)}"
-            }
-    
     def _check_database(self) -> Dict[str, Any]:
         try:
             import os
@@ -179,7 +159,7 @@ class HealthHandler(BaseHTTPRequestHandler):
         except Exception as e:
             return {
                 "name": "database",
-                "status": "degraded",  # 信号服务可以只读SQLite
+                "status": "degraded",  # Brooks 主链可在数据库短暂异常时保持存活
                 "message": f"PostgreSQL 连接失败: {str(e)}"
             }
     

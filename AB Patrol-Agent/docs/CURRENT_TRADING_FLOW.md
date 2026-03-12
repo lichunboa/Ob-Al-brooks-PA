@@ -4,6 +4,12 @@
 
 本文档只描述当前仓库里真实连通的两条交易链，不记录已经删除的旧链路。
 
+补充说明：
+
+- `signal-service` 现在只保留 Brooks / PA 主引擎。
+- 旧的 `legacy-pg / sqlite rules / subscription` 链已经从当前主仓库移除。
+- live 与权威回测都不再依赖旧推荐矩阵或指标规则库。
+
 ## 一、当前存在的 2 条主链与 1 组入口脚本
 
 ### 1. live 检测链
@@ -12,6 +18,7 @@
 
 - `services/signal-service/src/engines/pa_engine.py`
 - `services/signal-service/src/engines/pa/strategy_advanced.py`
+- `services/signal-service/src/engines/market_state_engine.py`
 
 当前真实可生成的 `signal_type` 至少有 23 个：
 
@@ -169,6 +176,8 @@
 
 ## 三、当前最明确的 5 个断点
 
+以下断点只讨论 Brooks 主链，不再把已经删除的 legacy 模块计入问题列表。
+
 ### 1. `T4 / R3 / TR4 / S1 / S2` 已具备独立路由、专属 detector 标注和管理 profile
 
 当前这些 playbook 已经有独立 `playbook_id`：
@@ -270,9 +279,9 @@
 
 2026-03-13 已在本地完成以下验证：
 
-- `uv run --no-project python tools/backtest/run_backtest.py ... --parquet data/backtest_cache/BTCUSDT_2025-12-11_2026-03-11.parquet`
+- `uv run --no-project python tools/backtest/run_backtest.py ... --parquet data/history/cache/BTCUSDT_2025-12-11_2026-03-11.parquet`
   - 跑通，输出 25 个信号、7 笔交易。
-- `uv run --no-project python tools/backtest/backtest_v4.py ... --parquet data/backtest_cache/BTCUSDT_2025-12-11_2026-03-11.parquet`
+- `uv run --no-project python tools/backtest/backtest_v4.py ... --parquet data/history/cache/BTCUSDT_2025-12-11_2026-03-11.parquet`
   - 跑通，结果已写入 `/tmp/backtest_v4_smoke.json`。
 - `uv run --no-project python tools/diagnostics/system_test.py`
   - `5/5` 通过。

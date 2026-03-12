@@ -116,7 +116,7 @@ def _to_beijing_day(ts: datetime | None) -> datetime | None:
     if ts is None:
         return None
     if ts.tzinfo is None:
-        ts = ts.replace(tzinfo=datetime.UTC)
+        ts = ts.replace(tzinfo=timezone.utc)
     beijing = timezone(timedelta(hours=8))
     return ts.astimezone(beijing).replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -127,7 +127,7 @@ def _session_bar_index(ts: datetime | None, timeframe: str) -> int:
     if minutes <= 0 or ts is None:
         return -1
     if ts.tzinfo is None:
-        ts = ts.replace(tzinfo=datetime.UTC)
+        ts = ts.replace(tzinfo=timezone.utc)
     beijing = timezone(timedelta(hours=8))
     local_ts = ts.astimezone(beijing)
     day_start = local_ts.replace(hour=0, minute=0, second=0, microsecond=0)

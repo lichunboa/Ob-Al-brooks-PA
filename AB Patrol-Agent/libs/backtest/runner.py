@@ -48,7 +48,6 @@ from .strategy_filters import (
     default_management_profile,
     describe_strategy_selection,
     is_strategy_allowed,
-    management_score_floor,
     resolve_strategy_selection,
 )
 
@@ -65,14 +64,14 @@ class BacktestConfig:
     days: int = 30
     start_date: str = None
     end_date: str = None
-    threshold: int = 80          # 回测实验用全局 signal_threshold 覆盖，不再作为后置评分门槛
+    threshold: int = 0           # 兼容字段，不再驱动 Brooks 主链过滤
     max_holding_bars: int = 48   # 最大持仓 K 线数
     fee_rate: float = 0.0004     # 手续费率
     cache_dir: str = None        # 数据缓存目录
     parquet_path: str = None     # 直接指定 Parquet 文件
     verbose: bool = False
     initial_capital: float = 10000.0  # 账户初始资金，用于复利与回撤统计
-    engine_threshold_overrides: dict[str, int] = field(default_factory=dict)  # 回测专用周期阈值覆盖
+    engine_threshold_overrides: dict[str, int] = field(default_factory=dict)  # 兼容字段，主链已忽略
     strategy_whitelist: list[str] = field(default_factory=list)  # 策略白名单（支持族别名）
     strategy_blacklist: list[str] = field(default_factory=list)  # 策略黑名单（支持族别名）
     strategy_profile: str = ""  # 策略配置档
@@ -262,7 +261,7 @@ class BacktestRunner:
 
         # 缓存目录
         if not cfg.cache_dir:
-            cfg.cache_dir = str(Path(__file__).parent.parent.parent / "data" / "backtest_cache")
+            cfg.cache_dir = str(Path(__file__).parent.parent.parent / "data" / "history" / "cache")
 
         print("=" * 60)
         print("  可复用回测模块 (Real PA Engine)")
@@ -270,11 +269,7 @@ class BacktestRunner:
         print(f"  币种: {', '.join(cfg.symbols)}")
         print(f"  周期: {', '.join(cfg.timeframes)}")
         print(f"  日期: {cfg.start_date or '全部'} ~ {cfg.end_date or '全部'}")
-        print(f"  阈值: {cfg.threshold}")
         print(f"  初始资金: ${cfg.initial_capital:,.2f}")
-        if cfg.engine_threshold_overrides:
-            overrides = ", ".join(f"{tf}:{value}" for tf, value in sorted(cfg.engine_threshold_overrides.items()))
-            print(f"  引擎阈值覆盖: {overrides}")
         if selection.is_active:
             print(f"  策略过滤: {describe_strategy_selection(selection)}")
             if selection.description:
@@ -445,26 +440,6 @@ class BacktestRunner:
                     self._signals_blocked_rr += 1
                     continue
 
-                # 真实链已经在各周期内做过 signal_threshold，回测只保留 Brooks playbook
-                # 自己的最低成熟度门槛，不再叠加第二套全局分数阈值。
-                score_floor = int(
-                    management_score_floor(
-                        event.signal_type,
-                        management_profile,
-                        market_state=str((getattr(event, "extra", {}) or {}).get("market_state", "") or ""),
-                        higher_market_state=str(
-                            (getattr(event, "extra", {}) or {}).get("higher_market_state", "") or ""
-                        ),
-                        timeframe=str(getattr(event, "timeframe", "") or ""),
-                        entry_type=str(getattr(event, "entry_type", "STOP") or "STOP"),
-                        route_style=str((getattr(event, "extra", {}) or {}).get("route_style", "") or ""),
-                        playbook_id=str((getattr(event, "extra", {}) or {}).get("playbook_id", "") or ""),
-                    )
-                )
-                if score < score_floor:
-                    self._signals_blocked_score += 1
-                    continue
-
                 self._signals_passed += 1
 
                 # 统一 SL/TP 策略: 收紧SL + 远TP安全网
@@ -507,14 +482,13 @@ class BacktestRunner:
             for score_val in sorted(self._score_histogram.keys()):
                 count = self._score_histogram[score_val]
                 bar = "#" * min(count // 10, 50)
-                marker = " <<<" if score_val == cfg.threshold else ""
-                print(f"  {score_val:3d}: {count:5d} {bar}{marker}")
+                print(f"  {score_val:3d}: {count:5d} {bar}")
 
         # Step 7: 生成报告
         result = BacktestResult.from_exchange(
             exchange,
             symbol=",".join(cfg.symbols),
-            threshold=cfg.threshold,
+            threshold=0,
             signals_generated=self._signals_generated,
             signals_passed=self._signals_passed,
             signals_blocked_bg=self._signals_blocked_bg,
@@ -563,14 +537,6 @@ class BacktestRunner:
 
         # 创建引擎实例（不使用单例）
         engine = PASignalEngine(symbols=cfg.symbols, timeframes=cfg.timeframes)
-
-        # 回测阶段允许覆盖真实引擎的 signal_threshold，用于参数实验，不污染生产默认值。
-        for timeframe in cfg.timeframes:
-            if timeframe in engine.timeframe_config:
-                engine.timeframe_config[timeframe]["signal_threshold"] = int(cfg.threshold)
-        for timeframe, threshold in (cfg.engine_threshold_overrides or {}).items():
-            if timeframe in engine.timeframe_config:
-                engine.timeframe_config[timeframe]["signal_threshold"] = int(threshold)
 
         # 1. 替换数据源
         engine._fetch_candles = replay.get_candles
@@ -1215,14 +1181,11 @@ class BacktestRunner:
             signal_bar_high = float(candles_q[-1].high)
         if signal_bar_low <= 0:
             signal_bar_low = float(candles_q[-1].low)
-        estimated_atr = self._estimate_atr(candles_q)
         signal_bar_range = max(signal_bar_high - signal_bar_low, 0.0)
-        # Brooks 的“结构位外”应该是动态缓冲，不是固定 0.1%。
-        # 固定比例会把大量本来已经在结构外的 5m 单误判成止损过紧。
+        # Brooks 的“结构位外”优先看最近可见波动，而不是 ATR 倍数。
         signal_bar_buffer = max(
-            estimated_atr * 0.08,
-            abs(entry_price) * 0.0002,
             signal_bar_range * 0.08,
+            abs(entry_price) * 0.0001,
             1e-9,
         )
 
@@ -1243,7 +1206,6 @@ class BacktestRunner:
         playbook_id = str(extra.get("playbook_id") or "")
         signal_type = str(getattr(event, "signal_type", "") or "")
         perfect_stop = stop_loss
-        actual_risk = abs(entry_price - stop_loss)
         entry_type = str(getattr(event, "entry_type", "STOP") or "STOP").upper()
         route_style = str(extra.get("route_style", "") or "")
         if entry_price > 0:
@@ -1260,10 +1222,6 @@ class BacktestRunner:
                 higher_range_high=higher_range_high,
                 extra=extra,
             )
-
-        perfect_risk = abs(entry_price - perfect_stop)
-
-        actual_to_perfect_risk_ratio = actual_risk / perfect_risk if perfect_risk > 0 else 1.0
 
         relaxed_trend_stop_playbooks = {
             "T1_FIRST_PULLBACK",
@@ -1283,6 +1241,24 @@ class BacktestRunner:
             HTF_SR_REVERSAL_PLAYBOOK,
             MICRO_CHANNEL_REVERSAL_PLAYBOOK,
         }
+        stop_auto_realigned = False
+        if perfect_stop > 0:
+            if stop_loss <= 0:
+                stop_loss = perfect_stop
+                stop_auto_realigned = True
+            elif playbook_id not in relaxed_trend_stop_playbooks:
+                if direction == "BUY" and stop_loss > perfect_stop:
+                    stop_loss = perfect_stop
+                    stop_auto_realigned = True
+                elif direction == "SELL" and stop_loss < perfect_stop:
+                    stop_loss = perfect_stop
+                    stop_auto_realigned = True
+        if stop_auto_realigned:
+            event.stop_loss = stop_loss
+
+        actual_risk = abs(entry_price - stop_loss)
+        perfect_risk = abs(entry_price - perfect_stop)
+        actual_to_perfect_risk_ratio = actual_risk / perfect_risk if perfect_risk > 0 else 1.0
 
         if direction == "BUY":
             stop_structure_ok = (
@@ -1298,10 +1274,7 @@ class BacktestRunner:
             ):
                 stop_structure_ok = False
             if perfect_stop > 0:
-                if playbook_id in relaxed_trend_stop_playbooks:
-                    if actual_to_perfect_risk_ratio < 0.78:
-                        stop_structure_ok = False
-                elif stop_loss > perfect_stop:
+                if playbook_id not in relaxed_trend_stop_playbooks and stop_loss > perfect_stop:
                     stop_structure_ok = False
         else:
             stop_structure_ok = (
@@ -1317,10 +1290,7 @@ class BacktestRunner:
             ):
                 stop_structure_ok = False
             if perfect_stop > 0:
-                if playbook_id in relaxed_trend_stop_playbooks:
-                    if actual_to_perfect_risk_ratio < 0.78:
-                        stop_structure_ok = False
-                elif stop_loss < perfect_stop:
+                if playbook_id not in relaxed_trend_stop_playbooks and stop_loss < perfect_stop:
                     stop_structure_ok = False
 
         router = self._load_runtime_target_router()
@@ -1410,6 +1380,7 @@ class BacktestRunner:
         extra["blocking_magnet_kind"] = str(blocking_cluster.get("kind") or "")
         extra["stop_structure_ok"] = stop_structure_ok
         extra["perfect_stop"] = perfect_stop
+        extra["stop_auto_realigned"] = stop_auto_realigned
         extra["actual_to_perfect_risk_ratio"] = actual_to_perfect_risk_ratio
         extra["range_window"] = int(current_context["window_size"] or 0)
         extra["higher_range_window"] = int(higher_context["window_size"] or 0)
@@ -1826,6 +1797,7 @@ class BacktestRunner:
             or not higher_follow_through
         )
         failed_breakout_evidence = bool(extra.get("failed_breakout_evidence", False))
+        trapped_side = str(extra.get("trapped_side", "") or "")
         prior_leg_context = str(extra.get("prior_leg_context", "") or "")
         trendline_break_confirmed = bool(extra.get("trendline_break_confirmed", False))
         signal_bar_quality = float(extra.get("signal_bar_quality", 0.0) or 0.0)
@@ -1834,7 +1806,6 @@ class BacktestRunner:
         is_minor_reversal = signal_type in ROUTE_MINOR_REVERSAL_STRATEGIES
         is_trend = signal_type in ROUTE_TREND_STRATEGIES
         is_tr_blshs = BacktestRunner._is_tr_blshs_signal(signal_type, direction, range_edge, range_zone)
-        is_channel_scalp = signal_type in CHANNEL_SCALP_SIGNALS
         is_breakout_chase = signal_type in BREAKOUT_CHASE_SIGNALS
         is_breakout = (
             ("突破" in signal_type and signal_type not in {"突破回调", "看衰突破"})
@@ -1849,13 +1820,13 @@ class BacktestRunner:
             if direction == "SELL":
                 if not is_reversal:
                     return False, "强多趋势中禁止逆势顺势单"
-                if not weakening or score < 70:
+                if not weakening:
                     return False, "强多趋势中反转证据不足"
         elif market_key == "strong_trend_bear":
             if direction == "BUY":
                 if not is_reversal:
                     return False, "强空趋势中禁止逆势顺势单"
-                if not weakening or score < 70:
+                if not weakening:
                     return False, "强空趋势中反转证据不足"
 
         if market_key == "tight_range":
@@ -1864,7 +1835,7 @@ class BacktestRunner:
                 failed_breakout_evidence
                 or prior_leg_context == "tr_second_leg"
                 or signal_type in {"双重顶", "双重底", "头肩顶MTR", "头肩底MTR", "高2", "低2"}
-            ) and score >= 68
+            )
             tradeable_edge = BacktestRunner._range_edge_matches_direction(
                 range_edge,
                 direction,
@@ -1877,9 +1848,14 @@ class BacktestRunner:
                 return False, "区间里禁止突破追单和趋势延续单"
             if is_trend and not is_tr_blshs:
                 return False, "交易区间里趋势延续单只允许边缘二次信号"
-            if market_key == "tight_range" and score < 60:
+            if market_key == "tight_range" and not (follow_through or higher_follow_through):
                 return False, "紧密交易区间只做更高质量 setup"
-            if is_reversal and entry_type == "STOP" and signal_type not in {"头肩顶MTR", "头肩底MTR"} and score < 65:
+            if (
+                is_reversal
+                and entry_type == "STOP"
+                and signal_type not in {"头肩顶MTR", "头肩底MTR"}
+                and not (failed_breakout_evidence or trendline_break_confirmed or trapped_side)
+            ):
                 return False, "区间中的反转 stop 单质量不足"
 
         if market_key == "broad_range":
@@ -1888,7 +1864,7 @@ class BacktestRunner:
                 failed_breakout_evidence
                 or prior_leg_context == "tr_second_leg"
                 or signal_type in {"双重顶", "双重底", "头肩顶MTR", "头肩底MTR", "高2", "低2", "楔形顶", "楔形底"}
-            ) and score >= 66
+            )
             tradeable_edge = BacktestRunner._range_edge_matches_direction(
                 range_edge,
                 direction,
@@ -1905,11 +1881,13 @@ class BacktestRunner:
                 HTF_SR_REVERSAL_PLAYBOOK,
                 MICRO_CHANNEL_REVERSAL_PLAYBOOK,
             } or is_reversal:
-                if range_zone == "middle":
+                if range_zone == "middle" and not (
+                    failed_breakout_evidence or trendline_break_confirmed or prior_leg_context == "tr_second_leg"
+                ):
                     return False, "宽通道中部不做逆势 fade"
-                if not tradeable_edge and score < 72:
+                if not tradeable_edge and not (follow_through or trendline_break_confirmed or failed_breakout_evidence):
                     return False, "宽通道逆势单仍需靠近边缘或优势区"
-                if is_breakout and signal_type not in {"看衰突破"} and score < 74:
+                if is_breakout and signal_type not in {"看衰突破"} and not failed_breakout_evidence:
                     return False, "宽通道逆势里不追弱突破"
 
             if playbook_id in {
@@ -1923,13 +1901,20 @@ class BacktestRunner:
                     signal_type in {"高2", "低2", "突破回调", "20均线缺口", "第一均线缺口"}
                     and trendline_break_confirmed
                     and signal_bar_quality >= 0.55
-                    and score >= 68
                 )
-                if range_zone == "middle" and not follow_through and not strong_second_entry_recovery and score < 76:
+                if (
+                    range_zone == "middle"
+                    and not follow_through
+                    and not strong_second_entry_recovery
+                    and prior_leg_context != "trend_leg"
+                ):
                     return False, "宽通道中部顺势恢复仍缺少接受"
-                if not (follow_through or higher_follow_through) and not strong_second_entry_recovery and score < 70:
+                if (
+                    not (follow_through or higher_follow_through or prior_leg_context == "trend_leg")
+                    and not strong_second_entry_recovery
+                ):
                     return False, "宽通道顺势恢复缺少 follow-through"
-                if is_breakout and score < 78 and not follow_through:
+                if is_breakout and not follow_through:
                     return False, "宽通道里不追弱突破"
 
         if market_key in {"weak_trend_bull", "weak_trend_bear"}:
@@ -1937,14 +1922,14 @@ class BacktestRunner:
             aligned_bear = market_key == "weak_trend_bear" and direction == "SELL"
             if is_breakout and not follow_through:
                 return False, "弱趋势里缺少 follow-through 不追突破"
-            if (aligned_bull or aligned_bear) and is_trend and pullback_ratio > 0.66 and score < 70:
+            if (aligned_bull or aligned_bear) and is_trend and pullback_ratio > 0.66 and not follow_through:
                 return False, "深回调后的趋势延续质量不足"
             if (
                 not (aligned_bull or aligned_bear)
                 and is_reversal
                 and entry_type == "STOP"
                 and tbtl_big < 5
-                and score < 65
+                and not (failed_breakout_evidence or trendline_break_confirmed or trapped_side)
             ):
                 return False, "弱趋势中的逆势反转证据不足"
 
@@ -1953,90 +1938,54 @@ class BacktestRunner:
                 (direction == "BUY" and higher_range_edge == "top")
                 or (direction == "SELL" and higher_range_edge == "bottom")
             )
-            higher_origin_half = BacktestRunner._is_origin_half(higher_range_position, direction)
-            higher_edge_zone = BacktestRunner._is_edge_zone(higher_range_position, direction)
-            higher_advantage_zone = BacktestRunner._is_advantage_zone(higher_range_position, direction)
             higher_mid_band = BacktestRunner._is_mid_band(higher_range_position)
-            if market_key in {"tight_range", "broad_range"}:
-                if is_breakout and signal_type not in {"看衰突破"}:
-                    return False, "15m 为 TR，5m 不追突破"
-                if is_trend and not is_tr_blshs:
-                    return False, "15m 为 TR，5m 只做边缘 BLSHS 或明确反转"
-            else:
-                if (
-                    is_breakout_chase
-                    and (score < 80 or higher_edge_conflict or higher_weakening or not higher_edge_zone)
-                ):
-                    return False, "15m 为 TR，5m breakout mode 证据不足"
-                if higher_mid_band and (is_trend or is_channel_scalp) and not is_reversal:
-                    return False, "15m 为 TR，中部腿不做顺势追单"
-                if (
-                    playbook_id == "T6_TR_LEG_FIRST_PULLBACK"
-                    and (not higher_advantage_zone or higher_weakening or not follow_through or score < 76)
-                ):
-                    return False, "15m 为 TR，5m H1/L1 只在边缘第一腿做"
-                if playbook_id in {"T6_TR_LEG_CHANNEL_RECOVERY", "T6_TR_LEG_EMA_RECOVERY"}:
-                    if entry_type == "LIMIT":
-                        if higher_mid_band:
-                            return False, "15m 为 TR，中部不做顺势 limit 单"
-                        if not higher_origin_half and not higher_advantage_zone and score < 72:
-                            return False, "15m 为 TR，5m 顺势 limit 已离开边缘优势区"
-                    elif not higher_origin_half and not higher_advantage_zone:
-                        return False, "15m 为 TR，5m 顺势恢复已离开有利半区"
-                    if higher_edge_conflict:
-                        return False, "15m 为 TR，5m 顺势恢复已逼近对侧边缘"
-                    if signal_type in CHANNEL_RECOVERY_SIGNALS and not higher_advantage_zone and score < 74:
-                        return False, "15m 为 TR，5m H2/L2/突破回调 先等边缘半区确认"
-                    if signal_type in EMA_RECOVERY_SIGNALS and not higher_advantage_zone and score < 72:
-                        return False, "15m 为 TR，5m EMA 恢复离边缘优势区太远"
-                    if not (follow_through or higher_follow_through) and score < 72:
-                        return False, "15m 为 TR，5m 顺势恢复缺少 follow-through"
-                if is_trend and not is_reversal and not is_channel_scalp and higher_edge_conflict:
-                    return False, "15m 为 TR，5m 趋势腿已逼近对侧边缘"
-                if is_channel_scalp and (not follow_through) and score < 74:
-                    return False, "15m 为 TR，5m scalp 缺少 follow-through"
-                if is_channel_scalp and higher_edge_conflict and score < 78:
-                    return False, "15m 为 TR，5m scalp 已接近对侧边缘"
-            if is_reversal and entry_type == "STOP" and signal_type not in {"头肩顶MTR", "头肩底MTR"} and score < 67:
+            if is_breakout_chase and higher_mid_band and not follow_through:
+                return False, "15m 为 TR，5m 中部不追弱突破"
+            if is_breakout_chase and higher_edge_conflict and not failed_breakout_evidence:
+                return False, "15m 为 TR，5m 已逼近对侧边缘"
+            if (
+                playbook_id in {"T6_TR_LEG_FIRST_PULLBACK", "T6_TR_LEG_CHANNEL_RECOVERY", "T6_TR_LEG_EMA_RECOVERY"}
+                and higher_edge_conflict
+                and not trendline_break_confirmed
+            ):
+                return False, "15m 为 TR，5m 当前腿已贴近对侧边缘"
+            if is_reversal and entry_type == "STOP" and higher_mid_band and not (
+                failed_breakout_evidence or trendline_break_confirmed or trapped_side
+            ):
+                return False, "15m 为 TR，中部反转仍缺少失败突破证据"
+            if (
+                is_reversal
+                and entry_type == "STOP"
+                and signal_type not in {"头肩顶MTR", "头肩底MTR"}
+                and not (failed_breakout_evidence or trendline_break_confirmed or trapped_side)
+            ):
                 return False, "15m 为 TR，5m 反转 stop 单确认不足"
-            if is_minor_reversal and entry_type == "STOP" and score < 70:
+            if (
+                is_minor_reversal
+                and entry_type == "STOP"
+                and not (failed_breakout_evidence or trendline_break_confirmed or trapped_side)
+            ):
                 return False, "15m 为 TR，5m 小反转要更强确认"
 
         if timeframe == "5m" and higher_key == "strong_trend_bull" and direction == "SELL":
             if not is_reversal:
                 return False, "15m 强多趋势中，5m 禁止逆势顺势单"
-            if not higher_weakening and score < 74:
+            if not higher_weakening:
                 return False, "15m 强多趋势中，5m 反转证据不足"
 
         if timeframe == "5m" and higher_key == "strong_trend_bear" and direction == "BUY":
             if not is_reversal:
                 return False, "15m 强空趋势中，5m 禁止逆势顺势单"
-            if not higher_weakening and score < 74:
+            if not higher_weakening:
                 return False, "15m 强空趋势中，5m 反转证据不足"
 
         if timeframe == "5m" and higher_key == "weak_trend_bull":
-            if direction == "SELL" and is_minor_reversal and (not higher_weakening or score < 72):
+            if direction == "SELL" and is_minor_reversal and not higher_weakening:
                 return False, "15m 弱多结构中，5m 小反转证据不足"
-            if signal_type in {"低1", "低2"} and not is_tr_blshs:
-                return False, "15m 弱多结构中，不做 5m 逆势 L1/L2"
-            if (
-                signal_type in {"高1", "高2"}
-                and ((not higher_follow_through) or higher_pullback_ratio > 0.45)
-                and score < 72
-            ):
-                return False, "15m 弱多结构里，5m H1/H2 需要更好 FT"
 
         if timeframe == "5m" and higher_key == "weak_trend_bear":
-            if direction == "BUY" and is_minor_reversal and (not higher_weakening or score < 72):
+            if direction == "BUY" and is_minor_reversal and not higher_weakening:
                 return False, "15m 弱空结构中，5m 小反转证据不足"
-            if signal_type in {"高1", "高2"} and not is_tr_blshs:
-                return False, "15m 弱空结构中，不做 5m 逆势 H1/H2"
-            if (
-                signal_type in {"低1", "低2"}
-                and ((not higher_follow_through) or higher_pullback_ratio > 0.45)
-                and score < 72
-            ):
-                return False, "15m 弱空结构里，5m L1/L2 需要更好 FT"
 
         return True, ""
 
@@ -2049,7 +1998,6 @@ class BacktestRunner:
         timeframe = str(getattr(event, "timeframe", "") or "")
         stop_structure_ok = bool(extra.get("stop_structure_ok", True))
         target_path_clear = bool(extra.get("target_path_clear", True))
-        risk_ratio = float(extra.get("actual_to_perfect_risk_ratio", 1.0) or 1.0)
         if not stop_structure_ok:
             return False, "止损没有放到结构位外"
 
@@ -2057,12 +2005,6 @@ class BacktestRunner:
         higher_market_state = str(extra.get("higher_market_state", "") or "")
         higher_follow_through = bool(extra.get("higher_follow_through"))
         follow_through = bool(extra.get("follow_through"))
-        range_like = (
-            "TR" in market_state.upper()
-            or "range" in market_state.lower()
-            or "range" in higher_market_state.lower()
-        )
-        candidate_stage = str(extra.get("candidate_stage") or "").upper()
         requires_second_entry = bool(extra.get("requires_second_entry"))
         acceptance_ready = bool(extra.get("acceptance_ready"))
         executable_signal_ready = bool(extra.get("executable_signal_ready"))
@@ -2074,12 +2016,9 @@ class BacktestRunner:
         signal_bar_tail_ratio = float(extra.get("signal_bar_tail_ratio", 0.0) or 0.0)
         reclaimed_prior_close = bool(extra.get("reclaimed_prior_close", False))
         broke_micro_extreme = bool(extra.get("broke_micro_extreme", False))
-        first_target_distance_r = float(extra.get("first_target_distance_r", 0.0) or 0.0)
-        blocking_magnet_distance_r = float(extra.get("blocking_magnet_distance_r", 0.0) or 0.0)
         trapped_side = str(extra.get("trapped_side") or "")
         prior_leg_context = str(extra.get("prior_leg_context") or "")
         playbook_id = str(extra.get("playbook_id") or "")
-        higher_range_position = float(extra.get("higher_range_position", 0.5) or 0.5)
         signal_rank = 0
         if signal_type in {"高1", "低1"}:
             signal_rank = 1
@@ -2097,56 +2036,18 @@ class BacktestRunner:
             return False, reason
 
         if signal_rank == 1:
-            if range_like and entry_type != "LIMIT":
-                return block("watch", "H1/L1 在区间里仍停留在 watch，不能直接追 stop")
-            if not (follow_through or higher_follow_through) and score < 74:
+            if not (follow_through or higher_follow_through):
                 return block("watch", "H1/L1 仍缺少 follow-through / acceptance")
             if requires_second_entry and not (acceptance_ready and executable_signal_ready):
                 return block("candidate", "第一次信号尚未完成接受，继续等 H2/L2 或二次确认")
-        elif signal_rank == 2 and entry_type == "STOP":
-            min_executable_score = 68
-            if playbook_id in {
-                "T2_BROAD_CHANNEL_RECOVERY",
-                "T3_BROAD_CHANNEL_EMA",
-                "T6_TR_LEG_FIRST_PULLBACK",
-                "T6_TR_LEG_CHANNEL_RECOVERY",
-                "T6_TR_LEG_EMA_RECOVERY",
-            } or market_state in {
-                "strong_trend_bull",
-                "strong_trend_bear",
-                "weak_trend_bull",
-                "weak_trend_bear",
-                "broad_range",
-            }:
-                min_executable_score = 62
-            if score < min_executable_score:
-                return block("candidate", "H2/L2 还没成熟到 executable")
 
         if signal_type == "第二腿陷阱":
             if prior_leg_context != "tr_second_leg":
                 return block("watch", "第二腿陷阱缺少清晰的 second-leg 背景")
             if not (failed_breakout_evidence or trapped_side or trendline_break_confirmed):
                 return block("candidate", "第二腿陷阱仍缺少 failed breakout / trapped trader 证据")
-            if (
-                not target_path_clear
-                and blocking_magnet_distance_r > 0
-                and blocking_magnet_distance_r < 0.8
-            ):
+            if not target_path_clear:
                 return block("candidate", "第二腿陷阱前方磁体过近，先等更清晰的折返空间")
-
-        if playbook_id == "T6_TR_LEG_FIRST_PULLBACK" and entry_type == "STOP":
-            if not BacktestRunner._is_edge_zone(higher_range_position, str(getattr(event, "direction", "") or "")):
-                return block("watch", "更高 TR 里的第一腿回调还不在边缘，继续观察")
-
-        if playbook_id in {"T6_TR_LEG_CHANNEL_RECOVERY", "T6_TR_LEG_EMA_RECOVERY"} and entry_type == "STOP":
-            if BacktestRunner._is_mid_band(higher_range_position) and not acceptance_ready:
-                return block("candidate", "更高 TR 的顺势恢复刚回到中部附近，先等接受完成再执行")
-
-        if timeframe == "5m" and signal_type == "高2" and entry_type == "STOP":
-            if market_state in {"tight_range", "broad_range"} or higher_market_state in {"tight_range", "broad_range"}:
-                return block("watch", "5m 高2 在震荡背景中更像区间噪音，先等更清晰确认")
-            if risk_ratio < 0.55:
-                return block("candidate", "5m 高2 止损过紧，回调还没有足够呼吸空间")
 
         if signal_type == "楔形底" and entry_type == "STOP":
             if market_state == "weak_trend_bear" and higher_market_state in {"broad_range", "tight_range"}:
@@ -2165,22 +2066,20 @@ class BacktestRunner:
                 return block("candidate", "双层弱多里的 5m 楔形顶更像 minor reversal，先等 LH MTR / broad channel")
 
         if timeframe == "5m" and signal_type == "双重顶" and entry_type == "STOP":
-            if not target_path_clear and score < 82:
+            if not target_path_clear:
                 return block("candidate", "5m 双重顶前方目标受阻，按 Brooks 更适合限价刮头皮或等更强反转")
 
         if signal_type == "看衰突破":
             if not failed_breakout_evidence or not trapped_side:
                 return block("candidate", "看衰突破仍缺少真正的 failed breakout / trapped side 证据")
-            if signal_bar_tail_ratio < 0.25:
+            if signal_bar_tail_ratio <= 0:
                 return block("candidate", "看衰突破的 rejection tail 不够明显，先不进场")
-            if not reclaimed_prior_close and score < 76:
+            if not reclaimed_prior_close:
                 return block("candidate", "看衰突破尚未收回前一根收盘位，拒绝证据不足")
-            if not broke_micro_extreme and score < 76:
+            if not broke_micro_extreme:
                 return block("candidate", "看衰突破还没形成 micro extreme trap，先等更清晰失败")
             if not target_path_clear:
                 return block("candidate", "看衰突破前方目标受阻，先不追")
-            if 0 < first_target_distance_r < 0.35:
-                return block("candidate", "看衰突破离第一目标磁体太近，更像区间噪音")
 
         if signal_type == "头肩底MTR" and entry_type == "STOP":
             if (
@@ -2191,32 +2090,14 @@ class BacktestRunner:
                 return block("candidate", "头肩底 MTR 所在的上下级结构仍在弱空，先等 failed breakout 证据")
 
         if playbook_id in {"R1_BROAD_CHANNEL_REVERSAL", CHANNEL_LINE_FADE_PLAYBOOK}:
-            if (
-                not target_path_clear
-                and not failed_breakout_evidence
-                and blocking_magnet_distance_r > 0
-                and blocking_magnet_distance_r < 1.0
-            ):
+            if not target_path_clear and not failed_breakout_evidence:
                 return block("candidate", "宽通道反转前方磁体过近，先等 failed breakout 或更清晰路径")
             if (
                 prior_leg_context == "tr_second_leg"
                 and not failed_breakout_evidence
                 and not trendline_break_confirmed
-                and score < 70
             ):
                 return block("candidate", "宽通道反转更像 second-leg trap，先等失败突破或趋势线破坏")
-
-        if timeframe == "5m" and signal_type == "头肩底MTR" and entry_type == "STOP":
-            if not target_path_clear and risk_ratio < 0.5:
-                return block("candidate", "5m 头肩底 MTR 止损太紧且前方受阻，先等更清晰的 failed breakout")
-
-        if candidate_stage in {"WATCH", "PRE_SIGNAL", "COUNTERTREND_PROBE"}:
-            return block("watch", f"Brooks 候选阶段仍为 {candidate_stage or 'WATCH'}")
-        if candidate_stage.startswith("CANDIDATE") and not executable_signal_ready:
-            return block("candidate", f"Brooks 候选阶段 {candidate_stage} 仍缺少执行确认")
-
-        if signal_rank == 2 and range_like and entry_type == "STOP" and not follow_through and score < 72:
-            return block("candidate", "区间里的 H2/L2 仍可能只是 second leg trap")
 
         if signal_type in {"高2", "低2"} and entry_type == "STOP":
             range_or_weak_context = (
@@ -2228,41 +2109,24 @@ class BacktestRunner:
                 and prior_leg_context != "trend_leg"
                 and not failed_breakout_evidence
                 and not trendline_break_confirmed
-                and score < 82
+                and not follow_through
             ):
                 return block("candidate", "区间/弱趋势里的 H2/L2 仍缺少失败突破或趋势线破坏证据")
             if (
                 prior_leg_context == "tr_second_leg"
                 and not failed_breakout_evidence
                 and not trendline_break_confirmed
-                and score < 76
             ):
                 return block("candidate", "H2/L2 前一腿更像 TR 里的 second-leg trap，且缺少失败突破证据")
-            if (
-                prior_leg_context == "tr_second_leg"
-                and first_target_distance_r > 0
-                and first_target_distance_r < 1.25
-                and score < 78
-            ):
-                return block("candidate", "H2/L2 到第一目标磁体太近，不值得用 stop 追")
-            if (
-                not target_path_clear
-                and blocking_magnet_distance_r > 0
-                and blocking_magnet_distance_r < 1.0
-                and score < 78
-            ):
+            if not target_path_clear and not failed_breakout_evidence:
                 return block("candidate", "H2/L2 前方近端磁体和 trapped side 太近，先等二次确认")
             if (
                 signal_type == "低2"
                 and prior_leg_context == "tr_second_leg"
                 and not failed_breakout_evidence
                 and not target_path_clear
-                and 0 < blocking_magnet_distance_r < 0.35
             ):
                 return block("candidate", "低2 前一腿更像 TR second-leg trap，且近端磁体太近，不追 stop")
-
-        if entry_type == "STOP" and risk_ratio < 0.45 and signal_type not in {"头肩顶MTR", "头肩底MTR"}:
-            return block("candidate", "实际止损明显小于结构止损")
 
         trend_breakout_setups = {
             "收线追进",
@@ -2279,13 +2143,10 @@ class BacktestRunner:
             "HOY突破",
             "LOY突破",
         }
-        if signal_type in trend_breakout_setups and not target_path_clear and score < 74:
+        if signal_type in trend_breakout_setups and not target_path_clear:
             if magnet_cluster_count >= 2 or magnet_cluster_strength >= 4.0:
                 return block("candidate", f"目标路径在磁体簇受阻 ({blocking_magnet_kind or 'cluster'})")
             return block("candidate", "目标路径在近端关键位受阻")
-
-        if magnet_cluster_count >= 2 and signal_rank < 2 and score < 76:
-            return block("candidate", "前方磁体簇过密，第一次信号先不追")
 
         event.extra = extra
         return True, ""

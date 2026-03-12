@@ -142,6 +142,24 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
     def __init__(self):
         self.patterns = CandlePatterns()
 
+    @staticmethod
+    def _structure_buffer(candles: list[Candle], reference_price: float) -> float:
+        """按最近结构波动生成最小缓冲。"""
+        if not candles:
+            return max(abs(reference_price) * 0.0001, 1e-9)
+        recent = candles[-3:] if len(candles) >= 3 else candles
+        recent_range = max(float(candle.high) - float(candle.low) for candle in recent)
+        return max(recent_range * 0.08, abs(reference_price) * 0.0001, 1e-9)
+
+    @staticmethod
+    def _swing_tolerance(candles: list[Candle], reference_price: float) -> float:
+        """双顶双底允许“不完全相等”，但容差只取结构波动。"""
+        if not candles:
+            return max(abs(reference_price) * 0.001, 1e-9)
+        recent = candles[-10:] if len(candles) >= 10 else candles
+        avg_range = sum(float(candle.high) - float(candle.low) for candle in recent) / max(len(recent), 1)
+        return max(avg_range * 1.2, abs(reference_price) * 0.001)
+
     # === 急速方案 ===
 
     def detect_buy_now(self, candles: list[Candle], ema20: list[float], atr: float = 0.0) -> Optional[PASignal]:
@@ -165,10 +183,10 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 if body_top < curr.high * 0.998:
                     return None
 
-            # 止损：最近低点 或 ATR 动态止损
+            # 止损：最近结构低点外的小幅结构缓冲
             low_stop = min(c.low for c in recent)
-            atr_stop = curr.close - 2.0 * atr if atr > 0 else curr.close * 0.995
-            stop = min(low_stop, atr_stop)  # 取较宽的，避免被扫
+            stop_buffer = max(max(c.high - c.low for c in recent) * 0.08, abs(curr.close) * 0.0001)
+            stop = low_stop - stop_buffer
 
             target = curr.close + (curr.close - stop) * 1.5  # 1.5:1 盈亏比（趋势策略）
 
@@ -206,8 +224,8 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     return None
 
             high_stop = max(c.high for c in recent)
-            atr_stop = curr.close + 2.0 * atr if atr > 0 else curr.close * 1.005
-            stop = max(high_stop, atr_stop)  # 取较宽的，避免被扫
+            stop_buffer = max(max(c.high - c.low for c in recent) * 0.08, abs(curr.close) * 0.0001)
+            stop = high_stop + stop_buffer
 
             target = curr.close - (stop - curr.close) * 1.5
 
@@ -282,7 +300,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 return None  # 不是 Higher Low
 
             # --- 5. 止损和目标 ---
-            # Al Brooks: 止损设在信号棒之外 + 1×ATR 缓冲（加密高波动适配）
+            # Al Brooks: 止损应放到结构位外，而不是 ATR 倍数缓冲。
             stop = build_trend_pullback_stop("BUY", candles, curr.high, min(prev.low, prev2.low), atr)
             risk = curr.close - stop
             if risk <= 0:
@@ -339,7 +357,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if pullback_high >= prev_swing_high:
                 return None  # 不是 Lower High
 
-            # Al Brooks: 止损设在信号棒之外 + 1×ATR 缓冲（加密高波动适配）
+            # Al Brooks: 止损应放到结构位外，而不是 ATR 倍数缓冲。
             stop = build_trend_pullback_stop("SELL", candles, max(prev.high, prev2.high), curr.low, atr)
             risk = stop - curr.close
             if risk <= 0:
@@ -485,8 +503,6 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 if sig_quality < 0.55:
                     return None
                 stop = min(prev.low, prev2.low)
-                if atr > 0:
-                    stop = min(stop, curr.close - 1.0 * atr)
                 risk = curr.close - stop
                 if risk <= 0:
                     return None
@@ -527,8 +543,6 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 if sig_quality < 0.55:
                     return None
                 stop = max(prev.high, prev2.high)
-                if atr > 0:
-                    stop = max(stop, curr.close + 1.0 * atr)
                 risk = stop - curr.close
                 if risk <= 0:
                     return None
@@ -605,13 +619,11 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             sl1 = swing_lows[-2]  # 第一个低点 (更早)
             sl2 = swing_lows[-1]  # 第二个低点 (更近)
 
-            # 双底条件: Al Brooks H2 = 趋势中的两次回调
-            # 两个低点价格差: atr * 2.0（原来 0.8 太严，Higher Low 也会被拒）
-            # Al Brooks: H2不要求两个低点完全相同，Higher Low 是最理想的H2结构
-            tolerance = atr * 2.0 if atr > 0 else abs(sl1["price"]) * 0.01
+            # Al Brooks: H2 不要求两个低点完全相同，Higher Low 也可以成立。
+            tolerance = self._swing_tolerance(lookback, float(sl1["price"]))
             price_diff = abs(sl2["price"] - sl1["price"])
             if price_diff > tolerance:
-                return None  # 两次回调差距超过2倍ATR，不是合理H2
+                return None
 
             # 两个低点之间必须有恢复尝试（即 H1 — 有棒的高点 > 前棒高点）
             resume_found = False
@@ -710,9 +722,8 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             sh1 = swing_highs[-2]  # 第一个高点
             sh2 = swing_highs[-1]  # 第二个高点
 
-            # 双顶条件: Al Brooks L2 = 趋势空中的两次反弹
-            # 容差扩至 atr * 2.0（原来 0.8 太严，Lower High 也是合理L2结构）
-            tolerance = atr * 2.0 if atr > 0 else abs(sh1["price"]) * 0.01
+            # Al Brooks: L2 不要求两个高点完全相同，Lower High 也可以成立。
+            tolerance = self._swing_tolerance(lookback, float(sh1["price"]))
             price_diff = abs(sh2["price"] - sh1["price"])
             if price_diff > tolerance:
                 return None
@@ -805,7 +816,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         if range_size <= 0:
             return None
 
-        tolerance = max(atr * 0.5, range_size * 0.08, abs(curr.close) * 0.001)
+        tolerance = max(range_size * 0.08, self._structure_buffer(lookback, float(curr.close)))
         local_highs = [
             (idx, bar.high)
             for idx, bar in enumerate(lookback[:-1])
@@ -936,7 +947,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         range_high = max(float(candle.high) for candle in base_window)
         range_low = min(float(candle.low) for candle in base_window)
         range_height = max(range_high - range_low, 1e-9)
-        tolerance = atr * 0.15 if atr > 0 else range_height * 0.03
+        tolerance = max(range_height * 0.03, self._structure_buffer(base_window[-3:], range_high if direction == "SELL" else range_low))
 
         for breakout_idx in range(len(recent_window) - 1):
             breakout_bar = recent_window[breakout_idx]
@@ -1525,18 +1536,18 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         # 从 K 线时间戳推算昨日高低点
         # crypto 24/7，以 UTC 0 点为日间分界
-        from datetime import datetime, timedelta
+        from datetime import timedelta, timezone
         try:
             curr_ts = curr.timestamp
             # 找当日 0 点（UTC+8 北京时间）
             beijing_offset = timedelta(hours=8)
-            curr_dt = curr_ts.replace(tzinfo=datetime.UTC) + beijing_offset
+            curr_dt = curr_ts.replace(tzinfo=timezone.utc) + beijing_offset
             today_start = curr_dt.replace(hour=0, minute=0, second=0, microsecond=0)
             today_start_utc = today_start - beijing_offset
 
             yesterday_candles = [
                 c for c in candles
-                if c.timestamp.replace(tzinfo=datetime.UTC) < today_start_utc
+                if c.timestamp.replace(tzinfo=timezone.utc) < today_start_utc
             ]
         except Exception:
             return None  # 时间戳解析失败时跳过
@@ -1558,7 +1569,8 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         # HOY 突破做多
         if bull_context and prev.close <= hoy and curr.close > hoy * 1.001:
-            stop = hoy - 1.0 * atr if atr > 0 else hoy * 0.998
+            breakout_base = min(float(c.low) for c in candles[-6:])
+            stop = breakout_base - self._structure_buffer(candles[-6:], float(curr.close))
             target = hoy + yesterday_range * 0.75  # 目标约昨日Range的75%
             if curr.close <= stop:  # 止损倒挂时跳过
                 return None
@@ -1582,7 +1594,8 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         # LOY 突破做空
         if bear_context and prev.close >= loy and curr.close < loy * 0.999:
-            stop = loy + 1.0 * atr if atr > 0 else loy * 1.002
+            breakout_base = max(float(c.high) for c in candles[-6:])
+            stop = breakout_base + self._structure_buffer(candles[-6:], float(curr.close))
             target = loy - yesterday_range * 0.75
             if curr.close >= stop:
                 return None
@@ -1640,8 +1653,8 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             # 上升趋势末端旗形：突破失败 = 做空
             flag_high = max(c.high for c in flag_candles)
             if prev.high > flag_high and curr.close < prev.low:
-                # 止损：前高 + 1 ATR
-                stop = prev.high + (atr if atr > 0 else prev.high * 0.002)
+                stop_buffer = max(max(c.high - c.low for c in flag_candles) * 0.08, abs(prev.high) * 0.0001)
+                stop = prev.high + stop_buffer
                 target = min(c.low for c in flag_candles)
 
                 return PASignal(
@@ -1661,7 +1674,8 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         elif cycle == "趋势空":
             flag_low = min(c.low for c in flag_candles)
             if prev.low < flag_low and curr.close > prev.high:
-                stop = prev.low - (atr if atr > 0 else prev.low * 0.002)
+                stop_buffer = max(max(c.high - c.low for c in flag_candles) * 0.08, abs(prev.low) * 0.0001)
+                stop = prev.low - stop_buffer
                 target = max(c.high for c in flag_candles)
 
                 return PASignal(
@@ -1811,7 +1825,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             reversal = CandlePatterns.is_reversal_bar(curr, prev)
 
             if body_shrinking or reversal == "空头反转":
-                # 止损：磁铁位上方 1 ATR
+                # 止损：磁铁位上方的结构外缓冲
                 stop = build_reversal_structure_stop("SELL", candles, curr.high, curr.low, atr, reference_levels=[range_high])
                 target = range_low + range_size * 0.5  # 目标区间中点
 
@@ -1883,26 +1897,21 @@ class PASignalEngine(BaseEngine):
         self.cooldown_seconds = COOLDOWN_SECONDS
         self._cooldown_storage = get_cooldown_storage()
 
-        # 周期配置。
-        # 这里保留“质量阈值”，但不再用过高默认值把大量合法 Brooks setup 卡死在引擎层。
+        # 周期配置只保留“允许策略”和冷却，不再用分数阈值挡掉合法 Brooks setup。
         self.timeframe_config = {
             "1m": {
-                "signal_threshold": 80,
                 "allowed_strategies": ["市价追进", "高1低1", "急速通道"],
                 "cooldown_multiplier": 0.5,
             },
             "5m": {
-                "signal_threshold": 80,
                 "allowed_strategies": "all",
                 "cooldown_multiplier": 1.0,
             },
             "15m": {
-                "signal_threshold": 72,
                 "allowed_strategies": ["20均线缺口", "突破回调", "首次均线缺口", "双重顶底", "失败突破", "第二腿陷阱", "楔形顶底", "急速通道", "末端旗形", "ii突破", "头肩MTR"],
                 "cooldown_multiplier": 2.0,
             },
             "30m": {
-                "signal_threshold": 70,
                 "allowed_strategies": [
                     "20均线缺口", "突破回调", "首次均线缺口",
                     "双重顶底", "失败突破", "第二腿陷阱",
@@ -1912,7 +1921,6 @@ class PASignalEngine(BaseEngine):
                 "cooldown_multiplier": 3.0,
             },
             "1h": {
-                "signal_threshold": 68,
                 "allowed_strategies": ["楔形顶底", "末端旗形", "头肩MTR"],
                 "cooldown_multiplier": 4.0,
             },
@@ -2452,23 +2460,21 @@ class PASignalEngine(BaseEngine):
                 return False, "紧密区间中部不预生成 setup"
             if is_breakout_chase and signal_type != "看衰突破":
                 return False, "紧密区间不预生成突破追单"
-            if is_trend_pullback and not (edge_match or advantage_match):
-                return False, "紧密区间只预生成边缘 BLSHS"
-            if is_reversal and not (edge_match or advantage_match):
-                return False, "紧密区间反转先等到边缘优势区"
+            if is_reversal and entry_type == "STOP" and not (edge_match or advantage_match or follow_through):
+                return False, "紧密区间的 stop 反转先等到边缘或更强接受"
 
         if market_key == "broad_range":
             if (is_reversal or signal_type in {"看衰突破", "第二腿陷阱"}) and range_zone == "middle":
                 return False, "宽区间中部不预生成 fade 或反转"
             if is_breakout_chase and not follow_through:
                 return False, "宽区间里弱突破不预生成"
-            if is_trend_pullback:
-                if not (advantage_match or origin_half_match):
-                    return False, "宽区间顺势恢复先回到有利半区"
-                if signal_type in {"高1", "低1"} and not edge_match:
-                    return False, "宽区间第一腿回调只在边缘做"
-                if entry_type == "STOP" and pullback_ratio > 0.5 and not follow_through:
-                    return False, "宽区间 stop 回调缺少接受"
+            if (
+                is_trend_pullback
+                and entry_type == "STOP"
+                and pullback_ratio > 0.66
+                and not (follow_through or advantage_match or origin_half_match)
+            ):
+                return False, "宽区间深回调 stop 单先等接受"
 
         if market_key in {"weak_trend_bull", "weak_trend_bear"}:
             aligned = (
@@ -2478,8 +2484,6 @@ class PASignalEngine(BaseEngine):
             )
             if is_breakout_chase and not follow_through:
                 return False, "弱趋势里弱突破不预生成"
-            if not aligned and is_trend_pullback and not edge_match:
-                return False, "弱趋势里逆势 H1/H2/L1/L2 先等到边缘"
             if aligned and signal_type in {"高1", "低1"} and pullback_ratio > 0.45 and not follow_through:
                 return False, "宽通道第一腿回调缺少 follow-through"
             if (
@@ -2487,7 +2491,7 @@ class PASignalEngine(BaseEngine):
                 and signal_type in {"高2", "低2", "20均线缺口", "第一均线缺口", "突破回调"}
                 and pullback_ratio > 0.66
                 and not follow_through
-                and not origin_half_match
+                and not (origin_half_match or advantage_match)
             ):
                 return False, "宽通道深回调恢复先等回到有利半区"
 
@@ -2605,7 +2609,6 @@ class PASignalEngine(BaseEngine):
         # 获取周期配置
         tf_config = self.timeframe_config.get(timeframe, self.timeframe_config["5m"])
         allowed_strategies = tf_config.get("allowed_strategies", "all")
-        signal_threshold = tf_config.get("signal_threshold", 70)
 
         # 计算 EMA20
         closes = [c.close for c in candles]
@@ -2613,17 +2616,17 @@ class PASignalEngine(BaseEngine):
         if len(ema20) < 10:
             return []
 
-        # V3.3: 计算 ATR (14) 用于动态止损
+        # 计算 ATR (14)，目前仅保留给部分形态容差使用，不再用于 ATR 倍数止损
         atr = calculate_atr(candles, 14)
 
         # 识别市场周期（返回 MarketState 对象）
         market_state = CycleIdentifier.identify(candles, ema20)
         cycle = market_state.cycle  # 向后兼容的字符串
 
-        # V5.0: 八状态分类 + 策略推荐
-        from engines.market_state_engine import classify_market_state, get_strategy_recommendation
+        # V5.0: 八状态分类
+        from engines.market_state_engine import classify_market_state
         v5_market_state = classify_market_state(market_state)
-        v5_recommendation = get_strategy_recommendation(v5_market_state)
+        v5_recommendation = {}
 
         signals = []
 
@@ -2893,11 +2896,6 @@ class PASignalEngine(BaseEngine):
                 continue
             if ai_dir == "short" and sig.direction == "BUY" and is_trend_strat:
                 logger.debug(f"Always In Short 阻止 BUY: {sig.symbol} {sig.signal_type}")
-                continue
-
-            # 周期信号阈值检查
-            if sig.strength < signal_threshold:
-                logger.debug(f"PA Signal 低于周期阈值: {sig.symbol} {timeframe} {sig.strength} < {signal_threshold}")
                 continue
 
             # 风控检查

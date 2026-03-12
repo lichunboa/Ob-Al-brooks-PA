@@ -39,7 +39,10 @@ data/
 ├── pa_trader/                   Patrol 主运行态
 ├── pa_trader_crypto/            Crypto 运行态
 ├── charts/                      图表产物
-├── backtest_cache/              回测数据缓存
+├── history/                     统一历史行情目录
+│   ├── cache/                   回测 Parquet 缓存
+│   ├── hf_downloads/            原始 CSV.gz 下载
+│   └── hf_parquet/              可选本地 Parquet 分片
 ├── cache/                       通用缓存
 ├── run/                         PID、服务日志、launchd 包装
 └── reports/

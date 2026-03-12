@@ -230,7 +230,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="审计本地回测缓存与实时行情质量。")
     parser.add_argument(
         "--cache-dir",
-        default=str(ROOT / "data" / "backtest_cache"),
+        default=str(ROOT / "data" / "history" / "cache"),
         help="本地 Parquet 缓存目录",
     )
     parser.add_argument("--execution-url", default="http://127.0.0.1:8092", help="execution-service 地址")
