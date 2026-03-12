@@ -11,6 +11,15 @@ from .models import Candle, PASignal
 from .structure_stops import build_channel_recovery_stop, build_reversal_structure_stop
 
 
+def _structure_buffer(candles: list[Candle], reference_price: float) -> float:
+    """按压缩结构自身的波动给出最小缓冲。"""
+    if not candles:
+        return max(abs(reference_price) * 0.0001, 1e-9)
+    recent = candles[-3:] if len(candles) >= 3 else candles
+    recent_range = max(float(candle.high) - float(candle.low) for candle in recent)
+    return max(recent_range * 0.08, abs(reference_price) * 0.0001, 1e-9)
+
+
 class AdvancedStrategyDetectorMixin:
     """封装相对独立的高级策略识别逻辑。"""
 
@@ -163,14 +172,12 @@ class AdvancedStrategyDetectorMixin:
         pattern_low = min(bar.low for bar in pattern_bars)
         pattern_range = pattern_high - pattern_low
 
-        if atr > 0 and pattern_range > 3 * atr:
-            return None
-
         is_late_trend = cycle.startswith("趋势") and len(candles) >= 30
         near_ema = abs(curr.close - ema20[-1]) / ema20[-1] < 0.005 if ema20[-1] > 0 else False
+        stop_buffer = _structure_buffer(pattern_bars, float(curr.close))
 
         if is_bull_close:
-            stop = pattern_low - 0.5 * atr if atr > 0 else pattern_low * 0.998
+            stop = pattern_low - stop_buffer
             risk = curr.close - stop
             target = curr.close + risk * 2.0
             entry_trigger = pattern_high
@@ -197,7 +204,7 @@ class AdvancedStrategyDetectorMixin:
                 extra={"pattern": pattern, "pattern_range": pattern_range, "near_ema": near_ema},
             )
 
-        stop = pattern_high + 0.5 * atr if atr > 0 else pattern_high * 1.002
+        stop = pattern_high + stop_buffer
         risk = stop - curr.close
         target = curr.close - risk * 2.0
         entry_trigger = pattern_low
