@@ -54,8 +54,12 @@
 
 - `runtime/rule_engine.py`
   - `get_executable_trades()`
-- `runtime/position_manager.py`
+- `trading/position_management/`
   - `manage_position()`
+
+说明：
+
+- 当前真实实现已经直接落在 `trading/position_management/`
 
 这条路径负责：
 
@@ -133,7 +137,7 @@
 
 有一点必须明确：
 
-- `tools/patrol_trade.py` 仍然存在，但现在承担的是规则来源，不再作为外部子进程执行壳
+- 旧的外部交易壳已经退场，当前运行时不再依赖 `patrol_trade.py` 这类子进程桥接
 - `validate_trade_gate()` 当前已经重新挂回 `OPEN_ORDER` 分支，并在运行时进程内直接完成校验
 
 当前真实行为是：
@@ -166,7 +170,7 @@
 
 - `services/consumption/query-service`
   - `/api/v1/runtime/full`
-- `tools/pa_crypto_control.py`
+- `tools/ops/pa_crypto_control.py`
   - 本地控制入口
 - `AB Patrol-Web/src/app/api/pa-bot/runtime/route.ts`
   - Web 当前主聚合接口

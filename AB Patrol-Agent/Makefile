@@ -1,5 +1,6 @@
 PYTHON ?= .venv/bin/python
 PIP ?= .venv/bin/pip
+UV ?= uv
 
 .PHONY: help venv install install-dev lint format syntax clean
 
@@ -23,13 +24,13 @@ install-dev: venv
 	$(PIP) install -r requirements-dev.txt
 
 lint:
-	$(PYTHON) -m ruff check runtime tools libs
+	$(UV) run --no-project ruff check runtime tools libs
 
 format:
-	$(PYTHON) -m ruff format runtime tools libs
+	$(UV) run --no-project ruff format runtime tools libs
 
 syntax:
-	$(PYTHON) -m py_compile runtime/pa_runtime.py runtime/providers.py tools/chart_gen.py tools/patrol_ab_context.py tools/patrol_trade.py tools/pa_crypto_control.py
+	$(UV) run --no-project python -m py_compile runtime/pa_runtime.py runtime/providers.py tools/ops/chart_gen.py tools/diagnostics/patrol_ab_context.py tools/ops/patrol_trade.py tools/ops/pa_crypto_control.py
 
 clean:
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +

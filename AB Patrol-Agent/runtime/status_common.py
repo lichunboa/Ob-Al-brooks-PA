@@ -15,6 +15,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from runtime.path_layout import data_run_dir
+
 
 def _now_ts() -> float:
     return time.time()
@@ -400,13 +402,14 @@ def runtime_snapshot(root: Path, execution_base: str, execution_bot_id: str, *, 
     decision_log = data_dir / "journal" / "decision_log.jsonl"
     execution_log = data_dir / "journal" / "execution_log.jsonl"
     request_path = data_dir / "logs" / "decision" / "last_request.md"
-    run_pid = root / "run" / "service.pid"
-    run_log = root / "run" / "service.log"
-    query_pid = root / "run" / "query-service.pid"
-    query_log = root / "run" / "query-service.log"
-    watchdog_pid = root / "run" / "watchdog.pid"
-    watchdog_log = root / "run" / "watchdog.log"
-    watchdog_state_file = root / "run" / "watchdog-state.json"
+    run_dir = data_run_dir(root)
+    run_pid = run_dir / "service.pid"
+    run_log = run_dir / "service.log"
+    query_pid = run_dir / "query-service.pid"
+    query_log = run_dir / "query-service.log"
+    watchdog_pid = run_dir / "watchdog.pid"
+    watchdog_log = run_dir / "watchdog.log"
+    watchdog_state_file = run_dir / "watchdog-state.json"
     loop_label = os.getenv("AB_PATROL_LAUNCHD_LOOP_LABEL", "ai.abpatrol.loop").strip() or "ai.abpatrol.loop"
     query_label = os.getenv("AB_PATROL_LAUNCHD_QUERY_LABEL", "ai.abpatrol.query").strip() or "ai.abpatrol.query"
     watchdog_label = os.getenv("AB_PATROL_LAUNCHD_WATCHDOG_LABEL", "ai.abpatrol.watchdog").strip() or "ai.abpatrol.watchdog"

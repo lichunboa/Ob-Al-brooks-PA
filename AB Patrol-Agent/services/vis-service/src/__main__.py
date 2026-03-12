@@ -24,7 +24,10 @@ def main():
     args = parser.parse_args()
 
     import uvicorn
-    from core.settings import get_settings
+    try:
+        from .core.settings import get_settings
+    except ImportError:
+        from core.settings import get_settings
 
     settings = get_settings()
     host = args.host or settings.host

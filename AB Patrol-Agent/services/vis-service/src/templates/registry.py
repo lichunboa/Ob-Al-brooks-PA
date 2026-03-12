@@ -238,7 +238,10 @@ def render_kline_trade(params: Dict, output: str) -> Tuple[object, str]:
     - lookback: 显示的 K 线根数 (默认 50)
     - title: 图表标题
     """
-    from core.settings import get_pg_pool, get_settings
+    try:
+        from ..core.settings import get_pg_pool, get_settings
+    except ImportError:
+        from core.settings import get_pg_pool, get_settings
 
     # 参数提取
     symbol = params.get("symbol")
@@ -547,7 +550,10 @@ def _replace_embedded_payload(html: str, payload: Dict, title: str | None = None
 
 def _fetch_multi_interval_klines(params: Dict) -> Dict:
     """按时间窗口逐周期查询 TimescaleDB，构造包络可视化数据。"""
-    from core.settings import get_pg_pool, get_settings
+    try:
+        from ..core.settings import get_pg_pool, get_settings
+    except ImportError:
+        from core.settings import get_pg_pool, get_settings
 
     symbol = params.get("symbol")
     if not symbol:

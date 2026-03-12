@@ -1,17 +1,28 @@
 """Strategies API"""
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
-from db.database import get_db, StrategyModel, TradeModel
-from fastapi import HTTPException
-from models.strategy import (
-    StrategyCard, StrategySyncRequest, StrategySyncResponse,
-    StrategyPerformance
-)
-from core.strategy_processor import StrategyProcessor
+try:
+    from ..core.strategy_processor import StrategyProcessor
+    from ..db.database import StrategyModel, TradeModel, get_db
+    from ..models.strategy import (
+        StrategyCard,
+        StrategyPerformance,
+        StrategySyncRequest,
+        StrategySyncResponse,
+    )
+except ImportError:
+    from core.strategy_processor import StrategyProcessor
+    from db.database import StrategyModel, TradeModel, get_db
+    from models.strategy import (
+        StrategyCard,
+        StrategyPerformance,
+        StrategySyncRequest,
+        StrategySyncResponse,
+    )
 
 router = APIRouter()
 

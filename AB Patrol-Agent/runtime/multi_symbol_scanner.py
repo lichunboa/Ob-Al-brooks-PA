@@ -16,7 +16,10 @@ import concurrent.futures
 import time
 from typing import Any
 
-from utils import safe_float
+try:
+    from .utils import safe_float
+except ImportError:
+    from utils import safe_float
 
 
 def scan_multiple_symbols(

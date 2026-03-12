@@ -1,15 +1,19 @@
 """Sync API - Obsidian 文件同步"""
 import os
-import yaml
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
+import yaml
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from db.database import get_db, SyncLog, TradeModel, StrategyModel
-from config import settings
+try:
+    from ..config import settings
+    from ..db.database import StrategyModel, SyncLog, TradeModel, get_db
+except ImportError:
+    from config import settings
+    from db.database import StrategyModel, SyncLog, TradeModel, get_db
 
 router = APIRouter()
 
@@ -134,8 +138,12 @@ async def get_sync_progress(sync_id: str):
 
 def _sync_trades_task(path: str, db: Session):
     """后台同步交易任务"""
-    from core.obsidian_parser import ObsidianParser
-    from core.trade_processor import TradeProcessor
+    try:
+        from ..core.obsidian_parser import ObsidianParser
+        from ..core.trade_processor import TradeProcessor
+    except ImportError:
+        from core.obsidian_parser import ObsidianParser
+        from core.trade_processor import TradeProcessor
     
     try:
         parser = ObsidianParser(path)
@@ -171,8 +179,12 @@ def _sync_trades_task(path: str, db: Session):
 
 def _sync_strategies_task(path: str, db: Session):
     """后台同步策略任务"""
-    from core.obsidian_parser import ObsidianParser
-    from core.strategy_processor import StrategyProcessor
+    try:
+        from ..core.obsidian_parser import ObsidianParser
+        from ..core.strategy_processor import StrategyProcessor
+    except ImportError:
+        from core.obsidian_parser import ObsidianParser
+        from core.strategy_processor import StrategyProcessor
     
     try:
         parser = ObsidianParser(path)

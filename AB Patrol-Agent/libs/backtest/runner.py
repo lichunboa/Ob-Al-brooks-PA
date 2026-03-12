@@ -16,10 +16,11 @@ import math
 import os
 import sys
 import time
+import types
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from importlib import import_module
+from importlib import import_module, util
 from pathlib import Path
 
 import pandas as pd
@@ -105,7 +106,9 @@ ROUTE_TREND_STRATEGIES = {
     "突破回调",
     "ii突破",
     "ioi突破",
+    "iii突破",
     "HOY突破",
+    "LOY突破",
 }
 
 TR_BLSHS_BUY_SIGNALS = {"高1", "高2", "双重底", "头肩底MTR", "楔形底"}
@@ -134,6 +137,7 @@ BREAKOUT_CHASE_SIGNALS = {
     "收线追进",
     "ii突破",
     "ioi突破",
+    "iii突破",
     "HOY突破",
     "LOY突破",
 }
@@ -532,10 +536,7 @@ class BacktestRunner:
         # 真实数据源会在后面被 replay 替换，因此回测阶段不应强依赖 PG。
         os.environ["DATABASE_URL"] = "postgresql://localhost:5432/dummy"
 
-        try:
-            import storage.cooldown as cooldown_module
-        except ImportError:
-            from signal_service.src.storage import cooldown as cooldown_module  # pragma: no cover
+        cooldown_module = self._load_signal_service_cooldown(signal_service_src)
 
         memory_cooldown = MemoryCooldownStorage()
         cooldown_module._storage = memory_cooldown
@@ -601,6 +602,32 @@ class BacktestRunner:
 
         self._signal_publisher_cls = SignalPublisher
         return engine, signal_collector, vclock
+
+    @staticmethod
+    def _load_signal_service_cooldown(signal_service_src: Path):
+        """只加载 cooldown 模块，避免触发失效的 storage 包初始化链。"""
+        package_name = "storage"
+        module_name = "storage.cooldown"
+        existing = sys.modules.get(module_name)
+        if existing is not None:
+            return existing
+
+        storage_pkg = sys.modules.get(package_name)
+        if storage_pkg is None:
+            storage_pkg = types.ModuleType(package_name)
+            storage_pkg.__path__ = [str(signal_service_src / "storage")]
+            sys.modules[package_name] = storage_pkg
+
+        cooldown_path = signal_service_src / "storage" / "cooldown.py"
+        spec = util.spec_from_file_location(module_name, cooldown_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"无法加载 cooldown 模块: {cooldown_path}")
+
+        module = util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+        storage_pkg.cooldown = module
+        return module
 
     def _cleanup_engine(self):
         """清理: 恢复 SignalPublisher"""
@@ -1182,7 +1209,12 @@ class BacktestRunner:
                 if signal_bar_low > 0
                 else stop_loss < entry_price
             )
-            if playbook_id in strict_structure_playbooks and entry_type == "STOP" and nearest_support > 0 and stop_loss > nearest_support:
+            if (
+                playbook_id in strict_structure_playbooks
+                and entry_type == "STOP"
+                and nearest_support > 0
+                and stop_loss > nearest_support
+            ):
                 stop_structure_ok = False
             if perfect_stop > 0:
                 if playbook_id in relaxed_trend_stop_playbooks:
@@ -1196,7 +1228,12 @@ class BacktestRunner:
                 if signal_bar_high > 0
                 else stop_loss > entry_price
             )
-            if playbook_id in strict_structure_playbooks and entry_type == "STOP" and nearest_resistance > 0 and stop_loss < nearest_resistance:
+            if (
+                playbook_id in strict_structure_playbooks
+                and entry_type == "STOP"
+                and nearest_resistance > 0
+                and stop_loss < nearest_resistance
+            ):
                 stop_structure_ok = False
             if perfect_stop > 0:
                 if playbook_id in relaxed_trend_stop_playbooks:
@@ -2205,6 +2242,7 @@ class BacktestRunner:
             "突破回调",
             "ii突破",
             "ioi突破",
+            "iii突破",
             "HOY突破",
             "LOY突破",
         }

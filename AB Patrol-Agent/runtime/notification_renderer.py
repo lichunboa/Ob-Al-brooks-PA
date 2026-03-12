@@ -1,12 +1,14 @@
-"""通知渲染聚合层。"""
+"""兼容旧版运行时通知渲染导入路径。"""
 
-from __future__ import annotations
+import sys
+from importlib import import_module
+from pathlib import Path
 
-from scan_timing import ScanTimingMixin
-from telegram_notifier import TelegramNotifierMixin
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
+_MODULE = import_module("trading.notifications.notification_renderer")
+NotificationRendererMixin = _MODULE.NotificationRendererMixin
 
-class NotificationRendererMixin(ScanTimingMixin, TelegramNotifierMixin):
-    """兼容旧导入路径，聚合扫描分桶与 Telegram 通知能力。"""
-
-    pass
+__all__ = ["NotificationRendererMixin"]

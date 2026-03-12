@@ -1,15 +1,20 @@
 """Sync Service Entry Point"""
-import sys
-import uvicorn
 from pathlib import Path
+import sys
+
+import uvicorn
 
 # 确保 src 在路径中
 SRC_DIR = Path(__file__).parent
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from config import settings
-from db.database import init_db
+try:
+    from .config import settings
+    from .db.database import init_db
+except ImportError:
+    from config import settings
+    from db.database import init_db
 
 
 def main():
@@ -25,7 +30,10 @@ def main():
     # 启动 API 服务
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
-    from api.router import router
+    try:
+        from .api.router import router
+    except ImportError:
+        from api.router import router
     
     app = FastAPI(
         title="Sync Service",

@@ -5,7 +5,7 @@
 - `libs.backtest.runner.BacktestRunner`
 - 真实 `pa_engine` + Brooks 路由
 
-不再走旧 `tools/backtest_tool.py`，避免继续输出旧评分体系结果。
+不再走旧 `tools/backtest/backtest_tool.py`，避免继续输出旧评分体系结果。
 """
 
 from __future__ import annotations
@@ -199,7 +199,7 @@ async def list_strategies():
         "playbooks": {
             "趋势恢复": ["高1", "低1", "高2", "低2", "20均线缺口", "第一均线缺口", "突破回调"],
             "区间反做": ["看衰突破", "第二腿陷阱", "双重顶", "双重底", "楔形顶", "楔形底", "头肩顶MTR", "头肩底MTR"],
-            "突破追随": ["收线追进", "ii突破", "ioi突破", "HOY突破", "LOY突破"],
+            "突破追随": ["收线追进", "ii突破", "ioi突破", "iii突破", "HOY突破", "LOY突破"],
         },
         "defaults": {
             "timeframe": "5m",

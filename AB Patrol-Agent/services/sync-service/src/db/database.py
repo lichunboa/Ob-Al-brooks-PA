@@ -1,12 +1,16 @@
 """Database Connection & Models"""
-from sqlalchemy import create_engine, Column, String, DateTime, Date, Numeric, Integer, Boolean, Text, JSON
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Generator
 
-from config import settings
+from sqlalchemy import Boolean, Column, Date, DateTime, Integer, JSON, Numeric, String, Text, create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session, sessionmaker
+
+try:
+    from ..config import settings
+except ImportError:
+    from config import settings
 
 Base = declarative_base()
 

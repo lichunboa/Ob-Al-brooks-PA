@@ -472,15 +472,15 @@ class SimExchange:
 
     @staticmethod
     def _load_runtime_position_manager():
-        """懒加载运行时持仓管理模块，复用真实链的 premise/strength 规则。"""
+        """懒加载交易域持仓管理模块，复用真实链的 premise/strength 规则。"""
         global _RUNTIME_POSITION_MANAGER
         if _RUNTIME_POSITION_MANAGER is not None:
             return _RUNTIME_POSITION_MANAGER
 
-        runtime_root = Path(__file__).resolve().parents[2] / "runtime"
-        if str(runtime_root) not in sys.path:
-            sys.path.insert(0, str(runtime_root))
-        _RUNTIME_POSITION_MANAGER = import_module("position_manager")
+        project_root = Path(__file__).resolve().parents[2]
+        if str(project_root) not in sys.path:
+            sys.path.insert(0, str(project_root))
+        _RUNTIME_POSITION_MANAGER = import_module("trading.position_management")
         return _RUNTIME_POSITION_MANAGER
 
     @staticmethod

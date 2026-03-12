@@ -15,7 +15,10 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any
 
-from utils import parse_structured_value, safe_float, utc_now
+try:
+    from .utils import parse_structured_value, safe_float, utc_now
+except ImportError:
+    from utils import parse_structured_value, safe_float, utc_now
 
 
 class LLMTriggerManager:

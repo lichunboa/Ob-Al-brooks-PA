@@ -3,18 +3,46 @@
 提供统一的配置存储和信号规则管理
 """
 from datetime import datetime
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from typing import Any, Dict, List, Optional
 
-from db.database import get_db
-from models.config import (
-    Setting, SettingCreate, SettingUpdate,
-    SignalRule, SignalRuleCreate, SignalRuleUpdate,
-    MonitoringConfig, MonitoringConfigCreate, MonitoringConfigUpdate,
-    ConfigCategory, SignalRuleCategory, BatchUpdateRequest, ConfigSyncResponse
-)
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import Integer, func
+from sqlalchemy.orm import Session
+
+try:
+    from ..db.database import MonitoringConfigModel, SettingModel, SignalRuleModel, get_db
+    from ..models.config import (
+        BatchUpdateRequest,
+        ConfigCategory,
+        ConfigSyncResponse,
+        MonitoringConfig,
+        MonitoringConfigCreate,
+        MonitoringConfigUpdate,
+        Setting,
+        SettingCreate,
+        SettingUpdate,
+        SignalRule,
+        SignalRuleCategory,
+        SignalRuleCreate,
+        SignalRuleUpdate,
+    )
+except ImportError:
+    from db.database import MonitoringConfigModel, SettingModel, SignalRuleModel, get_db
+    from models.config import (
+        BatchUpdateRequest,
+        ConfigCategory,
+        ConfigSyncResponse,
+        MonitoringConfig,
+        MonitoringConfigCreate,
+        MonitoringConfigUpdate,
+        Setting,
+        SettingCreate,
+        SettingUpdate,
+        SignalRule,
+        SignalRuleCategory,
+        SignalRuleCreate,
+        SignalRuleUpdate,
+    )
 
 router = APIRouter(prefix="/config", tags=["config"])
 
@@ -27,8 +55,6 @@ async def get_settings(
     db: Session = Depends(get_db)
 ):
     """获取配置列表"""
-    from db.database import SettingModel
-    
     query = db.query(SettingModel)
     if category:
         query = query.filter(SettingModel.category == category)
@@ -44,8 +70,6 @@ async def get_setting(
     db: Session = Depends(get_db)
 ):
     """获取单个配置"""
-    from db.database import SettingModel
-    
     setting = db.query(SettingModel).filter(
         SettingModel.category == category,
         SettingModel.key == key
@@ -63,8 +87,6 @@ async def create_setting(
     db: Session = Depends(get_db)
 ):
     """创建配置"""
-    from db.database import SettingModel
-    
     # 检查是否已存在
     existing = db.query(SettingModel).filter(
         SettingModel.category == setting.category,
@@ -90,8 +112,6 @@ async def update_setting(
     db: Session = Depends(get_db)
 ):
     """更新配置"""
-    from db.database import SettingModel
-    
     setting = db.query(SettingModel).filter(
         SettingModel.category == category,
         SettingModel.key == key
@@ -119,8 +139,6 @@ async def delete_setting(
     db: Session = Depends(get_db)
 ):
     """删除配置"""
-    from db.database import SettingModel
-    
     setting = db.query(SettingModel).filter(
         SettingModel.category == category,
         SettingModel.key == key
@@ -141,8 +159,6 @@ async def batch_update_settings(
     db: Session = Depends(get_db)
 ):
     """批量更新配置"""
-    from db.database import SettingModel
-    
     updated_count = 0
     created_count = 0
     
@@ -178,8 +194,6 @@ async def batch_update_settings(
 @router.get("/categories", response_model=List[ConfigCategory])
 async def get_categories(db: Session = Depends(get_db)):
     """获取配置分类统计"""
-    from db.database import SettingModel
-    
     results = db.query(
         SettingModel.category,
         func.count(SettingModel.id).label("count")
@@ -213,8 +227,6 @@ async def get_signal_rules(
     db: Session = Depends(get_db)
 ):
     """获取信号规则列表"""
-    from db.database import SignalRuleModel
-    
     query = db.query(SignalRuleModel)
     
     if category:
@@ -234,8 +246,6 @@ async def get_signal_rule(
     db: Session = Depends(get_db)
 ):
     """获取单个信号规则"""
-    from db.database import SignalRuleModel
-    
     rule = db.query(SignalRuleModel).filter(
         SignalRuleModel.rule_id == rule_id
     ).first()
@@ -253,8 +263,6 @@ async def create_signal_rule(
     user_id: Optional[str] = "admin"
 ):
     """创建信号规则"""
-    from db.database import SignalRuleModel
-    
     # 检查rule_id是否已存在
     existing = db.query(SignalRuleModel).filter(
         SignalRuleModel.rule_id == rule.rule_id
@@ -279,8 +287,6 @@ async def update_signal_rule(
     user_id: Optional[str] = "admin"
 ):
     """更新信号规则"""
-    from db.database import SignalRuleModel
-    
     rule = db.query(SignalRuleModel).filter(
         SignalRuleModel.rule_id == rule_id
     ).first()
@@ -307,8 +313,6 @@ async def delete_signal_rule(
     db: Session = Depends(get_db)
 ):
     """删除信号规则"""
-    from db.database import SignalRuleModel
-    
     rule = db.query(SignalRuleModel).filter(
         SignalRuleModel.rule_id == rule_id
     ).first()
@@ -325,12 +329,10 @@ async def delete_signal_rule(
 @router.get("/signal-rules/categories", response_model=List[SignalRuleCategory])
 async def get_signal_rule_categories(db: Session = Depends(get_db)):
     """获取信号规则分类统计"""
-    from db.database import SignalRuleModel
-    
     results = db.query(
         SignalRuleModel.category,
         func.count(SignalRuleModel.id).label("count"),
-        func.sum(func.cast(SignalRuleModel.is_enabled, db.Integer)).label("enabled_count")
+        func.sum(func.cast(SignalRuleModel.is_enabled, Integer)).label("enabled_count")
     ).group_by(SignalRuleModel.category).all()
     
     categories = []
@@ -350,8 +352,6 @@ async def toggle_signal_rule(
     db: Session = Depends(get_db)
 ):
     """切换信号规则启用状态"""
-    from db.database import SignalRuleModel
-    
     rule = db.query(SignalRuleModel).filter(
         SignalRuleModel.rule_id == rule_id
     ).first()
@@ -379,8 +379,6 @@ async def get_monitoring_configs(
     db: Session = Depends(get_db)
 ):
     """获取用户的监控配置"""
-    from db.database import MonitoringConfigModel
-    
     query = db.query(MonitoringConfigModel).filter(
         MonitoringConfigModel.user_id == user_id
     )
@@ -400,8 +398,6 @@ async def create_monitoring_config(
     db: Session = Depends(get_db)
 ):
     """创建监控配置"""
-    from db.database import MonitoringConfigModel
-    
     # 检查是否已存在
     existing = db.query(MonitoringConfigModel).filter(
         MonitoringConfigModel.user_id == config.user_id,
@@ -427,8 +423,6 @@ async def update_monitoring_config(
     db: Session = Depends(get_db)
 ):
     """更新监控配置"""
-    from db.database import MonitoringConfigModel
-    
     config = db.query(MonitoringConfigModel).filter(
         MonitoringConfigModel.id == config_id
     ).first()
@@ -453,8 +447,6 @@ async def delete_monitoring_config(
     db: Session = Depends(get_db)
 ):
     """删除监控配置"""
-    from db.database import MonitoringConfigModel
-    
     config = db.query(MonitoringConfigModel).filter(
         MonitoringConfigModel.id == config_id
     ).first()
@@ -476,8 +468,6 @@ async def get_config_sync(
     db: Session = Depends(get_db)
 ):
     """获取配置同步信息"""
-    from db.database import SettingModel, SignalRuleModel, MonitoringConfigModel
-    
     # 统计各类配置数量
     setting_count = db.query(SettingModel).count()
     rule_count = db.query(SignalRuleModel).filter(

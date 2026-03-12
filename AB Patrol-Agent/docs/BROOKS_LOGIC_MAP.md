@@ -70,9 +70,9 @@ Brooks 视角下，一笔交易的完整流程应当是：
 - 结果输出：
   - `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/libs/backtest/report.py`
 - 交易级上下文审计：
-  - `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/tools/backtest_trade_context_audit.py`
+  - `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/tools/backtest/backtest_trade_context_audit.py`
 - 矩阵工具：
-  - `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/tools/backtest_matrix.py`
+  - `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/tools/backtest/backtest_matrix.py`
 
 ## 3. 当前已经对齐的部分
 

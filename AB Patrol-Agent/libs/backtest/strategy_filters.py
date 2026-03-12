@@ -32,9 +32,11 @@ ALL_KNOWN_STRATEGIES = {
     "突破回调",
     "ii突破",
     "ioi突破",
+    "iii突破",
     "头肩顶MTR",
     "头肩底MTR",
     "HOY突破",
+    "LOY突破",
 }
 
 
@@ -48,8 +50,9 @@ STRATEGY_ALIASES: dict[str, set[str]] = {
     "高低2": {"高2", "低2"},
     "高低12": {"高1", "低1", "高2", "低2"},
     "均线缺口": {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"},
-    "突破追单": {"收线追进", "ii突破"},
-    "inside突破": {"ii突破", "ioi突破"},
+    "突破追单": {"收线追进", "ii突破", "ioi突破", "iii突破", "HOY突破", "LOY突破"},
+    "突破追随": {"收线追进", "ii突破", "ioi突破", "iii突破", "HOY突破", "LOY突破"},
+    "inside突破": {"ii突破", "ioi突破", "iii突破"},
     "反转核心": {"双重顶", "双重底", "楔形顶", "楔形底", "头肩顶MTR", "头肩底MTR"},
     "趋势回调": {"高1", "低1", "高2", "低2", "突破回调"},
 }
@@ -228,9 +231,9 @@ def classify_management_style(
         return "brooks_dt_db_reversal"
     if label in {"楔形顶", "楔形底", "末端旗形", "急速通道", "看衰突破", "第二腿陷阱"}:
         return "brooks_wedge_reversal"
-    if label in {"高1", "低1", "高2", "低2", "突破回调", "ioi突破", "HOY突破"}:
+    if label in {"高1", "低1", "高2", "低2", "突破回调", "ioi突破", "HOY突破", "LOY突破"}:
         return "brooks_swing"
-    if label in {"收线追进", "ii突破"}:
+    if label in {"收线追进", "ii突破", "iii突破"}:
         return "brooks_breakout"
     return "default"
 

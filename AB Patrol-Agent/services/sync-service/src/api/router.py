@@ -1,15 +1,25 @@
 """API Router"""
-import time
 from datetime import datetime
+import time
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from db.database import get_db
-from api.trades import router as trades_router
-from api.strategies import router as strategies_router
-from api.sync import router as sync_router
-from api.config import router as config_router
+try:
+    from ..config import settings
+    from ..db.database import StrategyModel, TradeModel, get_db
+    from .config import router as config_router
+    from .strategies import router as strategies_router
+    from .sync import router as sync_router
+    from .trades import router as trades_router
+except ImportError:
+    from config import settings
+    from db.database import StrategyModel, TradeModel, get_db
+    from api.config import router as config_router
+    from api.strategies import router as strategies_router
+    from api.sync import router as sync_router
+    from api.trades import router as trades_router
 
 # 启动时间
 _start_time = time.time()
@@ -55,7 +65,6 @@ async def health_check(db: Session = Depends(get_db)):
     
     # 检查Obsidian仓库路径
     try:
-        from config import settings
         import os
         
         vault_path = settings.obsidian_vault_path
@@ -139,7 +148,6 @@ async def readiness_probe(db: Session = Depends(get_db)):
 async def get_status(db: Session = Depends(get_db)):
     """获取同步服务状态"""
     from sqlalchemy import func
-    from db.database import TradeModel, StrategyModel
     
     trade_count = db.query(func.count(TradeModel.id)).scalar()
     strategy_count = db.query(func.count(StrategyModel.id)).scalar()

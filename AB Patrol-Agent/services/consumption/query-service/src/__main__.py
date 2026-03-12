@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from runtime.env_loader import load_agent_env
+from runtime.path_layout import data_run_dir
 from runtime.status_common import render_recent_text, render_status_card, render_trade_funnel_text, runtime_snapshot
 
 
@@ -26,7 +27,7 @@ EXECUTION_BASE = os.getenv("AB_PATROL_EXECUTION_BASE", "http://127.0.0.1:8092").
 EXECUTION_BOT_ID = os.getenv("AB_PATROL_EXECUTION_BOT_ID", "claude-pa").strip()
 HOST = os.getenv("AB_PATROL_QUERY_HOST", "127.0.0.1").strip()
 PORT = int(os.getenv("AB_PATROL_QUERY_PORT", "8086"))
-RUN_DIR = ROOT / "run"
+RUN_DIR = data_run_dir(ROOT)
 PID_FILE = RUN_DIR / "query-service.pid"
 
 app = FastAPI(title="AB Patrol-Agent Query Service", version="0.1.0")

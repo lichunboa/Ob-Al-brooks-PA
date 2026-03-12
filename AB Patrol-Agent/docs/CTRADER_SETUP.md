@@ -25,9 +25,9 @@
 
 真实实现是：
 
-- `runtime/adapters/ctrader_openapi_client.py`
+- `exchange/adapters/ctrader_openapi_client.py`
   - 直接走 cTrader Open API protobuf 协议
-- `runtime/adapters/ctrader_adapter.py`
+- `exchange/adapters/ctrader_adapter.py`
   - Patrol 侧薄封装
 - `services/execution-service/src/executor.py`
   - 通过 execution-service 暴露统一交易接口

@@ -1,0 +1,23 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.pytest_cache/
+
+# 本地虚拟环境
+.venv/
+
+# Patrol 运行态产物
+data/pa_trader/cycles/cycle_*.json
+data/pa_trader/logs/
+data/run/*.log
+data/run/*.pid
+data/run/*.stop
+data/run/*.env
+data/run/launchd/
+
+# 生成型回测报告
+data/reports/backtest/*.json
+
+# macOS
+.DS_Store

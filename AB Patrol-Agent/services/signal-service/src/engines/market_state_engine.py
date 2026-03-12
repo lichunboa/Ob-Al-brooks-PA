@@ -76,14 +76,14 @@ def classify_market_state(market_state) -> str:
 
 STRATEGY_MATRIX: dict[str, dict[str, Any]] = {
     'strong_trend_bull': {
-        'recommended': ['H1买入', 'H2买入', '突破回调', '均线缺口多', 'ii突破'],
+        'recommended': ['H1买入', 'H2买入', '突破回调', '均线缺口多', 'ii突破', 'LOY/HOY突破'],
         'prohibited': ['Fade做空', '双顶做空', '楔形顶做空', '头肩顶MTR'],
         'score_modifier': 10,
         'label': '📈 强势多头趋势',
         'label_en': 'Strong Bull Trend',
     },
     'strong_trend_bear': {
-        'recommended': ['L1做空', 'L2做空', '突破回调', '均线缺口空', 'ii突破'],
+        'recommended': ['L1做空', 'L2做空', '突破回调', '均线缺口空', 'ii突破', 'LOY/HOY突破'],
         'prohibited': ['Fade做多', '双底做多', '楔形底做多', '头肩底MTR'],
         'score_modifier': 10,
         'label': '📉 强势空头趋势',
@@ -104,7 +104,7 @@ STRATEGY_MATRIX: dict[str, dict[str, Any]] = {
         'label_en': 'Weak Bear Trend',
     },
     'tight_range': {
-        'recommended': ['ii突破', 'ioi突破', 'Fade区间'],
+        'recommended': ['ii突破', 'ioi突破', 'iii突破', 'Fade区间'],
         'prohibited': ['H1买入', 'L1做空', '追势', '动量突破', '均线缺口多', '均线缺口空'],
         'score_modifier': -5,
         'warning': 'TTR 极窄区间，等待突破方向确认',
@@ -119,14 +119,14 @@ STRATEGY_MATRIX: dict[str, dict[str, Any]] = {
         'label_en': 'Broad Range',
     },
     'breakout_bull': {
-        'recommended': ['突破回调', 'H1买入', '均线缺口多', 'ii突破'],
+        'recommended': ['突破回调', 'H1买入', '均线缺口多', 'ii突破', 'iii突破', 'HOY突破'],
         'prohibited': ['Fade做空', '逆势剥头皮'],
         'score_modifier': 15,
         'label': '🚀 多头突破',
         'label_en': 'Bull Breakout',
     },
     'breakout_bear': {
-        'recommended': ['突破回调', 'L1做空', '均线缺口空', 'ii突破'],
+        'recommended': ['突破回调', 'L1做空', '均线缺口空', 'ii突破', 'iii突破', 'LOY突破'],
         'prohibited': ['Fade做多', '逆势剥头皮'],
         'score_modifier': 15,
         'label': '💥 空头突破',
@@ -162,7 +162,7 @@ AGENT_STRATEGIES = {
         '均线缺口多', '均线缺口空',
         '双顶做空', '双底做多', '楔形顶做空', '楔形底做多',
         '头肩顶MTR', '头肩底MTR',
-        'ii突破', 'ioi突破',
+        'ii突破', 'ioi突破', 'iii突破', 'HOY突破', 'LOY突破',
         '追高', '追空', '追势', '通道回调',
     },
     'trader': {

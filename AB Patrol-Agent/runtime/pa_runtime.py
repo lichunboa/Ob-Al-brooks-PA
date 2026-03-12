@@ -40,6 +40,7 @@ from signal_analyzer import (
     validation_seed_state,
 )
 from env_loader import load_agent_env
+from path_layout import data_run_dir
 from providers import DecisionProviderConfig, build_decision_provider
 from aggressive_mode import should_execute_aggressive, identify_strategy, get_aggressive_mode_status
 from rule_engine import get_executable_trades, analyze_all_symbols
@@ -180,7 +181,7 @@ class PatrolRuntime(
         self.logs_dir = config.data_root / "logs" / "decision"
         self.cycles_dir = config.data_root / "cycles"
         self.journal_dir = config.data_root / "journal"
-        self.run_dir = config.agent_root / "run"
+        self.run_dir = data_run_dir(config.agent_root)
         self.runtime_state_path = self.state_dir / "runtime_state.json"
         self.next_scan_path = self.state_dir / "next_scan.json"
         self.market_state_path = config.data_root / "market_state_l1.json"
@@ -1656,7 +1657,7 @@ class PatrolRuntime(
     ) -> dict[str, Any]:
         """规则引擎执行路径：在本轮未触发 LLM 时直接生成开仓与管理动作。"""
         from rule_engine import get_executable_trades
-        from position_manager import manage_position
+        from trading.position_management import manage_position
 
         positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
         # 优先从 runtime.symbols 读取（包含完整的 pre_signal 数据），fallback 到 market_cache

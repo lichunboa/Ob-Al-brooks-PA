@@ -1,12 +1,16 @@
 """Strategy Data Processor"""
 import hashlib
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from sqlalchemy.orm import Session
 
-from db.database import StrategyModel
-from models.strategy import StrategyCard
+try:
+    from ..db.database import StrategyModel
+    from ..models.strategy import StrategyCard
+except ImportError:
+    from db.database import StrategyModel
+    from models.strategy import StrategyCard
 
 
 class StrategyProcessor:

@@ -17,17 +17,17 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from _bootstrap import ensure_agent_root_on_path
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+ROOT = ensure_agent_root_on_path()
 
 from runtime.env_loader import load_agent_env
+from runtime.path_layout import data_run_dir
 
 
 load_agent_env(ROOT)
 
-RUN_DIR = ROOT / "run"
+RUN_DIR = data_run_dir(ROOT)
 DATA_DIR = ROOT / "data" / "pa_trader"
 PID_FILE = RUN_DIR / "watchdog.pid"
 LOG_FILE = RUN_DIR / "watchdog.log"

@@ -23,7 +23,7 @@ from .bot_registry import BotRegistryMixin
 from .kline_analyzer import KlineAnalyzerMixin
 
 try:
-    from runtime.adapters.ctrader_adapter import CTraderAdapter
+    from exchange.adapters.ctrader_adapter import CTraderAdapter
 except ModuleNotFoundError:  # pragma: no cover - 兼容直接进入服务目录执行
     import sys
     from pathlib import Path
@@ -31,7 +31,7 @@ except ModuleNotFoundError:  # pragma: no cover - 兼容直接进入服务目录
     root = Path(__file__).resolve().parents[3]
     if str(root) not in sys.path:
         sys.path.append(str(root))
-    from runtime.adapters.ctrader_adapter import CTraderAdapter
+    from exchange.adapters.ctrader_adapter import CTraderAdapter
 
 logger = logging.getLogger(__name__)
 

@@ -35,7 +35,6 @@
 - 完整 S 文件目录: `AB Patrol-Agent/knowledge/patrol-l1/references/`
 - 当前运行维护入口：`AB Patrol-Agent/docs/README.md`
 - 当前运行链说明：`AB Patrol-Agent/docs/RUNTIME_FLOW.md`
-- 历史审计与迁移说明：`docs/archive/patrol-agent/README.md`
 - 当前项目级交易链说明：`docs/CURRENT_TRADING_FLOW.md`
 
 这两处是当前 Al Brooks patrol 的完整权威知识副本，对应原始来源：
@@ -148,7 +147,7 @@ runtime 现在会同时写出两层 Step 5 信息：
 更细的映射可以看：
 
 - `AB Patrol-Agent/docs/README.md`
-- `docs/archive/patrol-agent/README.md`
+- `AB Patrol-Agent/docs/CURRENT_TRADING_FLOW.md`
 
 ## 当前没有做的事
 

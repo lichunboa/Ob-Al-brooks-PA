@@ -1,12 +1,16 @@
 """Trade Data Processor"""
 import hashlib
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from sqlalchemy.orm import Session
 
-from db.database import TradeModel
-from models.trade import TradeRecord
+try:
+    from ..db.database import TradeModel
+    from ..models.trade import TradeRecord
+except ImportError:
+    from db.database import TradeModel
+    from models.trade import TradeRecord
 
 
 class TradeProcessor:

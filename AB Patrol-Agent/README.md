@@ -1,154 +1,236 @@
-# AB Patrol-Agent
+# Al Brooks PA Trading System
 
-`AB Patrol-Agent` 是当前项目中独立的 Al Brooks 巡逻交易主脑。
+> 基于 Al Brooks 价格行为（Price Action）的自动交易系统
 
-当前目标不是“先想办法下几笔单”，而是先把整套 Patrol 升级到尽可能接近完整 Al Brooks 理论的状态，再恢复稳定的多市场自动执行。
+## 📖 快速导航
 
-## 当前最高权威
+- **[项目结构说明](docs/PROJECT_STRUCTURE.md)** - 根目录与模块分层说明
+- **[后端分层结构](docs/BACKEND_STRUCTURE.md)** - 接交易所 / 交易 / 回测 / 服务入口分层
+- **[数据目录说明](data/README.md)** - 运行产物与报告目录规则
+- **[运行时流程](docs/RUNTIME_FLOW.md)** - 系统运行流程图
+- **[Brooks 逻辑图](docs/BROOKS_LOGIC_MAP.md)** - Al Brooks 交易逻辑
+- **[cTrader 设置](docs/CTRADER_SETUP.md)** - 交易所配置
 
-当前权威层级已经固定为：
+## 🚀 快速开始
 
-1. `AB Console-Obsidian` 中完整的 Al Brooks 知识库
-2. `knowledge/patrol-l1/canonical/` Canonical Rulebook
-3. `knowledge/patrol-l1/SKILL.md + references/S0-S7`
-4. 代码中的执行安全 / 持久化 / 展示逻辑
-
-关键点：
-
-- `canonical` 是理论层
-- `SKILL/S` 是 agent 的可执行子集
-- 代码不允许再发明新的策略门槛、偏见或固定过滤器
-- `runtime-brief` 已退出主链，不再作为知识源
-
-## 升级期默认策略
-
-当前处于 Parity 升级期。默认行为是：
-
-- 保留采集、分析、推送、回放、Query、Web
-- 暂停自动交易
-- 先完成理论层、`SKILL/S`、代码规则、回放验证
-- 达到门槛后再恢复 Binance demo 自动执行
-
-默认模式由以下配置控制：
-
-- `config/.env.example`
-  - `AB_PATROL_ENABLE_AUTOTRADE=0`
-
-也就是说：
-
-- `./scripts/start.sh start` 默认是观察模式
-- 只有显式 `--execute` 或设置 `AB_PATROL_ENABLE_AUTOTRADE=1` 才会自动交易
-
-## 当前真实架构
-
-```text
-完整 Al Brooks 知识库 (AB Console-Obsidian)
-  -> Canonical Rulebook
-  -> SKILL.md + S0-S7
-  -> AB Patrol-Agent
-  -> codex_cli 长会话
-  -> patrol_trade.py 执行安全校验
-  -> execution-service
-  -> Binance demo / cTrader demo
-  -> Query Service / AB Patrol-Web / TG
-```
-
-`OpenClaw` 当前只负责：
-
-- TG operator
-- host
-- workspace memory
-
-它不是当前交易主脑，也不是唯一决策 provider。
-
-## 当前目录边界
-
-- `knowledge/patrol-l1/`
-  - 巡逻知识树
-  - 包含 `canonical/`、`SKILL.md`、`references/`
-- `runtime/`
-  - 巡逻循环、决策、状态机、执行编排、TG 渲染
-- `tools/`
-  - `patrol_trade.py`、`patrol_scan.py`、`chart_gen.py`、回放/回测工具
-- `services/consumption/query-service/`
-  - 状态与审计出口
-- `data/pa_trader/`
-  - `runtime_state / decision_session / cycles / journals / charts`
-- `scripts/`
-  - 启停脚本、watchdog、初始化
-
-## 当前已经接回的核心能力
-
-- 原始 `SKILL.md + S0-S7`
-- `ab_ema / ab_sr / ab_mm / ab_patterns`
-- `150 bars / 浏览 80 / 精读 20`
-- `codex_cli` 长会话决策
-- `Query Service / Web / TG` 可见性
-- `watchdog` 自恢复骨架
-- `execution-service` 的 Binance demo / cTrader demo 执行链
-
-## 当前仍未完成的重点
-
-- `codex_cli` 长会话稳定性仍需继续打磨
-- 新架构下首笔自然 `OPEN_ORDER` 还没稳定复现
-- `S7-management` 还缺新架构下的 live 闭环验证
-- `SKILL/S` 与完整知识库的回写式重构仍在进行中
-- 代码中仍有部分流程编排型硬规则，需要继续下放给 agent
-
-## 当前最重要的文档
-
-- 规范层：
-  - `knowledge/patrol-l1/canonical/README.md`
-- Patrol 文档入口：
-  - `docs/README.md`
-- 当前规则偏差审计：
-  - `../docs/archive/patrol-agent/HARDCODED_RULE_MATRIX_20260308.md`
-- 当前运行链：
-  - `docs/RUNTIME_FLOW.md`
-
-## 初始化
+### 1. 运行回测
 
 ```bash
-cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent"
-./scripts/init.sh
+# 单品种回测（30天）
+uv run --no-project python tools/backtest/run_backtest.py --symbol BTCUSDT --days 30
+
+# 批量回测（多品种×多周期）
+uv run --no-project python tools/backtest/backtest_matrix.py
 ```
 
-这会创建 `AB Patrol-Agent/.venv` 并安装本项目自己的运行依赖。
-
-## 常用命令
+### 2. 启动交易服务
 
 ```bash
-cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent"
+# 1. 启动 execution-service（交易所接口）
+cd services/execution-service
+uv run python src/main.py  # 端口 8092
 
-# 单轮观察
-./scripts/start.sh once
+# 2. 启动 signal-service（信号生成）
+cd services/signal-service
+uv run python src/main.py  # 端口 8091
 
-# 常驻观察（升级期默认）
-./scripts/start.sh start
-
-# 查看状态 / 最近几轮 / 最新决策
-./scripts/start.sh status
-./scripts/start.sh recent
-./scripts/start.sh decision
-
-# 单独管理 watchdog
-./scripts/start.sh watchdog-start
-./scripts/start.sh watchdog-stop
-
-# 看日志
-./scripts/start.sh logs
-
-# 停止
-./scripts/start.sh stop
+# 3. 启动 PA Trader（自动交易）
+uv run python runtime/pa_trader.py
 ```
 
-只有在 parity / replay / demo 验证通过后，才应启用：
+### 3. 查看回测报告
 
 ```bash
-./scripts/start.sh start --execute
+# 查看最新报告
+ls -lt data/reports/backtest/ | head -5
+
+# 查看报告内容
+cat data/reports/backtest/xxx.json | jq .
 ```
 
-## Web 看板
+## 📊 系统架构
 
-- `AB Patrol-Web`：
-  - [http://127.0.0.1:3001](http://127.0.0.1:3001)
+```
+交易所（cTrader）
+    ↓
+execution-service (8092) ← K线数据、订单执行
+    ↓
+signal-service (8091) ← 信号生成（使用 indicators/batch）
+    ↓
+PA Trader (runtime/) ← 自动交易 + 持仓管理
+    ↓
+订单执行 → execution-service → 交易所
+```
+
+## 🎯 核心功能
+
+### 1. Al Brooks 信号生成
+
+基于 Al Brooks 价格行为理论的信号：
+
+- **H1/H2/L1/L2** - 第一次/第二次回调
+- **双顶/双底** - DT/DB 反转形态
+- **楔形** - Wedge 反转
+- **看衰突破** - Failed Breakout
+- **第二腿陷阱** - 2nd Leg Trap
+- **BLSHS** - TR 边缘 Scalp
+- **EMA 回调** - EMA Pullback
+- **MAG Setup** - 20/20 Setup
+- **收线追进** - Buy The Close
+
+### 2. 市场状态检测
+
+- **BO** (Breakout) - 突破中
+- **TC** (Tight Channel) - 紧密通道
+- **BC** (Broad Channel) - 宽幅通道
+- **TR** (Trading Range) - 交易区间
+- **CLIMAX** - 高潮
+
+### 3. 持仓管理
+
+#### Premise Check（前提检查）
+1. AI 方向是否反转
+2. 市场状态是否改变
+3. 信号 K 线是否被否定
+4. FT 质量如何
+5. TP 路径是否受阻
+6. 风险指标是否正常
+
+#### Strength Check（强度检查）
+1. Gap 保持打开
+2. 新 Major HL/LH 形成
+3. EMA 反弹干净
+4. Micro gap 未关闭
+5. PB 浅且有序
+6. 对手方形成楔形
+7. 多 TF 同向
+
+#### 分批止盈
+- TP1: 1R（50% 仓位）
+- TP2: 2R（30% 仓位）
+- TP3: 3R+（20% 仓位，Trailing SL）
+
+## 📁 核心模块
+
+### 交易所接口
+- `exchange/adapters/` - 交易所适配器（Binance / OKX / cTrader）
+- `services/execution-service/` - 交易执行服务入口
+
+### 交易模块
+- `trading/market/` - 第 1 步：市场分析
+- `trading/position_management/` - 第 2 步：持仓生命周期管理
+  - `evaluation/` - 前提检查、强度评估
+  - `risk_controls/` - 分批止盈、移动止损
+  - `manager.py` - 持仓管理总控编排
+- `runtime/` - PA Trader 运行时编排
+- `services/signal-service/` - live 信号检测与入场判断
+- `indicators/batch/` - Al Brooks 指标计算
+
+### 回测模块
+- `libs/backtest/` - 权威回测 runner、过滤、回放与报告
+- `tools/backtest/` - 主回测脚本、矩阵工具、上下文审计
+
+### 运维与诊断工具
+- `tools/ops/` - 巡逻控制、交易接入、图表生成、交易所配置
+- `tools/diagnostics/` - 系统测试、数据审计、恢复检查、上下文诊断
+
+### Web 模块
+- `../AB Patrol-Web/src/` - 页面、组件、Web API
+
+### 知识库
+- `knowledge/patrol-l1/` - Al Brooks 知识库（只读）
+
+### 当前权威文档
+- `docs/PROJECT_STRUCTURE.md` - 目录落位与根级分层
+- `docs/BACKEND_STRUCTURE.md` - 后端模块边界与放置规则
+- `docs/RUNTIME_FLOW.md` - 巡逻运行链与状态流
+- `docs/CURRENT_TRADING_FLOW.md` - 当前策略覆盖与交易链断点
+- `docs/STRATEGY_COVERAGE_AUDIT.md` - 对照 S4 playbook 的覆盖审计
+
+## 📈 回测结果示例
+
+```
+======================================================================
+  回测结果
+======================================================================
+
+  最终余额: $10,523.40
+  总盈亏: $+523.40 (+5.23%)
+
+  === 交易统计 ===
+  信号总数: 847
+  开仓次数: 847
+  完成交易: 847
+  胜率: 62.3% (528W / 319L)
+  盈亏比 (PF): 1.85
+  总盈利: $1,245.60
+  总亏损: $722.20
+
+  === 风格分布 ===
+  Scalp: 234 (27.6%)
+  Swing: 613 (72.4%)
+
+  === 持仓管理 ===
+  Premise 失效: 156 (18.4%)
+  Trailing SL: 89 (10.5%)
+  分批止盈: 312 (36.8%)
+```
+
+## ⚠️ 重要提示
+
+### 1. 不要修改知识库
+- `knowledge/patrol-l1/` - 从 Al Brooks 原课程提炼
+- `indicators/batch/` - 核心指标计算
+- **只能由人工维护，严禁 AI 修改**
+
+### 2. 胜率目标
+- **入场胜率**：55-65%（Brooks 标准）
+- **账户胜率**：70-80%+（通过持仓管理）
+
+Al Brooks 说：
+> "The best setups have only 60% probability. If you think you have 85%, you're either lying or not taking enough trades."
+
+### 3. 持仓管理是关键
+- Premise 失效立即平仓（避免大亏）
+- 分批止盈（锁定利润）
+- Trailing SL（让利润奔跑）
+- 部分加仓（强势时）
+
+## 🔧 开发指南
+
+### 修改信号逻辑
+1. 先在 `knowledge/` 对齐策略定义
+2. 再修改 `services/signal-service/src/engines/`
+3. 重启 signal-service
+4. 运行回测验证
+
+### 修改持仓管理
+1. 修改 `trading/position_management/`
+2. 评估逻辑放 `evaluation/`
+3. 止盈止损动作放 `risk_controls/`
+2. 运行回测验证
+
+### 添加新策略
+1. 先在 `knowledge/` 对齐策略定义与触发条件
+2. 在 `services/signal-service/src/engines/` 添加 live 信号检测
+3. 在 `services/signal-service/src/engines/pa/risk.py` 补风控分类
+4. 在 `libs/backtest/runner.py` 和 `libs/backtest/strategy_filters.py` 补回测路由与过滤
+5. 如涉及仓位管理，再补 `trading/position_management/`
+6. 运行权威回测验证
+
+## 📞 技术栈
+
+- **Python 3.14**
+- **FastAPI** - API 服务
+- **TimescaleDB** - 时序数据库
+- **cTrader API** - 交易所接口
+- **Pandas/NumPy** - 数据处理
+
+## 📄 许可证
+
+本项目基于 Al Brooks 的价格行为理论开发，仅供学习和研究使用。
+
+---
+
+**最后更新**：2026-03-12
+**项目路径**：`/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent`

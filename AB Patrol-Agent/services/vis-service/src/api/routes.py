@@ -14,8 +14,12 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from core.settings import Settings, get_settings
-from templates.registry import TemplateMeta, register_defaults, render_kline_envelope
+try:
+    from ..core.settings import Settings, get_settings
+    from ..templates.registry import TemplateMeta, register_defaults, render_kline_envelope
+except ImportError:
+    from core.settings import Settings, get_settings
+    from templates.registry import TemplateMeta, register_defaults, render_kline_envelope
 
 # Docker 环境已通过 PYTHONPATH 配置 libs 路径，本地开发时可能需要手动配置
 try:

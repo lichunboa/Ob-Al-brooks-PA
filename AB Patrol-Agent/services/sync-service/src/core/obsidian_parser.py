@@ -1,13 +1,18 @@
 """Obsidian Note Parser - Updated for bilingual fields"""
+from decimal import Decimal
+from datetime import date, datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import re
 import yaml
-from pathlib import Path
-from datetime import datetime, date
-from decimal import Decimal
-from typing import List, Optional, Dict, Any
 
-from models.trade import TradeRecord, TradeDirection, TradeResult, AccountType
-from models.strategy import StrategyCard
+try:
+    from ..models.strategy import StrategyCard
+    from ..models.trade import AccountType, TradeDirection, TradeRecord, TradeResult
+except ImportError:
+    from models.strategy import StrategyCard
+    from models.trade import AccountType, TradeDirection, TradeRecord, TradeResult
 
 
 class ObsidianParser:

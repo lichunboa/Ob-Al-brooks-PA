@@ -25,6 +25,7 @@ BREAKOUT_CHASE_SIGNALS = {
     "收线追进",
     "ii突破",
     "ioi突破",
+    "iii突破",
     "HOY突破",
     "LOY突破",
 }

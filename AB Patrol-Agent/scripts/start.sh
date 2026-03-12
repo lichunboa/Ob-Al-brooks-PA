@@ -3,11 +3,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 RUNTIME="$ROOT/runtime/pa_runtime.py"
-CONTROL="$ROOT/tools/pa_crypto_control.py"
+CONTROL="$ROOT/tools/ops/pa_crypto_control.py"
 QUERY_SERVICE="$ROOT/services/consumption/query-service/src/__main__.py"
-CHART_GEN="$ROOT/tools/chart_gen.py"
-BACKTEST="$ROOT/tools/backtest_v4.py"
-REPLAY="$ROOT/tools/sim_server.py"
+CHART_GEN="$ROOT/tools/ops/chart_gen.py"
+BACKTEST="$ROOT/tools/backtest/backtest_v4.py"
 WATCHDOG="$ROOT/scripts/watchdog.py"
 EXECUTION_ROOT="$ROOT/services/execution-service"
 API_ROOT="$ROOT/services/api-service"
@@ -15,7 +14,7 @@ SYNC_ROOT="$ROOT/services/sync-service"
 SIGNAL_ROOT="$ROOT/services/signal-service"
 VIS_ROOT="$ROOT/services/vis-service"
 WEB_ROOT="$ROOT/../AB Patrol-Web"
-RUN_DIR="$ROOT/run"
+RUN_DIR="$ROOT/data/run"
 CYCLES_DIR="$ROOT/data/pa_trader/cycles"
 LOG_FILE="$RUN_DIR/service.log"
 PID_FILE="$RUN_DIR/service.pid"
@@ -1393,15 +1392,11 @@ case "${1:-status}" in
     shift
     exec "$(tool_python)" "$BACKTEST" "$@"
     ;;
-  replay)
-    shift
-    exec "$(tool_python)" "$REPLAY" "$@"
-    ;;
   logs)
     exec tail -f "$LOG_FILE" "$QUERY_LOG_FILE" "$WATCHDOG_LOG_FILE" "$EXECUTION_LOG_FILE" "$API_LOG_FILE" "$SYNC_LOG_FILE" "$SIGNAL_LOG_FILE" "$VIS_LOG_FILE" "$WEB_LOG_FILE"
     ;;
   *)
-    echo "用法: $0 {start|stop|restart|recover|stack-start|stack-stop|once|loop|loop-start|loop-stop|loop-restart|status|recent|decision|query-start|query-stop|query-restart|watchdog-start|watchdog-stop|watchdog-restart|web-start|web-stop|charts|backtest|replay|logs} [--execute] [--no-telegram]"
+    echo "用法: $0 {start|stop|restart|recover|stack-start|stack-stop|once|loop|loop-start|loop-stop|loop-restart|status|recent|decision|query-start|query-stop|query-restart|watchdog-start|watchdog-stop|watchdog-restart|web-start|web-stop|charts|backtest|logs} [--execute] [--no-telegram]"
     echo "默认模式: 观察模式（AB_PATROL_ENABLE_AUTOTRADE=0）。只有显式 --execute 或设置 AB_PATROL_ENABLE_AUTOTRADE=1 才会自动交易。"
     exit 1
     ;;

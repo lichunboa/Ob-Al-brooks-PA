@@ -12,8 +12,12 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from api.routes import router
-from core.settings import get_settings
+try:
+    from .api.routes import router
+    from .core.settings import get_settings
+except ImportError:
+    from api.routes import router
+    from core.settings import get_settings
 
 
 def create_app() -> FastAPI:

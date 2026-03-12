@@ -1,18 +1,34 @@
 """Trades API"""
+from decimal import Decimal
 from datetime import date
 from typing import List, Optional
-from decimal import Decimal
 
-from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, desc
+from sqlalchemy.orm import Session
 
-from db.database import get_db, TradeModel
-from models.trade import (
-    TradeRecord, TradeSyncRequest, TradeSyncResponse,
-    TradeQueryParams, TradeStats, TradeResult
-)
-from core.trade_processor import TradeProcessor
+try:
+    from ..core.trade_processor import TradeProcessor
+    from ..db.database import TradeModel, get_db
+    from ..models.trade import (
+        TradeQueryParams,
+        TradeRecord,
+        TradeResult,
+        TradeStats,
+        TradeSyncRequest,
+        TradeSyncResponse,
+    )
+except ImportError:
+    from core.trade_processor import TradeProcessor
+    from db.database import TradeModel, get_db
+    from models.trade import (
+        TradeQueryParams,
+        TradeRecord,
+        TradeResult,
+        TradeStats,
+        TradeSyncRequest,
+        TradeSyncResponse,
+    )
 
 router = APIRouter()
 
