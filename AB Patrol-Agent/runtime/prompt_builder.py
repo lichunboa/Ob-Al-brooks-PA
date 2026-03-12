@@ -149,6 +149,7 @@ class PromptBuilderMixin:
         config = bot_summary.get("config") if isinstance(bot_summary.get("config"), dict) else {}
         daily_pnl = bot_summary.get("daily_pnl") if isinstance(bot_summary.get("daily_pnl"), dict) else {}
         risk_status = bot_summary.get("risk_status") if isinstance(bot_summary.get("risk_status"), dict) else {}
+        can_trade_ready = bool(can_trade.get("can_trade"))
         snapshot = {
             "health": {
                 "status": health.get("status"),
@@ -157,8 +158,8 @@ class PromptBuilderMixin:
                 "trading_enabled": health.get("trading_enabled"),
             },
             "can_trade": {
-                "can_trade": can_trade.get("can_trade"),
-                "reason": can_trade.get("reason"),
+                "can_trade": can_trade_ready,
+                "reason": "OK" if can_trade_ready else can_trade.get("reason"),
             },
             "bot_summary": {
                 "allocated_usdt": config.get("allocated_usdt"),
@@ -167,9 +168,7 @@ class PromptBuilderMixin:
                 "available_margin": bot_summary.get("available_margin"),
                 "daily_pnl": daily_pnl,
                 "risk_status": {
-                    "daily_loss_ok": risk_status.get("daily_loss_ok"),
                     "correlation_exposure_pct": risk_status.get("correlation_exposure_pct"),
-                    "cooldowns": risk_status.get("cooldowns"),
                 },
             },
             "positions": [

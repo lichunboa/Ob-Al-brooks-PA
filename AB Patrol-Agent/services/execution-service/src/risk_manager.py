@@ -102,6 +102,8 @@ class RiskManager:
         Args:
             daily_loss_limit: per-bot 动态日亏限（已由调用方计算好）
         """
+        monitor_notes: list[str] = []
+
         # V2.9.0: emergency_stop 已永久禁用，Agent不需要冷静期
         # if self.emergency_stop:
         #     return False, "紧急停止已启用，禁止开仓"
@@ -134,17 +136,21 @@ class RiskManager:
         )
 
         if position_size_usdt > max_position_size:
-            return (
-                False,
-                f"仓位 ${position_size_usdt} "
-                f"超过限制 ${max_position_size}",
+            monitor_notes.append(
+                f"仓位 ${position_size_usdt} 超过监控值 ${max_position_size}"
             )
 
         if current_positions >= max_positions:
-            return (
-                False,
-                f"已达最大持仓数 {max_positions}",
+            monitor_notes.append(
+                f"当前持仓数 {current_positions} 达到监控值 {max_positions}"
             )
+
+        if monitor_notes:
+            logger.warning(
+                "开仓监控提醒: %s",
+                "；".join(monitor_notes),
+            )
+            return True, f"仅监控: {'；'.join(monitor_notes)}"
 
         return True, "OK"
 
@@ -188,10 +194,17 @@ class RiskManager:
     def check_bot_daily_limit(
         self, bot_id: str, limit: float
     ) -> tuple[bool, float]:
-        """检查 bot 是否超过日亏损限额"""
+        """返回 bot 日亏损监控值，不再对外宣称不可交易。"""
         pnl = self.get_bot_daily_pnl(bot_id)
         remaining = limit + pnl  # pnl 为负时表示亏损
-        return remaining > 0, remaining
+        if limit > 0 and remaining <= 0:
+            logger.warning(
+                "Bot %s 日亏监控值已耗尽: 当前 %.2f / 监控值 %.2f，仅保留观察",
+                bot_id,
+                abs(pnl),
+                limit,
+            )
+        return True, remaining
 
     # ===== V2.8.0 同品种冷却期 =====
 

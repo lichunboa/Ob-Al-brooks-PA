@@ -332,6 +332,8 @@ class TradingStateManager:
             symbol: 要开仓的品种（用于累积名义检查）
             bot_positions: 该 bot 的实时持仓列表（用于累积名义检查）
         """
+        monitor_notes: list[str] = []
+
         # V5.0: PA 聚焦模式门控
         if PA_ONLY_MODE and bot_id not in PA_ONLY_BOTS:
             return False, f"V5.0 PA聚焦模式: {bot_id} 已暂停"
@@ -352,13 +354,17 @@ class TradingStateManager:
         current = live_position_count if live_position_count >= 0 else alloc.get("current_positions", 0)
         max_pos = alloc.get("max_positions", 3)
         if current >= max_pos:
-            return False, f"{alloc['name']} 已达最大持仓数 ({current}/{max_pos})"
+            monitor_notes.append(
+                f"{alloc['name']} 持仓数 {current}/{max_pos} 已达到监控值"
+            )
 
         # 检查资金限制
         used = alloc.get("used_margin", 0)
         allocated = alloc.get("allocated_usdt", 0)
-        if used >= allocated:
-            return False, f"{alloc['name']} 已用完分配资金 (${used:.0f}/${allocated:.0f})"
+        if allocated > 0 and used >= allocated:
+            monitor_notes.append(
+                f"{alloc['name']} 已用保证金 ${used:.0f}/${allocated:.0f} 达到监控值"
+            )
 
         # V3.5: 同品种累积名义价值检查
         if symbol and bot_positions:
@@ -376,7 +382,17 @@ class TradingStateManager:
                 if p_norm == norm:
                     existing_notional += abs(p.quantity * p.mark_price)
             if existing_notional >= max_cumulative:
-                return False, f"{alloc['name']} {symbol} 累积名义 ${existing_notional:.0f} 已达上限 ${max_cumulative:.0f}"
+                monitor_notes.append(
+                    f"{alloc['name']} {symbol} 累积名义 ${existing_notional:.0f} 已达到监控值 ${max_cumulative:.0f}"
+                )
+
+        if monitor_notes:
+            logger.warning(
+                "Bot %s 交易监控提醒: %s",
+                bot_id,
+                "；".join(monitor_notes),
+            )
+            return True, f"仅监控: {'；'.join(monitor_notes)}"
 
         return True, "OK"
 

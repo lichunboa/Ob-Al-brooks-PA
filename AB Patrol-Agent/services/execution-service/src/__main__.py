@@ -293,7 +293,9 @@ async def place_order(request: OrderRequest):
         if account_balance > 0 and cost_pct > 0:
             position_limit = account_balance * cost_pct / 100 * leverage
 
-        # V3.5: 开仓前 can_bot_trade 门禁（含累积名义检查）
+        # 开仓前读取 bot 交易就绪状态。
+        # 这里仅保留手动总开关、未知 bot、显式禁用等技术性阻断；
+        # 持仓数、资金占用、累积名义等阈值现在只做监控提示。
         if not request.reduce_only:
             all_positions = await executor.get_positions()
             bot_positions = _filter_bot_positions(bot_id, all_positions)
@@ -310,7 +312,7 @@ async def place_order(request: OrderRequest):
                     side=request.side.value,
                     quantity=request.quantity,
                     status="REJECTED",
-                    message=f"Bot风控拒绝: {reason}",
+                    message=f"Bot交易就绪检查拒绝: {reason}",
                 )
 
             # V3.9.2: 跨 bot 冲突检测已移除 — 每个 bot 独立管理同品种持仓
