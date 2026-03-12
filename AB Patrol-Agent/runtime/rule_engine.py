@@ -457,11 +457,16 @@ def get_executable_trades(
     trades = []
     for symbol, match in results.items():
         if match:
+            state = symbols_data.get(symbol, {}) if isinstance(symbols_data.get(symbol), dict) else {}
+            planned_trade = state.get("planned_trade") if isinstance(state.get("planned_trade"), dict) else {}
             # 映射 LONG/SHORT 为 BUY/SELL（execution-service 期望的格式）
             side_mapping = {"LONG": "BUY", "SHORT": "SELL"}
             execution_side = side_mapping.get(match.side, match.side)
+            reason = match.reason
+            if str(planned_trade.get("intent") or "").upper() == "REENTRY":
+                reason = f"{reason} | S7 重入确认"
 
-            trades.append({
+            trade = {
                 "symbol": symbol,
                 "strategy": match.strategy.value,
                 "side": execution_side,  # 使用映射后的 BUY/SELL
@@ -469,9 +474,23 @@ def get_executable_trades(
                 "stop_loss": match.stop_loss,
                 "take_profit": match.take_profit,
                 "confidence": match.confidence,
-                "reason": match.reason,
+                "reason": reason,
                 "timeframes": match.timeframes,
                 "style": match.style,
-            })
+            }
+            for key in (
+                "intent",
+                "risk_percent",
+                "reentry_attempt",
+                "followup_profile",
+                "playbook_hint",
+                "playbook_id",
+            ):
+                value = planned_trade.get(key)
+                if value not in (None, ""):
+                    trade[key] = value
+            if bool(planned_trade.get("reentry_candidate")):
+                trade["reentry_candidate"] = True
+            trades.append(trade)
 
     return trades

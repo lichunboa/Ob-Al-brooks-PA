@@ -201,6 +201,7 @@ class StateManagerMixin:
             "health": self.http_get_json("/health"),
             "positions": self.http_get_json("/positions"),
             "orders": self.http_get_json("/orders/open"),
+            "tracked_orders": self.http_post_json("/trading/track-orders"),
             "bot_summary": self.http_get_json(f"/trading/bot-summary/{self.config.execution_bot_id}"),
             "can_trade": self.http_get_json(f"/trading/can-trade/{self.config.execution_bot_id}"),
             "balance": self.http_get_json("/balance"),

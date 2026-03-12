@@ -127,6 +127,8 @@
 
 -> execution-service / API / Web 可见性链
 
+-> `runtime/pa_runtime.py` 消费 `execution-service` 的 `stop_loss_hit` 事件，注册 live `re-entry` 观察窗口，并在同方向 setup 仍成立时把 `planned_trade.intent` 提升为 `REENTRY`
+
 -> `trading/position_management/`
 
 -> Premise / Strength / 分批止盈 / 止盈目标调整 / 移动止损 / 显式加仓或撤单动作

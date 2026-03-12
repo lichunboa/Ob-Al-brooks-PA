@@ -55,12 +55,13 @@
 - `OPEN_ORDER` 仍支持显式 `add_on_plan / scale_in_plan / reentry_plan` 输入
 - live 主链现在会在 `trading/position_management/followup.py` 内自动生成 `winner scaling` 计划
 - 权威回测链现在也会通过同一 helper 把事件标成 `ADD_ON / PYRAMID_ADD / REENTRY`
+- live runtime 现在会消费 `execution-service` 的 `stop_loss_hit` 事件，注册一次性 `re-entry` 观察窗口，并在同方向、同前提族 setup 仍有效时自动把 `planned_trade.intent` 标成 `REENTRY`
 
 结论：
 
 - **S7 的统一动作语义已经落到主管理器**
 - **S7 的 add-on / re-entry 语义已共享到 live 与回测主链**
-- **live 侧自动生成的是 add-on；re-entry 仍主要由回测观察窗口和显式计划输入驱动**
+- **live 侧现在已经具备独立的 re-entry 扫描入口，不再只靠显式计划输入**
 
 ### 2. `SKILL Step 3` 的两阶段扫描不是 100% 硬编码闭环
 
@@ -180,13 +181,12 @@
 - `S2-S6` 的入场与路由主干已经落地
 - `S4` 的 15 个 playbook 已具备独立路由标签
 - `S7` 的持仓保护与动作语义已落地
-- `S7` 的 follow-up 计划生成已中心化到共享 helper，但 live 侧的 re-entry 仍不是独立扫描入口
+- `S7` 的 follow-up 计划生成已中心化到共享 helper，live 侧也已具备独立的 re-entry 观察窗口
 - 仓库里仍有一批非 Brooks 指标规则模块，但已不属于当前 PA 主链
 
 ## 六、下一步建议
 
 优先级从高到低：
 
-1. 把 live 侧的 re-entry 也补成独立扫描入口，而不只是回测观察窗口 / 显式计划
-2. 把 `execution_semantics / brooks_analysis / event_detection` 的状态语义再合并一层
-3. 明确隔离 `services/signal-service/src/rules/*`，避免后续又把指标规则混回 PA 主链
+1. 把 `execution_semantics / brooks_analysis / event_detection` 的状态语义再合并一层
+2. 明确隔离 `services/signal-service/src/rules/*`，避免后续又把指标规则混回 PA 主链
