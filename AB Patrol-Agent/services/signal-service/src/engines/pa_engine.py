@@ -33,6 +33,11 @@ except ImportError:
     from storage.cooldown import get_cooldown_storage
 
 from trading.market.playbook_router import (
+    CHANNEL_LINE_FADE_PLAYBOOK,
+    DAILY_TR_FADE_PLAYBOOK,
+    HTF_SR_REVERSAL_PLAYBOOK,
+    MICRO_CHANNEL_REVERSAL_PLAYBOOK,
+    WEDGE_PULLBACK_PLAYBOOK,
     build_daily_playbook_context,
     infer_htf_sr_bias,
     resolve_playbook_context,
@@ -2114,6 +2119,280 @@ class PASignalEngine(BaseEngine):
 
         return context
 
+    @staticmethod
+    def _trend_aligned_direction(market_key: str, direction: str) -> bool:
+        """判断信号方向是否与当前趋势环境一致。"""
+        if market_key in {"strong_trend_bull", "weak_trend_bull"}:
+            return direction == "BUY"
+        if market_key in {"strong_trend_bear", "weak_trend_bear"}:
+            return direction == "SELL"
+        return False
+
+    @staticmethod
+    def _directional_reversal_label(signal_type: str, direction: str) -> bool:
+        """判断该信号名是否属于当前方向的反转确认族。"""
+        long_labels = {"高1", "高2", "双重底", "楔形底", "头肩底MTR"}
+        short_labels = {"低1", "低2", "双重顶", "楔形顶", "头肩顶MTR"}
+        if direction == "BUY":
+            return signal_type in long_labels
+        if direction == "SELL":
+            return signal_type in short_labels
+        return False
+
+    @staticmethod
+    def _trendline_break_confirmed(candles: list[Candle], direction: str) -> bool:
+        """用最近 swing 近似判断是否已经打破通道趋势线。"""
+        if len(candles) < 8:
+            return False
+        window = candles[-12:] if len(candles) >= 12 else candles
+        swings = CycleIdentifier._find_swings(window)
+        last_index = len(window) - 1
+        last_close = float(window[-1].close)
+
+        if direction == "BUY":
+            highs = [swing for swing in swings if swing["type"] == "high"]
+            if len(highs) >= 2 and highs[-1]["idx"] != highs[-2]["idx"]:
+                left, right = highs[-2], highs[-1]
+                slope = (float(right["price"]) - float(left["price"])) / max(1, int(right["idx"]) - int(left["idx"]))
+                projected = float(right["price"]) + slope * (last_index - int(right["idx"]))
+                return last_close > projected
+            return sum(1 for candle in window[-5:] if float(candle.close) > float(candle.open)) >= 4
+
+        lows = [swing for swing in swings if swing["type"] == "low"]
+        if len(lows) >= 2 and lows[-1]["idx"] != lows[-2]["idx"]:
+            left, right = lows[-2], lows[-1]
+            slope = (float(right["price"]) - float(left["price"])) / max(1, int(right["idx"]) - int(left["idx"]))
+            projected = float(right["price"]) + slope * (last_index - int(right["idx"]))
+            return last_close < projected
+        return sum(1 for candle in window[-5:] if float(candle.close) < float(candle.open)) >= 4
+
+    @staticmethod
+    def _late_channel_breakout_failed(candles: list[Candle], direction: str) -> bool:
+        """近似判断通道线末端突破后是否缺乏 follow-through。"""
+        if len(candles) < 22:
+            return False
+        prior = candles[-8:-2]
+        prev = candles[-2]
+        curr = candles[-1]
+        if not prior:
+            return False
+
+        if direction == "BUY":
+            broke_extreme = float(prev.low) < min(float(bar.low) for bar in prior)
+            reclaimed = float(curr.close) > max(float(prev.high), float(prev.close))
+            strong_follow_through = sum(1 for bar in candles[-3:] if CandlePatterns.is_strong_bear(bar)) >= 2
+            return broke_extreme and reclaimed and not strong_follow_through
+
+        broke_extreme = float(prev.high) > max(float(bar.high) for bar in prior)
+        reclaimed = float(curr.close) < min(float(prev.low), float(prev.close))
+        strong_follow_through = sum(1 for bar in candles[-3:] if CandlePatterns.is_strong_bull(bar)) >= 2
+        return broke_extreme and reclaimed and not strong_follow_through
+
+    @staticmethod
+    def _annotate_special_playbook(
+        signal: PASignal,
+        *,
+        playbook_id: str,
+        profile: str,
+        reason: str,
+        strength_bonus: int,
+        probability_floor: float,
+    ) -> None:
+        """把专属 playbook detector 的结果写回信号。"""
+        extra = dict(getattr(signal, "extra", {}) or {})
+        extra["playbook_hint"] = playbook_id
+        extra["playbook_profile"] = profile
+        extra["detector_source"] = "special_playbook_detector"
+        extra["detector_reason"] = reason
+        signal.extra = extra
+        signal.strength = min(95, int(getattr(signal, "strength", 0) or 0) + strength_bonus)
+        signal.probability = min(0.9, max(float(getattr(signal, "probability", 0.0) or 0.0), probability_floor))
+        if reason not in signal.message:
+            signal.message = f"{signal.message} | {reason}"
+
+    def _detect_t4_wedge_pullback(
+        self,
+        signal: PASignal,
+        market_state: MarketState,
+        market_key: str,
+        candles: list[Candle],
+    ) -> bool:
+        """T4：趋势中的楔形回调，显式标注为 continuation playbook。"""
+        signal_type = str(getattr(signal, "signal_type", "") or "")
+        direction = str(getattr(signal, "direction", "") or "")
+        extra = dict(getattr(signal, "extra", {}) or {})
+        if signal_type not in {"楔形底", "楔形顶"}:
+            return False
+        if not self._trend_aligned_direction(market_key, direction):
+            return False
+        if market_key not in {"strong_trend_bull", "strong_trend_bear", "weak_trend_bull", "weak_trend_bear"}:
+            return False
+        overlap = CycleIdentifier._overlap_ratio(candles[-10:]) if len(candles) >= 10 else 0.0
+        pullback_ratio = float(extra.get("pullback_ratio", getattr(market_state, "pullback_ratio", 0.0)) or 0.0)
+        if pullback_ratio > 0.75:
+            return False
+        if overlap >= 0.58 and market_key in {"strong_trend_bull", "strong_trend_bear"}:
+            return False
+        self._annotate_special_playbook(
+            signal,
+            playbook_id=WEDGE_PULLBACK_PLAYBOOK,
+            profile="t4_wedge_pullback",
+            reason="T4 楔形回调：趋势中三推回调且动能减弱",
+            strength_bonus=8,
+            probability_floor=0.68,
+        )
+        return True
+
+    def _detect_r3_channel_line_bo_fade(
+        self,
+        signal: PASignal,
+        market_state: MarketState,
+        market_key: str,
+        candles: list[Candle],
+    ) -> bool:
+        """R3：通道线末端 BO 失败后的 swing reversal。"""
+        signal_type = str(getattr(signal, "signal_type", "") or "")
+        direction = str(getattr(signal, "direction", "") or "")
+        if market_key not in {"strong_trend_bull", "strong_trend_bear", "weak_trend_bull", "weak_trend_bear"}:
+            return False
+        if self._trend_aligned_direction(market_key, direction):
+            return False
+        if str(getattr(market_state, "channel_type", "") or "") == "none":
+            return False
+        if signal_type not in {"急速通道", "末端旗形", "双重顶", "双重底", "楔形顶", "楔形底"}:
+            return False
+        if not self._trendline_break_confirmed(candles, direction):
+            return False
+        if not self._late_channel_breakout_failed(candles, direction):
+            return False
+        self._annotate_special_playbook(
+            signal,
+            playbook_id=CHANNEL_LINE_FADE_PLAYBOOK,
+            profile="r3_channel_line_bo_fade",
+            reason="R3 通道线突破失败：末端 BO 缺乏 FT，按 70% swing reversal 处理",
+            strength_bonus=9,
+            probability_floor=0.7,
+        )
+        return True
+
+    def _detect_tr4_daily_tr_fade(
+        self,
+        signal: PASignal,
+        market_state: MarketState,
+        market_key: str,
+    ) -> bool:
+        """TR4：Daily TR 中昨日大 K 收极端，今日早盘反做。"""
+        signal_type = str(getattr(signal, "signal_type", "") or "")
+        direction = str(getattr(signal, "direction", "") or "")
+        timeframe = str(getattr(signal, "timeframe", "") or "")
+        extra = dict(getattr(signal, "extra", {}) or {})
+        if timeframe != "5m" or market_key not in {"tight_range", "broad_range"}:
+            return False
+        if int(extra.get("session_bar_index", -1) or -1) > 12:
+            return False
+        if str(extra.get("daily_tr_fade_bias", "") or "").upper() != direction:
+            return False
+        if not self._directional_reversal_label(signal_type, direction):
+            return False
+        self._annotate_special_playbook(
+            signal,
+            playbook_id=DAILY_TR_FADE_PLAYBOOK,
+            profile="tr4_daily_tr_fade",
+            reason="TR4 日线 TR 反做：昨日大 K 收极端，今日早盘按 opening reversal fade",
+            strength_bonus=8,
+            probability_floor=0.67,
+        )
+        return True
+
+    def _detect_s1_htf_sr_reversal(self, signal: PASignal) -> bool:
+        """S1：高级别关键位上的小周期反转确认。"""
+        signal_type = str(getattr(signal, "signal_type", "") or "")
+        direction = str(getattr(signal, "direction", "") or "")
+        timeframe = str(getattr(signal, "timeframe", "") or "")
+        extra = dict(getattr(signal, "extra", {}) or {})
+        if timeframe not in {"5m", "15m"}:
+            return False
+        if str(extra.get("htf_sr_bias", "") or "").upper() != direction:
+            return False
+        if not self._directional_reversal_label(signal_type, direction):
+            return False
+        price = float(getattr(signal, "price", 0.0) or 0.0)
+        threshold = price * 0.006 if price > 0 else 0.0
+        levels = []
+        if direction == "BUY":
+            levels = [
+                float(extra.get("htf_support_level", 0.0) or 0.0),
+                float(extra.get("daily_prev_low", 0.0) or 0.0),
+            ]
+            confluence = sum(1 for level in levels if level > 0 and 0 <= price - level <= threshold)
+        else:
+            levels = [
+                float(extra.get("htf_resistance_level", 0.0) or 0.0),
+                float(extra.get("daily_prev_high", 0.0) or 0.0),
+            ]
+            confluence = sum(1 for level in levels if level > 0 and 0 <= level - price <= threshold)
+        if confluence <= 0:
+            return False
+        self._annotate_special_playbook(
+            signal,
+            playbook_id=HTF_SR_REVERSAL_PLAYBOOK,
+            profile="s1_htf_sr_reversal",
+            reason=f"S1 高级别 S/R 反转：{confluence} 个 HTF 关键位在当前价附近重合",
+            strength_bonus=7,
+            probability_floor=0.65,
+        )
+        return True
+
+    def _detect_s2_micro_channel_reversal(self, signal: PASignal) -> bool:
+        """S2：Daily 微通道首次破坏后的反转。"""
+        signal_type = str(getattr(signal, "signal_type", "") or "")
+        direction = str(getattr(signal, "direction", "") or "")
+        timeframe = str(getattr(signal, "timeframe", "") or "")
+        extra = dict(getattr(signal, "extra", {}) or {})
+        if timeframe not in {"5m", "15m"}:
+            return False
+        if str(extra.get("daily_micro_channel_bias", "") or "").upper() != direction:
+            return False
+        if not self._directional_reversal_label(signal_type, direction):
+            return False
+        self._annotate_special_playbook(
+            signal,
+            playbook_id=MICRO_CHANNEL_REVERSAL_PLAYBOOK,
+            profile="s2_micro_channel_reversal",
+            reason="S2 微通道反转：Daily 微通道被前日极值外破坏后，小周期出现确认",
+            strength_bonus=7,
+            probability_floor=0.66,
+        )
+        return True
+
+    def _apply_special_playbook_detectors(
+        self,
+        signals: list[PASignal],
+        market_state: MarketState,
+        market_key: str,
+        candles: list[Candle],
+    ) -> list[PASignal]:
+        """把后置重分类改成显式专属 detector 标注层。"""
+        annotated: list[PASignal] = []
+        for signal in signals:
+            matched = (
+                self._detect_r3_channel_line_bo_fade(signal, market_state, market_key, candles)
+                or self._detect_t4_wedge_pullback(signal, market_state, market_key, candles)
+                or self._detect_tr4_daily_tr_fade(signal, market_state, market_key)
+                or self._detect_s1_htf_sr_reversal(signal)
+                or self._detect_s2_micro_channel_reversal(signal)
+            )
+            if matched:
+                logger.debug(
+                    "Special playbook detector matched %s %s %s -> %s",
+                    signal.symbol,
+                    signal.timeframe,
+                    signal.signal_type,
+                    (getattr(signal, "extra", {}) or {}).get("playbook_hint"),
+                )
+            annotated.append(signal)
+        return annotated
+
     def _annotate_state_first_context(
         self,
         signal: PASignal,
@@ -2570,6 +2849,8 @@ class PASignalEngine(BaseEngine):
             extra["signal_timeframe"] = timeframe
             extra.update(extended_playbook_context)
             sig.extra = extra
+
+        signals = self._apply_special_playbook_detectors(signals, market_state, v5_market_state, candles)
 
         # 生成层先按 Brooks 状态做 playbook 预筛选，避免 TR / Broad Channel
         # 先生成趋势单，再全部扔给后置路由去裁掉。

@@ -167,7 +167,7 @@
 
 ## 三、当前最明确的 5 个断点
 
-### 1. `T4 / R3 / TR4 / S1 / S2` 已能独立路由，但仍主要依赖共享 detector + 上下文重分类
+### 1. `T4 / R3 / TR4 / S1 / S2` 已具备独立路由、专属 detector 标注和管理 profile
 
 当前这些 playbook 已经有独立 `playbook_id`：
 
@@ -180,7 +180,8 @@
 结果：
 
 - 它们已经进入 live 与权威回测主链，不再是“缺失策略”。
-- 但它们现在更多是“已有信号 + Brooks 上下文”的独立路由，不是完全专属 detector。
+- `pa_engine` 现在会显式写入 `playbook_hint / playbook_profile / detector_reason`。
+- 回测链也已给这 5 个 playbook 分配独立管理模板，而不是继续并到通用 `brooks_swing`。
 
 ### 2. `iii突破` 已纳入过滤与路由，但还缺专属策略经验沉淀
 
@@ -258,7 +259,7 @@
 
 优先级从高到低：
 
-1. 为 `T4 / R3 / TR4 / S1 / S2` 建立专属 detector / profile / 报告标签，而不是继续只靠上下文重分类。
+1. 为 `T4 / R3 / TR4 / S1 / S2` 补齐报告标签和长期统计维度。
 2. 为 `iii突破` 和 `LOY突破` 建立独立的 profile 经验与统计口径，而不是只挂在 breakout chase 家族下面。
 3. 决定 `急赴磁体` 是彻底从策略集合剔除，还是在报告层显式标成“上下文，不可执行”。
 4. 清理 `20均线缺口` / `MAG 20/20 Setup` 这类旧命名，统一到当前 live 命名体系。

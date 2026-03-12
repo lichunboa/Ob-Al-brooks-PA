@@ -22,6 +22,7 @@ from .exits import (
     calculate_take_profit_adjustment,
     calculate_trailing_sl,
 )
+from .followup import build_followup_open_plan
 
 
 def _build_action(action_type: str, symbol: str, reason: str, **params: Any) -> dict[str, Any]:
@@ -92,6 +93,7 @@ def _scale_in_open_action(
     *,
     premise_valid: bool,
     confidence: str,
+    strength_signals: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """当上游已经给出明确 add-on / re-entry 计划时，统一输出 OPEN_ORDER。"""
     if not premise_valid or confidence == "低":
@@ -112,6 +114,14 @@ def _scale_in_open_action(
         snapshot.get("planned_trade"),
     ]
     plan = next((item for item in plan_candidates if isinstance(item, dict) and item), {})
+    if not plan:
+        plan = build_followup_open_plan(
+            position,
+            market_data,
+            premise_valid=premise_valid,
+            confidence=confidence,
+            strength_signals=strength_signals,
+        )
     intent = str(plan.get("intent", "") or "").upper()
     if intent not in {"ADD_ON", "SCALE_IN", "PYRAMID_ADD", "REENTER", "REENTRY"}:
         return []
@@ -250,6 +260,7 @@ def manage_position(position: dict[str, Any], market_data: dict[str, Any]) -> di
             market_data,
             premise_valid=True,
             confidence=strength["confidence"],
+            strength_signals=strength.get("signals"),
         )
     )
 

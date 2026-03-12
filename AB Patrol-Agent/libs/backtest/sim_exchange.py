@@ -18,6 +18,19 @@ from .models import PendingOrder, Trade
 # 周期缩放因子（基于 5m = 1）
 TF_SCALE = {"1m": 0.2, "5m": 1, "15m": 3, "30m": 6, "1h": 12}
 _RUNTIME_POSITION_MANAGER = None
+BROOKS_MANAGED_STYLES = {
+    "brooks_swing",
+    "brooks_breakout",
+    "brooks_hs_reversal",
+    "brooks_dt_db_reversal",
+    "brooks_wedge_reversal",
+    "brooks_t4_wedge_pullback",
+    "brooks_r3_channel_line_fade",
+    "brooks_tr4_daily_tr_fade",
+    "brooks_s1_htf_sr_reversal",
+    "brooks_s2_micro_channel",
+}
+BROOKS_REENTRY_STYLES = BROOKS_MANAGED_STYLES | {"brooks_tr_blshs"}
 
 
 class SimExchange:
@@ -96,13 +109,7 @@ class SimExchange:
             closed = False
 
             # 默认模板保留老逻辑；Brooks swing / reversal 交给 2R/3R 分批和结构保护。
-            if trade.management_style not in {
-                "brooks_swing",
-                "brooks_breakout",
-                "brooks_hs_reversal",
-                "brooks_dt_db_reversal",
-                "brooks_wedge_reversal",
-            }:
+            if trade.management_style not in BROOKS_MANAGED_STYLES:
                 be_trigger = self._breakeven_trigger(trade.management_style)
                 if trade.direction == "BUY":
                     unrealized = candle.high - trade.entry_price
@@ -148,6 +155,16 @@ class SimExchange:
                 base_zbar = 24
             elif trade.management_style == "brooks_dt_db_reversal":
                 base_zbar = 18
+            elif trade.management_style == "brooks_t4_wedge_pullback":
+                base_zbar = 24
+            elif trade.management_style == "brooks_r3_channel_line_fade":
+                base_zbar = 22
+            elif trade.management_style == "brooks_tr4_daily_tr_fade":
+                base_zbar = 12
+            elif trade.management_style == "brooks_s1_htf_sr_reversal":
+                base_zbar = 26
+            elif trade.management_style == "brooks_s2_micro_channel":
+                base_zbar = 24
             elif trade.management_style == "brooks_wedge_reversal":
                 base_zbar = 16
             elif trade.management_style == "brooks_breakout":
@@ -580,7 +597,7 @@ class SimExchange:
             return True
 
         if (
-            trade.management_style == "brooks_tr_blshs"
+            trade.management_style in {"brooks_tr_blshs", "brooks_tr4_daily_tr_fade"}
             and trade.bars_held >= max(3, int(3 * scale))
             and strength_score <= 1
             and profit_r < 0.20
@@ -763,13 +780,7 @@ class SimExchange:
     def _check_stop_target_hits(self, trade: Trade, candle) -> tuple[float, str]:
         """检测当前 K 线是否先触发止损或最终止盈。"""
         allow_fixed_tp = not (
-            trade.management_style in {
-                "brooks_swing",
-                "brooks_breakout",
-                "brooks_hs_reversal",
-                "brooks_dt_db_reversal",
-                "brooks_wedge_reversal",
-            }
+            trade.management_style in BROOKS_MANAGED_STYLES
             and not trade.tp2_done
         )
 
@@ -830,6 +841,16 @@ class SimExchange:
             return {"tp1_r": 2.0, "tp2_r": 3.2, "protect1_r": 0.75, "protect2_r": 1.75, "trail_r": 1.1}
         if management_style == "brooks_dt_db_reversal":
             return {"tp1_r": 1.25, "tp2_r": 2.0, "protect1_r": 0.25, "protect2_r": 1.0, "trail_r": 0.85}
+        if management_style == "brooks_t4_wedge_pullback":
+            return {"tp1_r": 1.6, "tp2_r": 2.8, "protect1_r": 0.6, "protect2_r": 1.6, "trail_r": 1.0}
+        if management_style == "brooks_r3_channel_line_fade":
+            return {"tp1_r": 1.4, "tp2_r": 2.6, "protect1_r": 0.4, "protect2_r": 1.4, "trail_r": 0.95}
+        if management_style == "brooks_tr4_daily_tr_fade":
+            return {"tp1_r": 1.0, "tp2_r": 1.8, "protect1_r": 0.25, "protect2_r": 0.9, "trail_r": 0.7}
+        if management_style == "brooks_s1_htf_sr_reversal":
+            return {"tp1_r": 1.8, "tp2_r": 3.0, "protect1_r": 0.6, "protect2_r": 1.7, "trail_r": 1.1}
+        if management_style == "brooks_s2_micro_channel":
+            return {"tp1_r": 1.6, "tp2_r": 2.8, "protect1_r": 0.5, "protect2_r": 1.5, "trail_r": 1.0}
         if management_style == "brooks_wedge_reversal":
             return {"tp1_r": 1.0, "tp2_r": 1.8, "protect1_r": 0.2, "protect2_r": 0.9, "trail_r": 0.75}
         if management_style == "brooks_swing":
@@ -907,6 +928,16 @@ class SimExchange:
     def _get_max_bars(self, trade: Trade) -> int:
         """根据策略类型返回最大持仓K线数"""
         strategy = trade.strategy
+        if trade.management_style == "brooks_t4_wedge_pullback":
+            return max(self.max_holding_bars, 72)
+        if trade.management_style == "brooks_r3_channel_line_fade":
+            return max(self.max_holding_bars, 84)
+        if trade.management_style == "brooks_tr4_daily_tr_fade":
+            return max(self.max_holding_bars, 36)
+        if trade.management_style == "brooks_s1_htf_sr_reversal":
+            return max(self.max_holding_bars, 96)
+        if trade.management_style == "brooks_s2_micro_channel":
+            return max(self.max_holding_bars, 84)
         if trade.management_style == "brooks_swing":
             return max(self.max_holding_bars, 96)
         if trade.management_style == "brooks_hs_reversal":
@@ -933,6 +964,16 @@ class SimExchange:
         """不同管理模板的保本触发倍数。"""
         if management_style == "brooks_hs_reversal":
             return 0.8
+        if management_style == "brooks_t4_wedge_pullback":
+            return 0.8
+        if management_style == "brooks_r3_channel_line_fade":
+            return 0.75
+        if management_style == "brooks_tr4_daily_tr_fade":
+            return 0.55
+        if management_style == "brooks_s1_htf_sr_reversal":
+            return 0.9
+        if management_style == "brooks_s2_micro_channel":
+            return 0.8
         if management_style in {"brooks_dt_db_reversal", "brooks_wedge_reversal", "brooks_tr_blshs"}:
             return 0.6
         if management_style in {"brooks_swing", "brooks_breakout"}:
@@ -942,13 +983,7 @@ class SimExchange:
     @staticmethod
     def _scalp_exit_enabled(management_style: str) -> bool:
         """Brooks swing / reversal / breakout 默认让利润跑，不做过早 scalp。"""
-        return management_style not in {
-            "brooks_swing",
-            "brooks_breakout",
-            "brooks_hs_reversal",
-            "brooks_dt_db_reversal",
-            "brooks_wedge_reversal",
-        }
+        return management_style not in BROOKS_MANAGED_STYLES
 
     def match_reentry(self, signal) -> dict | None:
         """检查当前信号是否满足同方向重入条件。"""
@@ -984,13 +1019,7 @@ class SimExchange:
         if trade.reentry_attempt >= 1:
             self.reentry_watch.pop(trade.symbol, None)
             return
-        if trade.management_style not in {
-            "brooks_swing",
-            "brooks_hs_reversal",
-            "brooks_dt_db_reversal",
-            "brooks_wedge_reversal",
-            "brooks_tr_blshs",
-        }:
+        if trade.management_style not in BROOKS_REENTRY_STYLES:
             return
         self.reentry_watch[trade.symbol] = {
             "direction": trade.direction,

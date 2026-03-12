@@ -35,6 +35,7 @@ from trading.market.playbook_router import (
     infer_htf_sr_bias,
     resolve_playbook_context,
 )
+from trading.position_management.followup import annotate_followup_signal
 
 from .cycle_identifier import BACKTEST_STRATEGY_MATRIX, CycleIdentifier, classify_backtest_market_state
 from .data_loader import DataLoader
@@ -401,11 +402,12 @@ class BacktestRunner:
                 event.extra = extra
 
                 reentry_ctx = exchange.match_reentry(event)
-                if reentry_ctx:
-                    extra = dict(getattr(event, "extra", {}) or {})
-                    extra["reentry_candidate"] = True
-                    extra["reentry_attempt"] = int(reentry_ctx.get("next_attempt", 1) or 1)
-                    event.extra = extra
+                existing_trade = next((trade for trade in exchange.open_trades if trade.symbol == event.symbol), None)
+                annotate_followup_signal(
+                    event,
+                    existing_trade=existing_trade,
+                    reentry_context=reentry_ctx,
+                )
 
                 # === Al Brooks: 信号棒质量综合评估 ===
                 # 只保留价格行为自己的信号棒质量，不再叠加 RSI/OBV/Wyckoff 外围前置层。
@@ -456,6 +458,7 @@ class BacktestRunner:
                         timeframe=str(getattr(event, "timeframe", "") or ""),
                         entry_type=str(getattr(event, "entry_type", "STOP") or "STOP"),
                         route_style=str((getattr(event, "extra", {}) or {}).get("route_style", "") or ""),
+                        playbook_id=str((getattr(event, "extra", {}) or {}).get("playbook_id", "") or ""),
                     )
                 )
                 if score < score_floor:
@@ -2325,6 +2328,29 @@ class BacktestRunner:
             stop_mult, target_mult = 1.0, 3.0
             if risk_pct > 1.8:
                 return False
+        elif style == "brooks_t4_wedge_pullback":
+            # T4 是趋势中的三推回调，允许比普通 reversal 多留一些 swing 空间。
+            stop_mult, target_mult = 1.0, 4.6
+            if risk_pct > 1.9:
+                return False
+        elif style == "brooks_r3_channel_line_fade":
+            # R3 默认按 70% swing reversal 管，不再压成普通楔形反转。
+            stop_mult, target_mult = 1.0, 4.2
+            if risk_pct > 1.9:
+                return False
+        elif style == "brooks_tr4_daily_tr_fade":
+            # TR4 仍在 TR 家族内，先保守拿到区间中部。
+            stop_mult, target_mult = 1.0, 2.1
+            if risk_pct > 1.5:
+                return False
+        elif style == "brooks_s1_htf_sr_reversal":
+            stop_mult, target_mult = 1.0, 5.2
+            if risk_pct > 2.2:
+                return False
+        elif style == "brooks_s2_micro_channel":
+            stop_mult, target_mult = 1.0, 4.8
+            if risk_pct > 1.9:
+                return False
         elif style == "brooks_wedge_reversal":
             # 楔形/高潮后的第一腿多数先按保守 reversal 处理。
             stop_mult, target_mult = 1.0, 2.4
@@ -2356,12 +2382,26 @@ class BacktestRunner:
         recommended_target = float(extra.get("recommended_target", 0.0) or 0.0)
         if recommended_target > 0:
             if event.direction == "BUY" and recommended_target > event.price:
-                if style in {"brooks_tr_blshs", "brooks_scalp", "brooks_dt_db_reversal", "brooks_wedge_reversal"}:
+                if style in {
+                    "brooks_tr_blshs",
+                    "brooks_scalp",
+                    "brooks_dt_db_reversal",
+                    "brooks_wedge_reversal",
+                    "brooks_tr4_daily_tr_fade",
+                    "brooks_r3_channel_line_fade",
+                }:
                     event.take_profit = min(event.take_profit, recommended_target)
                 elif recommended_target < event.take_profit:
                     event.take_profit = recommended_target
             elif event.direction == "SELL" and recommended_target < event.price:
-                if style in {"brooks_tr_blshs", "brooks_scalp", "brooks_dt_db_reversal", "brooks_wedge_reversal"}:
+                if style in {
+                    "brooks_tr_blshs",
+                    "brooks_scalp",
+                    "brooks_dt_db_reversal",
+                    "brooks_wedge_reversal",
+                    "brooks_tr4_daily_tr_fade",
+                    "brooks_r3_channel_line_fade",
+                }:
                     event.take_profit = max(event.take_profit, recommended_target)
                 elif recommended_target > event.take_profit:
                     event.take_profit = recommended_target

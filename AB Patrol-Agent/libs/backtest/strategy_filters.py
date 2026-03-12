@@ -228,12 +228,18 @@ def classify_management_style(
         }:
             return "brooks_tr_blshs"
 
-    if playbook_key in {"R1_BROAD_CHANNEL_REVERSAL", CHANNEL_LINE_FADE_PLAYBOOK}:
+    if playbook_key == CHANNEL_LINE_FADE_PLAYBOOK:
+        return "brooks_r3_channel_line_fade"
+    if playbook_key == "R1_BROAD_CHANNEL_REVERSAL":
         return "brooks_wedge_reversal"
-    if playbook_key in {DAILY_TR_FADE_PLAYBOOK, HTF_SR_REVERSAL_PLAYBOOK, MICRO_CHANNEL_REVERSAL_PLAYBOOK}:
-        return "brooks_swing"
+    if playbook_key == DAILY_TR_FADE_PLAYBOOK:
+        return "brooks_tr4_daily_tr_fade"
+    if playbook_key == HTF_SR_REVERSAL_PLAYBOOK:
+        return "brooks_s1_htf_sr_reversal"
+    if playbook_key == MICRO_CHANNEL_REVERSAL_PLAYBOOK:
+        return "brooks_s2_micro_channel"
     if playbook_key == WEDGE_PULLBACK_PLAYBOOK:
-        return "brooks_swing"
+        return "brooks_t4_wedge_pullback"
 
     if label in {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"}:
         return "brooks_scalp"
@@ -259,6 +265,7 @@ def management_score_floor(
     timeframe: str = "",
     entry_type: str = "STOP",
     route_style: str = "",
+    playbook_id: str = "",
 ) -> int:
     """不同管理模板下的最低分要求。"""
     style = classify_management_style(
@@ -269,6 +276,7 @@ def management_score_floor(
         timeframe=timeframe,
         entry_type=entry_type,
         route_style=route_style,
+        playbook_id=playbook_id,
     )
     if management_profile != "brooks_pdf":
         return 0
@@ -280,6 +288,16 @@ def management_score_floor(
         if timeframe == "5m":
             return 63
         return 61
+    if style == "brooks_t4_wedge_pullback":
+        return 64 if timeframe == "5m" else 62
+    if style == "brooks_r3_channel_line_fade":
+        return 68 if timeframe == "5m" else 65
+    if style == "brooks_tr4_daily_tr_fade":
+        return 57
+    if style == "brooks_s1_htf_sr_reversal":
+        return 62 if timeframe == "5m" else 60
+    if style == "brooks_s2_micro_channel":
+        return 63 if timeframe == "5m" else 61
     if style == "brooks_wedge_reversal":
         if timeframe == "5m":
             return 66

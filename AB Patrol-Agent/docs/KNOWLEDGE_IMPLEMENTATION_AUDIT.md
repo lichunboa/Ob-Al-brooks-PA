@@ -25,7 +25,7 @@
   - 负责信号检测、状态优先预筛、playbook 路由
 - `S4` 的 15 个 playbook
   - 已全部具备独立 `playbook_id`
-  - 其中 `T4/R3/TR4/S1/S2` 当前是“基于已有信号 + 上下文”的独立路由，不是全新 detector
+  - 其中 `T4/R3/TR4/S1/S2` 已新增专属 detector 标注层，会在 `pa_engine` 内显式写入 `playbook_hint / playbook_profile / detector_reason`
 - `S7` 的核心持仓管理
   - 已落到 `trading/position_management/`
   - 当前已实现 `Premise Check / Strength Check / Partial Close / Take Profit Update / Trailing Stop`
@@ -37,7 +37,7 @@
 
 这些不是“完全没有”，而是“只做了核心子集”。
 
-### 1. `S7` 已有统一动作层，但加仓/重入仍主要依赖显式计划输入
+### 1. `S7` 已有统一动作层，add-on / re-entry 已接入共享 follow-up 语义
 
 当前 `trading/position_management/manager.py` 已能统一输出：
 
@@ -52,14 +52,15 @@
 
 - `MODIFY_TAKE_PROFIT` 已通过目标磁体路由统一纳入主管理器
 - `CANCEL_ALL_ORDERS` 已支持显式失效/过期/错误加仓场景下的统一撤单
-- `OPEN_ORDER` 已支持显式 `add_on_plan / scale_in_plan / reentry_plan` 输入
-- 回测侧的 `libs/backtest/sim_exchange.py` 已经有 `winner scaling` 和 `re-entry` 观察窗口
-- 但 live 主链还没有把“什么时候生成 add-on / re-entry 显式计划”完全中心化
+- `OPEN_ORDER` 仍支持显式 `add_on_plan / scale_in_plan / reentry_plan` 输入
+- live 主链现在会在 `trading/position_management/followup.py` 内自动生成 `winner scaling` 计划
+- 权威回测链现在也会通过同一 helper 把事件标成 `ADD_ON / PYRAMID_ADD / REENTRY`
 
 结论：
 
 - **S7 的统一动作语义已经落到主管理器**
-- **S7 的自动加仓/自动重入计划生成仍未完全中心化**
+- **S7 的 add-on / re-entry 语义已共享到 live 与回测主链**
+- **live 侧自动生成的是 add-on；re-entry 仍主要由回测观察窗口和显式计划输入驱动**
 
 ### 2. `SKILL Step 3` 的两阶段扫描不是 100% 硬编码闭环
 
@@ -179,13 +180,13 @@
 - `S2-S6` 的入场与路由主干已经落地
 - `S4` 的 15 个 playbook 已具备独立路由标签
 - `S7` 的持仓保护与动作语义已落地
-- `S7` 的自动加仓/自动重入计划生成还没完全中心化
+- `S7` 的 follow-up 计划生成已中心化到共享 helper，但 live 侧的 re-entry 仍不是独立扫描入口
 - 仓库里仍有一批非 Brooks 指标规则模块，但已不属于当前 PA 主链
 
 ## 六、下一步建议
 
 优先级从高到低：
 
-1. 把 add-on / re-entry 的计划生成也收进统一主链，而不只是支持显式计划执行
+1. 把 live 侧的 re-entry 也补成独立扫描入口，而不只是回测观察窗口 / 显式计划
 2. 把 `execution_semantics / brooks_analysis / event_detection` 的状态语义再合并一层
 3. 明确隔离 `services/signal-service/src/rules/*`，避免后续又把指标规则混回 PA 主链

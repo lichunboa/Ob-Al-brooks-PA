@@ -10,6 +10,15 @@ CHANNEL_LINE_FADE_PLAYBOOK = "R3_CHANNEL_LINE_BO_FADE"
 DAILY_TR_FADE_PLAYBOOK = "TR4_DAILY_TR_FADE"
 HTF_SR_REVERSAL_PLAYBOOK = "S1_HTF_SR_REVERSAL"
 MICRO_CHANNEL_REVERSAL_PLAYBOOK = "S2_MICRO_CHANNEL_REVERSAL"
+PLAYBOOK_HINT_ROUTES = {
+    WEDGE_PULLBACK_PLAYBOOK: ("trend", "STOP"),
+    CHANNEL_LINE_FADE_PLAYBOOK: ("reversal", "STOP"),
+    DAILY_TR_FADE_PLAYBOOK: ("tr", "STOP"),
+    HTF_SR_REVERSAL_PLAYBOOK: ("special", "STOP"),
+    MICRO_CHANNEL_REVERSAL_PLAYBOOK: ("special", "STOP"),
+    "TR2_FAILED_BO_FADE": ("tr", "STOP"),
+    "TR3_SECOND_LEG_TRAP": ("tr", "STOP"),
+}
 
 CHANNEL_FIRST_PULLBACK_SIGNALS = {"高1", "低1"}
 CHANNEL_RECOVERY_SIGNALS = {"高2", "低2", "突破回调"}
@@ -314,6 +323,11 @@ def resolve_playbook_context(
     route_extra = dict(extra or {})
     route_direction = str(direction or _infer_signal_direction(label) or "").upper()
     route_timeframe = str(route_extra.get("signal_timeframe") or route_extra.get("timeframe") or "5m")
+    playbook_hint = str(route_extra.get("playbook_hint") or "").strip()
+
+    if playbook_hint in PLAYBOOK_HINT_ROUTES:
+        playbook_family, order_bias = PLAYBOOK_HINT_ROUTES[playbook_hint]
+        return playbook_hint, playbook_family, order_bias
 
     if _is_daily_tr_fade(label, route_direction, route_timeframe, route_extra):
         return DAILY_TR_FADE_PLAYBOOK, "tr", "STOP"
