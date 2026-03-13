@@ -2,7 +2,11 @@
   "binance": {
     "crypto": [
       "BTCUSDT",
-      "SOLUSDT"
+      "ETHUSDT",
+      "BNBUSDT",
+      "SOLUSDT",
+      "XRPUSDT",
+      "ADAUSDT"
     ]
   },
   "okx": {
@@ -23,23 +27,16 @@
       "GBPUSD",
       "USDJPY",
       "AUDUSD",
-      "USDCAD",
-      "NZDUSD",
       "USDCHF",
-      "EURGBP",
-      "EURJPY",
-      "GBPJPY"
+      "USDCAD"
     ],
     "metals": [
       "XAUUSD",
       "XAGUSD"
     ],
     "indices": [
-      "US 30",
       "US 500",
-      "US TECH 100",
-      "GERMANY 40",
-      "UK 100"
+      "US TECH 100"
     ]
   }
 }

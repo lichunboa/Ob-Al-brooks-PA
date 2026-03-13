@@ -239,7 +239,13 @@ class PatrolRuntime(
         symbols_config = load_json(self.config.agent_root / "config" / "symbols.json", {})
         exchange = self.configured_exchange()
         if exchange == "ctrader":
-            return ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "US 30", "US TECH 100"]
+            ctrader_config = symbols_config.get("ctrader") if isinstance(symbols_config.get("ctrader"), dict) else {}
+            symbols = [
+                *list(ctrader_config.get("forex") or []),
+                *list(ctrader_config.get("indices") or []),
+                *list(ctrader_config.get("metals") or []),
+            ]
+            return symbols[:10] or ["EURUSD", "GBPUSD", "USDJPY", "US 500", "US TECH 100", "XAUUSD", "XAGUSD"]
         if exchange == "okx":
             return list(((symbols_config.get("okx") or {}).get("crypto_swap") or []))[:6] or [
                 "BTC-USDT-SWAP",
@@ -248,6 +254,8 @@ class PatrolRuntime(
             ]
         return list(((symbols_config.get("binance") or {}).get("crypto") or []))[:6] or [
             "BTCUSDT",
+            "ETHUSDT",
+            "BNBUSDT",
             "SOLUSDT",
         ]
 

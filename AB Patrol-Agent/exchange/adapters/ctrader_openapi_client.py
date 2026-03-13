@@ -57,6 +57,7 @@ QUOTE_TTL_SECONDS = 15
 TREND_BAR_PRICE_SCALE = 100000.0
 READ_RETRY_ATTEMPTS = 2
 READ_RETRY_BACKOFF_SECONDS = 0.35
+SESSION_IDLE_RECONNECT_SECONDS = 25
 
 
 @dataclass(slots=True)
@@ -167,6 +168,10 @@ class CTraderOpenAPIClient:
         """确保 socket 已连接且账号已认证。"""
         with self._lock:
             if self._authenticated and self._socket is not None:
+                idle_seconds = time.time() - self._last_activity if self._last_activity else 0.0
+                if idle_seconds >= SESSION_IDLE_RECONNECT_SECONDS:
+                    logger.info("cTrader 连接空闲 %.1fs，主动重连", idle_seconds)
+                    self._reconnect_locked()
                 return
             self._reconnect_locked()
 
@@ -283,51 +288,57 @@ class CTraderOpenAPIClient:
         label: str = "",
     ) -> dict[str, Any]:
         """提交订单。"""
-        meta = self.get_symbol_meta(symbol)
-        volume = self.quantity_to_volume(symbol, quantity)
-        if volume <= 0:
-            return self._error_result("无效下单数量")
+        def _submit_once() -> dict[str, Any]:
+            meta = self.get_symbol_meta(symbol)
+            volume = self.quantity_to_volume(symbol, quantity)
+            if volume <= 0:
+                return self._error_result("无效下单数量")
 
-        request = ProtoOANewOrderReq(
-            ctidTraderAccountId=self.account_id,
-            symbolId=meta.symbol_id,
-            orderType=self._map_order_type(order_type),
-            tradeSide=self._map_trade_side(side),
-            volume=volume,
-            label=label,
-            comment=comment,
-        )
-        if price is not None:
-            if order_type.upper() == "LIMIT":
-                request.limitPrice = float(price)
-            elif order_type.upper() in {"STOP", "STOP_MARKET"}:
-                request.stopPrice = float(price)
-        if stop_loss is not None:
-            request.stopLoss = float(stop_loss)
-        if take_profit is not None:
-            request.takeProfit = float(take_profit)
+            request = ProtoOANewOrderReq(
+                ctidTraderAccountId=self.account_id,
+                symbolId=meta.symbol_id,
+                orderType=self._map_order_type(order_type),
+                tradeSide=self._map_trade_side(side),
+                volume=volume,
+                label=label,
+                comment=comment,
+            )
+            if price is not None:
+                if order_type.upper() == "LIMIT":
+                    request.limitPrice = float(price)
+                elif order_type.upper() in {"STOP", "STOP_MARKET"}:
+                    request.stopPrice = float(price)
+            if stop_loss is not None:
+                request.stopLoss = float(stop_loss)
+            if take_profit is not None:
+                request.takeProfit = float(take_profit)
 
-        with self._lock:
-            response = self._send_request_locked(request, timeout=20)
-        return self._parse_execution_response(response, requested_quantity=quantity)
+            with self._lock:
+                response = self._send_request_locked(request, timeout=20)
+            return self._parse_execution_response(response, requested_quantity=quantity)
+
+        return self._with_session_retry("place_order", _submit_once)
 
     def close_position(self, symbol: str, quantity: float | None = None) -> dict[str, Any]:
         """按品种平仓。"""
-        target = self._find_position(symbol)
-        if target is None:
-            return self._error_result("未找到持仓")
-        close_quantity = quantity if quantity is not None else float(target.get("quantity", 0) or 0)
-        volume = self.quantity_to_volume(str(target.get("symbol") or symbol), close_quantity)
-        if volume <= 0:
-            return self._error_result("无效平仓数量")
-        request = ProtoOAClosePositionReq(
-            ctidTraderAccountId=self.account_id,
-            positionId=int(target.get("position_id") or 0),
-            volume=volume,
-        )
-        with self._lock:
-            response = self._send_request_locked(request, timeout=20)
-        return self._parse_execution_response(response, requested_quantity=close_quantity)
+        def _close_once() -> dict[str, Any]:
+            target = self._find_position(symbol)
+            if target is None:
+                return self._error_result("未找到持仓")
+            close_quantity = quantity if quantity is not None else float(target.get("quantity", 0) or 0)
+            volume = self.quantity_to_volume(str(target.get("symbol") or symbol), close_quantity)
+            if volume <= 0:
+                return self._error_result("无效平仓数量")
+            request = ProtoOAClosePositionReq(
+                ctidTraderAccountId=self.account_id,
+                positionId=int(target.get("position_id") or 0),
+                volume=volume,
+            )
+            with self._lock:
+                response = self._send_request_locked(request, timeout=20)
+            return self._parse_execution_response(response, requested_quantity=close_quantity)
+
+        return self._with_session_retry("close_position", _close_once)
 
     def modify_position(
         self,
@@ -336,40 +347,46 @@ class CTraderOpenAPIClient:
         take_profit: float | None = None,
     ) -> dict[str, Any]:
         """修改持仓止损止盈。"""
-        target = self._find_position(symbol)
-        if target is None:
-            return {"success": False, "error": "未找到持仓"}
-        request = ProtoOAAmendPositionSLTPReq(
-            ctidTraderAccountId=self.account_id,
-            positionId=int(target.get("position_id") or 0),
-        )
-        if stop_loss is not None:
-            request.stopLoss = float(stop_loss)
-        if take_profit is not None:
-            request.takeProfit = float(take_profit)
-        with self._lock:
-            response = self._send_request_locked(request, timeout=20)
-        if isinstance(response, ProtoOAExecutionEvent):
-            return {"success": not bool(response.errorCode), "error": response.errorCode or None}
-        if isinstance(response, ProtoOAOrderErrorEvent):
-            return {"success": False, "error": response.errorCode or response.description or "modify failed"}
-        return {"success": True, "error": None}
+        def _modify_once() -> dict[str, Any]:
+            target = self._find_position(symbol)
+            if target is None:
+                return {"success": False, "error": "未找到持仓"}
+            request = ProtoOAAmendPositionSLTPReq(
+                ctidTraderAccountId=self.account_id,
+                positionId=int(target.get("position_id") or 0),
+            )
+            if stop_loss is not None:
+                request.stopLoss = float(stop_loss)
+            if take_profit is not None:
+                request.takeProfit = float(take_profit)
+            with self._lock:
+                response = self._send_request_locked(request, timeout=20)
+            if isinstance(response, ProtoOAExecutionEvent):
+                return {"success": not bool(response.errorCode), "error": response.errorCode or None}
+            if isinstance(response, ProtoOAOrderErrorEvent):
+                return {"success": False, "error": response.errorCode or response.description or "modify failed"}
+            return {"success": True, "error": None}
+
+        return self._with_session_retry("modify_position", _modify_once)
 
     def cancel_order(self, order_id: str | int) -> dict[str, Any]:
         """取消单个订单。"""
-        if not str(order_id or "").strip():
-            return {"success": False, "error": "缺少 order_id"}
-        request = ProtoOACancelOrderReq(
-            ctidTraderAccountId=self.account_id,
-            orderId=int(order_id),
-        )
-        with self._lock:
-            response = self._send_request_locked(request, timeout=20)
-        if isinstance(response, ProtoOAExecutionEvent):
-            return {"success": not bool(response.errorCode), "error": response.errorCode or None}
-        if isinstance(response, ProtoOAOrderErrorEvent):
-            return {"success": False, "error": response.errorCode or response.description or "cancel failed"}
-        return {"success": True, "error": None}
+        def _cancel_once() -> dict[str, Any]:
+            if not str(order_id or "").strip():
+                return {"success": False, "error": "缺少 order_id"}
+            request = ProtoOACancelOrderReq(
+                ctidTraderAccountId=self.account_id,
+                orderId=int(order_id),
+            )
+            with self._lock:
+                response = self._send_request_locked(request, timeout=20)
+            if isinstance(response, ProtoOAExecutionEvent):
+                return {"success": not bool(response.errorCode), "error": response.errorCode or None}
+            if isinstance(response, ProtoOAOrderErrorEvent):
+                return {"success": False, "error": response.errorCode or response.description or "cancel failed"}
+            return {"success": True, "error": None}
+
+        return self._with_session_retry("cancel_order", _cancel_once)
 
     def cancel_all_orders(self, symbol: str | None = None) -> dict[str, Any]:
         """取消全部挂单。"""
@@ -618,6 +635,10 @@ class CTraderOpenAPIClient:
 
     def _with_read_retry(self, operation_name: str, func):
         """对只读操作执行一次重连重试。"""
+        return self._with_session_retry(operation_name, func)
+
+    def _with_session_retry(self, operation_name: str, func):
+        """对连接级错误执行一次重连重试。"""
         last_exc: Exception | None = None
         for attempt in range(1, READ_RETRY_ATTEMPTS + 1):
             try:
@@ -655,6 +676,8 @@ class CTraderOpenAPIClient:
             "CONNECTION RESET",
             "CONNECTION ABORTED",
             "CONNECTION CLOSED",
+            "未连接",
+            "连接已关闭",
             "SOCKET",
             "SSL",
         )
@@ -691,7 +714,7 @@ class CTraderOpenAPIClient:
             self._socket.sendall(struct.pack("!I", len(blob)) + blob)
             self._last_activity = time.time()
             return self._receive_matching_message_locked(client_msg_id=client_msg_id, timeout=timeout)
-        except (OSError, ssl.SSLError, TimeoutError) as exc:
+        except (OSError, ssl.SSLError, TimeoutError, CTraderOpenAPIError) as exc:
             self.close()
             raise CTraderOpenAPIError(str(exc)) from exc
 

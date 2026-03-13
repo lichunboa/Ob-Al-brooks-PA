@@ -13,13 +13,14 @@
 from __future__ import annotations
 
 import concurrent.futures
+from pathlib import Path
 import time
 from typing import Any
 
 try:
-    from .utils import safe_float
+    from .utils import load_json, safe_float
 except ImportError:
-    from utils import safe_float
+    from utils import load_json, safe_float
 
 
 def scan_multiple_symbols(
@@ -169,32 +170,21 @@ def get_default_symbols(exchange: str) -> list[str]:
     Returns:
         品种列表
     """
+    agent_root = Path(__file__).resolve().parents[1]
+    symbols_config = load_json(agent_root / "config" / "symbols.json", {})
+
     if exchange == "binance":
+        return list(((symbols_config.get("binance") or {}).get("crypto") or []))[:6]
+    if exchange == "okx":
+        return list(((symbols_config.get("okx") or {}).get("crypto_swap") or []))[:6]
+    if exchange == "ctrader":
+        ctrader_config = symbols_config.get("ctrader") if isinstance(symbols_config.get("ctrader"), dict) else {}
         return [
-            "BTCUSDT",
-            "SOLUSDT",
-        ]
-    elif exchange == "okx":
-        return [
-            "BTC-USDT-SWAP",
-            "ETH-USDT-SWAP",
-            "BNB-USDT-SWAP",
-            "SOL-USDT-SWAP",
-            "XRP-USDT-SWAP",
-        ]
-    elif exchange == "ctrader":
-        return [
-            "EURUSD",
-            "GBPUSD",
-            "USDJPY",
-            "AUDUSD",
-            "USDCAD",
-            "XAUUSD",
-            "US 30",
-            "US TECH 100",
-        ]
-    else:
-        return []
+            *list(ctrader_config.get("forex") or []),
+            *list(ctrader_config.get("indices") or []),
+            *list(ctrader_config.get("metals") or []),
+        ][:10]
+    return []
 
 
 def scan_all_markets(
