@@ -45,6 +45,7 @@
 结论：
 
 - Brooks 说的是：当市场环境和信号较弱、不自信时，等 `2nd signal or strong reversal`
+- `47C` 进一步强调：在 `TR` 边缘、前一腿很强时，等待 `2nd entry` 往往比第一次 reversal 更稳妥
 - 这意味着“第二个信号”是弱环境下的更优选择
 - 但如果本来就是强信号、强反转、优势区环境，就不该被实现层写成统一的硬性否决
 
@@ -118,6 +119,9 @@
 结论：
 
 - Brooks 对前高前低、阻力支撑的处理，不是“看到 prior high / prior low 就一律不做”
+- `43B` 里他直接把两种处理拆开了：
+  - `BO: Buy prior high (close)`
+  - `Channel: Take profit at prior high, Buy PB`
 - 更准确的顺序是：
   - 弱 breakout / pullback continuation，先把前高前低当第一测试目标
   - 真正强 breakout，单个次级阻力常常会失败

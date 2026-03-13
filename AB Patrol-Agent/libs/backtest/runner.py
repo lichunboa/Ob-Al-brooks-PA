@@ -1393,6 +1393,7 @@ class BacktestRunner:
             higher_follow_through=bool(extra.get("higher_follow_through", False)),
             broke_micro_extreme=bool(signal_bar_context.get("broke_micro_extreme", False)),
             reclaimed_prior_close=bool(signal_bar_context.get("reclaimed_prior_close", False)),
+            prior_leg_context=str(extra.get("prior_leg_context", "") or ""),
         )
         target_path_clear = bool(target_plan.get("path_clear", True))
         recommended_target = float(target_plan.get("recommended_target") or 0.0)
@@ -2233,8 +2234,12 @@ class BacktestRunner:
         extra["signal_rank"] = signal_rank
         extra["signal_stage"] = "executable"
         extra["signal_stage_reason"] = "结构、目标路径与信号成熟度通过"
-        tradeable_zone = (
+        tradeable_edge = (
             BacktestRunner._range_edge_matches_direction(range_edge, direction)
+            or BacktestRunner._is_edge_zone(range_position, direction)
+        )
+        tradeable_zone = (
+            tradeable_edge
             or BacktestRunner._range_zone_matches_direction(range_zone, direction, allow_origin=True)
             or BacktestRunner._is_advantage_zone(range_position, direction)
         )
@@ -2369,6 +2374,8 @@ class BacktestRunner:
                     or failed_breakout_evidence
                     or trendline_break_confirmed
                     or bool(trapped_side)
+                    or (reclaimed_prior_close and tradeable_edge and good_signal_bar)
+                    or (acceptance_ready and executable_signal_ready and good_signal_bar)
                 )
             )
             if (
@@ -2386,9 +2393,16 @@ class BacktestRunner:
                 market_state in {"tight_range", "broad_range", "weak_trend_bull", "weak_trend_bear"}
                 or higher_market_state in {"tight_range", "broad_range", "weak_trend_bull", "weak_trend_bear"}
             )
+            h2_l2_brooks_second_entry_ready = (
+                (tradeable_zone and strong_signal_bar)
+                or (tradeable_edge and reclaimed_prior_close and good_signal_bar)
+                or (stairs_pattern and tradeable_zone and good_signal_bar)
+                or (exhaustion_detected and tradeable_zone and strong_signal_bar)
+                or (acceptance_ready and executable_signal_ready and reclaimed_prior_close and good_signal_bar)
+            )
             if (
                 range_or_weak_context
-                and prior_leg_context != "trend_leg"
+                and prior_leg_context not in {"trend_leg", "mixed"}
                 and not failed_breakout_evidence
                 and not trendline_break_confirmed
                 and not follow_through
@@ -2402,7 +2416,7 @@ class BacktestRunner:
                 and not failed_breakout_evidence
                 and not trendline_break_confirmed
                 and not second_signal_exception
-                and not (tradeable_zone and strong_signal_bar)
+                and not h2_l2_brooks_second_entry_ready
             ):
                 return block("candidate", "H2/L2 前一腿更像 TR 里的 second-leg trap，且缺少失败突破证据")
             if not target_path_clear and not (

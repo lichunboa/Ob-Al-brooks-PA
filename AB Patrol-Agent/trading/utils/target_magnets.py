@@ -285,6 +285,7 @@ def resolve_target_path(
     higher_follow_through: bool = False,
     broke_micro_extreme: bool = False,
     reclaimed_prior_close: bool = False,
+    prior_leg_context: str = "",
 ) -> dict[str, Any]:
     """根据市场状态选择更合理的目标磁体，并判断路径是否受阻。"""
     normalized_side = _normalize_side(side)
@@ -294,6 +295,7 @@ def resolve_target_path(
     risk = abs(entry_price - stop_loss)
     state_text = str(market_state or "").lower()
     route_text = str(route_style or "").lower()
+    prior_leg_text = str(prior_leg_context or "").lower()
     range_like = "tr" in str(market_state or "").upper() or "range" in state_text or "tr_blshs" in route_text
     signal_label = str(signal_type or "")
     breakout_signal_set = {
@@ -339,6 +341,7 @@ def resolve_target_path(
     breakout_chase_signal = signal_label in breakout_chase_signals
     pullback_continuation_signal = signal_label in pullback_continuation_signals
     follow_through_ready = bool(follow_through or higher_follow_through)
+    continuation_leg_context = prior_leg_text in {"trend_leg", "tr_leg", "tr_second_leg", "mixed"}
     breakout_like = (
         breakout_family_signal
         or "trend" in state_text
@@ -362,7 +365,6 @@ def resolve_target_path(
     elif pullback_continuation_signal:
         strong_breakout_context = (
             follow_through_ready
-            or (reclaimed_prior_close and signal_bar_quality >= 0.58)
             or (broke_micro_extreme and signal_bar_quality >= 0.62)
         )
         tradable_breakout_context = strong_breakout_context or (
@@ -392,6 +394,16 @@ def resolve_target_path(
         None,
     )
     non_ema_cluster = next((item for item in clusters if str(item.get("kind") or "") != "ema20"), None)
+    pullback_channel_context = pullback_continuation_signal and (
+        range_like
+        or "weak_trend" in state_text
+        or "channel" in route_text
+        or "recovery" in route_text
+        or continuation_leg_context
+    )
+    pullback_mm_ready = pullback_continuation_signal and follow_through_ready and (
+        signal_bar_quality >= 0.58 or broke_micro_extreme
+    )
 
     recommended = planned_target
     chosen_cluster = None
@@ -401,7 +413,9 @@ def resolve_target_path(
         # Brooks 里前高前低既是磁体，也是常见的第一目标。
         # 对普通 breakout，更合理的是先把单个 prior level 当测试目标；
         # 只有强突破、且已有明显 follow-through 时，才优先看更远的 measured move。
-        if prior_cluster is not None and signal_label in prior_first_breakout_signals:
+        if prior_cluster is not None and pullback_channel_context and not pullback_mm_ready:
+            chosen_cluster = prior_cluster
+        elif prior_cluster is not None and signal_label in prior_first_breakout_signals:
             chosen_cluster = prior_cluster
         elif prior_cluster is not None and pullback_continuation_signal and not strong_breakout_context:
             chosen_cluster = prior_cluster
@@ -455,12 +469,19 @@ def resolve_target_path(
             entry_price,
         ):
             continue
-        if (
-            breakout_like
-            and tradable_breakout_context
-            and str(cluster_kind or "").lower() == "prior_level"
+        single_prior_level_breakout_test = (
+            str(cluster_kind or "").lower() == "prior_level"
             and _is_single_prior_level_cluster(cluster)
-        ):
+            and (
+                (breakout_chase_signal and tradable_breakout_context)
+                or (
+                    signal_label in prior_first_breakout_signals
+                    and strong_breakout_context
+                    and not pullback_continuation_signal
+                )
+            )
+        )
+        if breakout_like and single_prior_level_breakout_test:
             # 强或可交易的 breakout 往往会先测试前高前低，单个次级阻力不该默认挡掉整笔交易。
             continue
         # Brooks 会把中线、整数位、open、EMA 当作参考磁体，但它们通常不该
