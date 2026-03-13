@@ -1046,3 +1046,64 @@ Brooks 对 `HOY / LOY` 的表述不是“突破后一定是 trap”，而是：
 1. `prior_level` 在顺势恢复链里的边界
 2. `H2/L2` 在 `TR / weak trend` 里的失败突破证据要求
 3. `second-leg trap` 与 `楔形 / 头肩 / 双顶双底` 的区分
+
+## 二十二、继续收 `prior_level` 结构簇后的复测
+
+这一步没有再引入任何按周期分叉的规则，只做了两件事：
+
+1. `pullback continuation` 只要处在 `channel / weak trend / recovery` 背景，就固定先看最近 `prior high/low`
+   - 不再因为已经有一定 `follow-through`，就先把目标跳到更远的 `measured move`
+2. `second-leg trap / H2-L2` 的 Brooks 放行边界从“严格边缘”放宽到“优势区”
+   - 但仍保留 `middle` 不做、以及 `failed breakout / trendline break / trapped side` 的核心守门
+
+复测结果：
+
+1. `BTCUSDT 5m 2022-01-24 ~ 2022-02-23`
+   - `705 -> 710` 笔
+   - `prior_level` 拦截：`88 -> 77`
+   - PF：`0.4467 -> 0.4542`
+2. `BTCUSDT 5m 2025-01-10 ~ 2025-02-09`
+   - `652 -> 666` 笔
+   - `prior_level` 拦截：`116 -> 87`
+   - PF：`0.3495 -> 0.3538`
+3. `BTCUSDT 15m 2022-01-24 ~ 2022-02-23`
+   - 维持 `98` 笔
+4. `BTCUSDT 1h 2022-01-24 ~ 2022-02-23`
+   - 维持 `8` 笔
+
+结论：
+
+1. 这次新增调整继续只影响顺势恢复链
+   - 真正变化的是 `prior_level` 结构簇误挡减少
+2. `second-leg trap` 最后守门这次没有被放穿
+   - `15m / 1h` 的交易数和主阻挡原因基本没变
+3. 当前最顽固的剩余瓶颈已经更清楚了
+   - `宽通道逆势单仍需靠近边缘或优势区`
+   - `区间/弱趋势里的 H2/L2 仍缺少失败突破或趋势线破坏证据`
+   - `宽通道反转更像 second-leg trap`
+
+## 二十三、剩余 `second-leg trap` 样本的复核
+
+我又单独抓了一批还在被 `second-leg trap` 挡住的样本，只看真实上下文，不按任何时间周期特调。
+
+结论：
+
+1. 当前剩余被挡样本，大多不是“已经很像 Brooks 反转却被误杀”
+2. 它们更常见的是：
+   - `头肩底MTR` 做 `BUY`，但位置在 `deep_top / upper_origin`
+   - `头肩顶MTR` 做 `SELL`，但位置在 `deep_bottom / bottom_advantage`
+   - `prior_leg_context = tr_second_leg`
+   - `reclaimed_prior_close = true`
+   - 但仍然没有 `failed breakout / trendline break / trapped side / stairs / exhaustion`
+
+这类样本更符合 Brooks 对 `first reversal / second-leg trap` 的描述：
+
+1. 形态名称本身不够
+   - `头肩 / 楔形 / 双顶双底` 仍然要看它处在区间的哪一边
+2. 只回到区间里，还不够
+   - 如果还在错误半区，而且没有失败突破或受困一侧，继续挡住是合理的
+
+因此，`second-leg trap` 这条最后守门当前不应该再继续硬放宽。后续如果要继续提频，更值得审的是：
+
+1. `宽通道逆势单仍需靠近边缘或优势区`
+2. `H2/L2` 的剩余失败突破证据要求

@@ -276,3 +276,40 @@
 1. `prior_level` 的顺势恢复边界
 2. `H2/L2` 在 `TR / weak trend` 里的失败突破证据要求
 3. `second-leg trap` 与 `楔形 / 头肩 / 双顶双底` 的区分
+
+## 十五、继续收 `prior_level` 结构簇后的结果
+
+这一步的 Brooks 含义很直接：
+
+1. `43B` 的 `Channel: Take profit at prior high, Buy PB`
+   - 对 `高1/低1/高2/低2/均线缺口/突破回调` 这类顺势恢复单，优先级高于“已经有点跟进，所以直接看 MM”
+2. `47C` 的 `2nd entry`
+   - 只要已经回到优势区，且 `reclaimed_prior_close + 好信号棒` 成立，就不该继续因为“还没贴到最极端边缘”而挡掉
+
+复测后：
+
+1. `BTCUSDT 5m 2022`
+   - 交易数：`705 -> 710`
+   - `prior_level` 拦截：`88 -> 77`
+   - PF：`0.4467 -> 0.4542`
+2. `BTCUSDT 5m 2025`
+   - 交易数：`652 -> 666`
+   - `prior_level` 拦截：`116 -> 87`
+   - PF：`0.3495 -> 0.3538`
+3. `BTCUSDT 15m 2022`
+   - 仍是 `98` 笔
+4. `BTCUSDT 1h 2022`
+   - 仍是 `8` 笔
+
+这说明：
+
+1. `prior_level` 结构簇确实还存在误挡
+   - 但主问题不是“所有 prior cluster 都要删”
+   - 而是顺势恢复链过去太容易越过最近 `prior high/low`，直接把目标挂到更远的 `MM`
+2. `second-leg trap` 当前最后一道守门总体还在 Brooks 范围内
+   - 因为这次把 `tradeable edge` 放宽到 `tradeable zone` 后，`15m / 1h` 仍然没有被乱放大
+3. 单独复核剩余被挡样本后，当前 `second-leg trap` 继续保留是合理的
+   - 典型样本是 `头肩底MTR BUY` 却出现在 `deep_top / upper_origin`
+   - 或 `头肩顶MTR SELL` 却出现在 `deep_bottom / bottom_advantage`
+   - 它们虽然有 `reclaimed_prior_close`，但没有 `failed breakout / trendline break / trapped side / stairs / exhaustion`
+   - 这类更像 Brooks 说的“形态名称成立，但仍只是区间里的另一条腿”

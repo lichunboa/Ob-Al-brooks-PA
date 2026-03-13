@@ -401,10 +401,6 @@ def resolve_target_path(
         or "recovery" in route_text
         or continuation_leg_context
     )
-    pullback_mm_ready = pullback_continuation_signal and follow_through_ready and (
-        signal_bar_quality >= 0.58 or broke_micro_extreme
-    )
-
     recommended = planned_target
     chosen_cluster = None
     if range_like:
@@ -413,7 +409,7 @@ def resolve_target_path(
         # Brooks 里前高前低既是磁体，也是常见的第一目标。
         # 对普通 breakout，更合理的是先把单个 prior level 当测试目标；
         # 只有强突破、且已有明显 follow-through 时，才优先看更远的 measured move。
-        if prior_cluster is not None and pullback_channel_context and not pullback_mm_ready:
+        if prior_cluster is not None and pullback_channel_context:
             chosen_cluster = prior_cluster
         elif prior_cluster is not None and signal_label in prior_first_breakout_signals:
             chosen_cluster = prior_cluster

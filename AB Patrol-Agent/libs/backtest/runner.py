@@ -2306,6 +2306,7 @@ class BacktestRunner:
                 or trapped_side
                 or trendline_break_confirmed
                 or (tradeable_zone and strong_signal_bar)
+                or (tradeable_zone and reclaimed_prior_close and good_signal_bar)
                 or (stairs_pattern and tradeable_zone and good_signal_bar)
                 or (exhaustion_detected and tradeable_zone and strong_signal_bar)
             ):
@@ -2374,7 +2375,7 @@ class BacktestRunner:
                     or failed_breakout_evidence
                     or trendline_break_confirmed
                     or bool(trapped_side)
-                    or (reclaimed_prior_close and tradeable_edge and good_signal_bar)
+                    or (reclaimed_prior_close and tradeable_zone and good_signal_bar)
                     or (acceptance_ready and executable_signal_ready and good_signal_bar)
                 )
             )
@@ -2395,7 +2396,7 @@ class BacktestRunner:
             )
             h2_l2_brooks_second_entry_ready = (
                 (tradeable_zone and strong_signal_bar)
-                or (tradeable_edge and reclaimed_prior_close and good_signal_bar)
+                or (tradeable_zone and reclaimed_prior_close and good_signal_bar)
                 or (stairs_pattern and tradeable_zone and good_signal_bar)
                 or (exhaustion_detected and tradeable_zone and strong_signal_bar)
                 or (acceptance_ready and executable_signal_ready and reclaimed_prior_close and good_signal_bar)
