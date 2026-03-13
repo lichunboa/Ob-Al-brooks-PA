@@ -1872,6 +1872,7 @@ class BacktestRunner:
         prior_leg_context = str(extra.get("prior_leg_context", "") or "")
         trendline_break_confirmed = bool(extra.get("trendline_break_confirmed", False))
         signal_bar_quality = float(extra.get("signal_bar_quality", 0.0) or 0.0)
+        near_ema = bool(extra.get("near_ema", False))
 
         is_reversal = signal_type in ROUTE_REVERSAL_STRATEGIES
         is_minor_reversal = signal_type in ROUTE_MINOR_REVERSAL_STRATEGIES
@@ -1912,6 +1913,26 @@ class BacktestRunner:
             )
             and (strong_signal_bar or follow_through or signal_bar_quality >= 0.54)
         )
+        breakout_mode_ready = False
+        if signal_type in {"ii突破", "ioi突破"}:
+            breakout_mode_ready = (
+                near_ema
+                or tradeable_advantage_zone
+                or tradeable_edge_zone
+                or follow_through
+                or higher_follow_through
+                or signal_bar_quality >= 0.56
+            ) and not bool(trapped_side)
+        elif signal_type == "iii突破":
+            breakout_mode_ready = (
+                (
+                    follow_through
+                    or higher_follow_through
+                    or (near_ema and signal_bar_quality >= 0.56)
+                    or (tradeable_advantage_zone and signal_bar_quality >= 0.58)
+                )
+                and not bool(trapped_side)
+            )
 
         if market_key == "strong_trend_bull":
             if direction == "SELL":
@@ -1988,7 +2009,12 @@ class BacktestRunner:
                     return False, "宽通道中部不做逆势 fade"
                 if not tradeable_edge and not (follow_through or brooks_reversal_ready):
                     return False, "宽通道逆势单仍需靠近边缘或优势区"
-                if is_breakout and signal_type not in {"看衰突破"} and not failed_breakout_evidence:
+                if (
+                    is_breakout
+                    and signal_type not in {"看衰突破"}
+                    and not failed_breakout_evidence
+                    and not breakout_mode_ready
+                ):
                     return False, "宽通道逆势里不追弱突破"
 
             if playbook_id in {
@@ -2014,6 +2040,7 @@ class BacktestRunner:
                     or prior_leg_context == "trend_leg"
                     or strong_first_entry_recovery
                     or strong_second_entry_recovery
+                    or breakout_mode_ready
                 )
                 if (
                     range_zone == "middle"
@@ -2025,13 +2052,13 @@ class BacktestRunner:
                     not continuation_ready
                 ):
                     return False, "宽通道顺势恢复缺少 follow-through"
-                if is_breakout and not follow_through:
+                if is_breakout and not follow_through and not breakout_mode_ready:
                     return False, "宽通道里不追弱突破"
 
         if market_key in {"weak_trend_bull", "weak_trend_bear"}:
             aligned_bull = market_key == "weak_trend_bull" and direction == "BUY"
             aligned_bear = market_key == "weak_trend_bear" and direction == "SELL"
-            if is_breakout and not follow_through:
+            if is_breakout and not follow_through and not breakout_mode_ready:
                 return False, "弱趋势里缺少 follow-through 不追突破"
             if (aligned_bull or aligned_bear) and is_trend and pullback_ratio > 0.66 and not follow_through:
                 return False, "深回调后的趋势延续质量不足"

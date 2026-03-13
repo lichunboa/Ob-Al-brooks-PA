@@ -328,6 +328,41 @@ Brooks 的原意是：
 - `advantage zone` 也视为可交易边缘，不再近似要求必须贴极值
 - 宽通道前方磁体只有在“结构性磁体且距离很近”时才继续硬阻挡
 
+### 6. `ii / ioi / iii` 先判断 breakout mode，再判断 second-leg trap
+
+依据：
+
+- [08C Tight Trading Ranges as Setup ; ii and BreakOu 22699d8757ab817dbd08fcbfc1a5bc67.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Console-Obsidian/Categories%20分类/Al%20brooks/价格行为学/08C%20Tight%20Trading%20Ranges%20as%20Setup%20;%20ii%20and%20BreakOu%2022699d8757ab817dbd08fcbfc1a5bc67.md)
+- [23 Rounding Tops and Bottoms反转的顶和底.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Console-Obsidian/Categories%20分类/Al%20brooks/价格行为学-视频字幕版/21-30%20高级策略/23%20Rounding%20Tops%20and%20Bottoms反转的顶和底.md)
+
+Brooks 在这里的表达很明确：
+
+- `ii / ioi / iii` 本质上先是 `tight trading range / breakout mode`
+- `ioi` 在趋势回调、EMA 附近、支撑位附近，可以直接当 bull flag / bear flag continuation
+- 只有在 late trend、bad follow-through、exhausted breakout 这些背景下，它们才更像 second-leg trap 或 reversal
+
+因此这轮路由改成：
+
+- 在 `tight_range / broad_range` 里，不再只要看到 `prior_leg_context = tr_second_leg`，就把 `ii / ioi / iii` 一律优先打成 `TR3_SECOND_LEG_TRAP`
+- 现在先判断它是不是更符合 breakout mode / flag continuation
+- 只有已经出现失败突破证据，或者明确是 `TR3` hint，才继续走 second-leg trap
+
+### 7. `HOY / LOY` 突破后，反转和继续都可能发生
+
+依据：
+
+- [48E Failed BO of yesterday’s H L; Failed reversal  22699d8757ab8105a06bf8b39bd1b346.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Console-Obsidian/Categories%20分类/Al%20brooks/价格行为学/48E%20Failed%20BO%20of%20yesterday%E2%80%99s%20H%20L;%20Failed%20reversal%20%2022699d8757ab8105a06bf8b39bd1b346.md)
+
+Brooks 对 `HOY / LOY` 的表述不是“突破后一定是 trap”，而是：
+
+- 突破后如果出现失败突破、特别是 second entry reversal，可以反做
+- 但这个 reversal 也可能只是 bull flag / bear flag，让价格继续顺利突破 `HOY / LOY`
+
+所以当前系统采用的边界是：
+
+- `HOY / LOY` 先允许按 breakout chase 路由
+- 只有出现失败突破证据、或更明确的 trap / reversal 背景时，再切回 `TR2 / TR3`
+
 ## 六、本轮多窗口复测
 
 数据统一来自 [data/history/hf_parquet](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/data/history/hf_parquet)。

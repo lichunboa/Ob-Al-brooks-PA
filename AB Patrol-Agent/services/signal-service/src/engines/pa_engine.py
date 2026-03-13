@@ -2530,7 +2530,8 @@ class PASignalEngine(BaseEngine):
         direction = str(getattr(signal, "direction", "") or "")
         entry_type = str(getattr(signal, "entry_type", "STOP") or "STOP").upper()
         signal_strength = float(getattr(signal, "strength", 0.0) or 0.0)
-        signal_bar_quality = float(((getattr(signal, "extra", {}) or {}).get("signal_bar_quality")) or 0.0)
+        signal_extra = dict(getattr(signal, "extra", {}) or {})
+        signal_bar_quality = float(signal_extra.get("signal_bar_quality") or 0.0)
         follow_through = bool(getattr(market_state, "follow_through", False))
         pullback_ratio = float(getattr(market_state, "pullback_ratio", 0.0) or 0.0)
         range_edge = str(snapshot.get("range_edge", "") or "")
@@ -2548,11 +2549,23 @@ class PASignalEngine(BaseEngine):
         second_entry_signal = signal_type in {"高2", "低2"}
         strong_first_entry = first_entry_signal and (signal_strength >= 80 or signal_bar_quality >= 0.58)
         strong_second_entry = second_entry_signal and (signal_strength >= 82 or signal_bar_quality >= 0.54)
+        breakout_mode_pattern = signal_type in {"ii突破", "ioi突破", "iii突破"} and (
+            follow_through
+            or bool(signal_extra.get("near_ema", False))
+            or bool(signal_extra.get("reclaimed_prior_close", False))
+            or signal_bar_quality >= 0.54
+        )
+        hoy_loy_breakout_ready = signal_type in {"HOY突破", "LOY突破", "收线追进"} and (
+            follow_through
+            or signal_bar_quality >= 0.56
+        )
 
         if market_key == "tight_range":
             if range_zone == "middle":
                 return False, "紧密区间中部不预生成 setup"
-            if is_breakout_chase and signal_type != "看衰突破":
+            if is_breakout_chase and signal_type != "看衰突破" and not (
+                breakout_mode_pattern or hoy_loy_breakout_ready
+            ):
                 return False, "紧密区间不预生成突破追单"
             if is_reversal and entry_type == "STOP" and not (edge_match or advantage_match or follow_through):
                 return False, "紧密区间的 stop 反转先等到边缘或更强接受"
@@ -2560,7 +2573,9 @@ class PASignalEngine(BaseEngine):
         if market_key == "broad_range":
             if (is_reversal or signal_type in {"看衰突破", "第二腿陷阱"}) and range_zone == "middle":
                 return False, "宽区间中部不预生成 fade 或反转"
-            if is_breakout_chase and not follow_through:
+            if is_breakout_chase and not follow_through and not (
+                breakout_mode_pattern or hoy_loy_breakout_ready
+            ):
                 return False, "宽区间里弱突破不预生成"
             if (
                 is_trend_pullback
@@ -2582,7 +2597,9 @@ class PASignalEngine(BaseEngine):
             ) or (
                 market_key == "weak_trend_bear" and direction == "SELL"
             )
-            if is_breakout_chase and not follow_through:
+            if is_breakout_chase and not follow_through and not (
+                breakout_mode_pattern or hoy_loy_breakout_ready
+            ):
                 return False, "弱趋势里弱突破不预生成"
             if (
                 aligned

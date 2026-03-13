@@ -201,3 +201,29 @@
 - 前高前低是磁体和测试位
 - 不是默认 veto
 - 但结构簇仍然是有效阻挡
+
+## 十二、这轮 targeted recheck 的结论
+
+本轮又单独复核了 `iii突破 / HOY突破 / ioi突破`：
+
+1. `iii突破`
+   - 在当前复核窗口里，已经不再表现成 `prior_level` 挡单
+   - 代表性结果是 `ETHUSDT 15m 2022-01-24 ~ 2022-02-23`：
+     - `generated=2`
+     - `passed=2`
+     - `trades=1`
+   - 说明当前主矛盾已经不再是 `prior_level`
+2. `ioi突破`
+   - 之前的问题确实是路由优先级错了
+   - 它会在 `broad_range` / `tight_range` 里，因为 `prior_leg_context = tr_second_leg` 被太早打成 `TR3_SECOND_LEG_TRAP`
+   - 现在已经改成先判断是不是 `breakout mode / bull flag / bear flag continuation`
+   - 只有失败突破证据明确时，才继续切回 `TR2 / TR3`
+3. `HOY突破`
+   - 在这轮复核窗口里没有复现出“被 `prior_level` 挡住”的样本
+   - 当前更像是 detector 稀有，而不是 target path 又出了旧问题
+
+也就是说，这轮之后：
+
+- `iii突破` 的 `prior_level` 问题，在当前复核窗口里已经可以视为关闭
+- `ioi突破` 的主问题，已经从“误归类到 second-leg trap”改正
+- `HOY突破` 当前没有复现出旧的 `prior_level` 阻挡问题

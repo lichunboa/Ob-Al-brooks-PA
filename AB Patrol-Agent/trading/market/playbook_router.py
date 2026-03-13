@@ -145,6 +145,54 @@ def _infer_signal_direction(signal_type: str) -> str:
     return ""
 
 
+def _prefer_breakout_mode(label: str, route_extra: dict[str, Any]) -> bool:
+    """判断 breakout chase 是否更符合 Brooks 的 breakout mode / bull flag 语境。"""
+    signal_label = str(label or "")
+    if signal_label not in BREAKOUT_CHASE_SIGNALS:
+        return False
+
+    failed_breakout_evidence = bool(route_extra.get("failed_breakout_evidence", False))
+    if failed_breakout_evidence or str(route_extra.get("playbook_hint") or "") == "TR3_SECOND_LEG_TRAP":
+        return False
+
+    signal_bar_quality = _safe_float(route_extra.get("signal_bar_quality"))
+    follow_through = bool(route_extra.get("follow_through", False))
+    higher_follow_through = bool(route_extra.get("higher_follow_through", False))
+    reclaimed_prior_close = bool(route_extra.get("reclaimed_prior_close", False))
+    broke_micro_extreme = bool(route_extra.get("broke_micro_extreme", False))
+    near_ema = bool(route_extra.get("near_ema", False))
+    trapped_side = str(route_extra.get("trapped_side") or "")
+    prior_leg_context = str(route_extra.get("prior_leg_context") or "")
+
+    if signal_label in {"HOY突破", "LOY突破", "收线追进"}:
+        return (
+            follow_through
+            or higher_follow_through
+            or reclaimed_prior_close
+            or signal_bar_quality >= 0.56
+        )
+
+    if signal_label in {"ii突破", "ioi突破"}:
+        return (
+            follow_through
+            or higher_follow_through
+            or near_ema
+            or reclaimed_prior_close
+            or signal_bar_quality >= 0.54
+        ) and not trapped_side
+
+    if signal_label == "iii突破":
+        return (
+            follow_through
+            or higher_follow_through
+            or (near_ema and signal_bar_quality >= 0.56)
+            or (broke_micro_extreme and signal_bar_quality >= 0.58)
+            or (prior_leg_context == "trend_leg" and signal_bar_quality >= 0.56)
+        ) and not trapped_side
+
+    return False
+
+
 def build_daily_playbook_context(
     daily_candles: list[Any],
     current_price: float,
@@ -343,6 +391,8 @@ def resolve_playbook_context(
             return "TR3_SECOND_LEG_TRAP", "tr", "STOP"
         if label == "看衰突破" or bool(route_extra.get("failed_breakout_evidence", False)):
             return "TR2_FAILED_BO_FADE", "tr", "STOP"
+        if label in BREAKOUT_CHASE_SIGNALS and _prefer_breakout_mode(label, route_extra):
+            return "T5_BREAKOUT_CHASE", "breakout", "STOP"
         if str(route_extra.get("prior_leg_context") or "") == "tr_second_leg":
             return "TR3_SECOND_LEG_TRAP", "tr", "STOP"
         return "TR1_BLSHS", "tr", "LIMIT"
@@ -352,6 +402,8 @@ def resolve_playbook_context(
             return "TR3_SECOND_LEG_TRAP", "tr", "STOP"
         if label == "看衰突破" or bool(route_extra.get("failed_breakout_evidence", False)):
             return "TR2_FAILED_BO_FADE", "tr", "STOP"
+        if label in BREAKOUT_CHASE_SIGNALS and _prefer_breakout_mode(label, route_extra):
+            return "T5_BREAKOUT_CHASE", "breakout", "STOP"
         if str(route_extra.get("prior_leg_context") or "") == "tr_second_leg":
             return "TR3_SECOND_LEG_TRAP", "tr", "STOP"
         if label in BROOKS_REVERSAL_SIGNALS:
