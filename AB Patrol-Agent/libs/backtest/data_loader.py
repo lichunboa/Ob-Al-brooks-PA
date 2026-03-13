@@ -36,6 +36,13 @@ class DataLoader:
         return DataLoader._agent_root() / "data" / "history"
 
     @staticmethod
+    def _hf_parquet_root(parquet_dir: str | None = None) -> Path:
+        """返回 HF Parquet 分片根目录。"""
+        if parquet_dir:
+            return Path(parquet_dir)
+        return DataLoader._history_root() / "hf_parquet"
+
+    @staticmethod
     def _normalize_bound_timestamp(raw: str | None) -> pd.Timestamp | None:
         """统一边界时间为无时区 UTC 时间戳。"""
         if not raw:
@@ -94,7 +101,7 @@ class DataLoader:
 
         # 方式1: HF Parquet 分片（本地已下载）
         hf_parquet_dir = DataLoader._history_root() / "hf_parquet"
-        if hf_parquet_dir.exists() and any(hf_parquet_dir.glob("*.parquet")):
+        if hf_parquet_dir.exists() and any(hf_parquet_dir.rglob("*.parquet")):
             df = DataLoader.load_from_hf_parquet(
                 symbol, start_date, end_date, parquet_dir=str(hf_parquet_dir),
             )
@@ -186,6 +193,56 @@ class DataLoader:
             if p.exists():
                 return p
         return None
+
+    @staticmethod
+    def _select_hf_parquet_shards(
+        parquet_dir: str | None,
+        symbol: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> list[Path]:
+        """按币种与年份选择需要读取的 HF Parquet 分片。"""
+        parquet_root = DataLoader._hf_parquet_root(parquet_dir)
+        if not parquet_root.exists():
+            return []
+
+        symbol_partition = parquet_root / f"symbol={symbol}"
+        start_ts = DataLoader._normalize_bound_timestamp(start_date)
+        end_ts = DataLoader._normalize_bound_timestamp(end_date)
+        start_year = start_ts.year if start_ts is not None else None
+        end_year = end_ts.year if end_ts is not None else None
+
+        if symbol_partition.exists():
+            selected: list[Path] = []
+            for year_dir in sorted(symbol_partition.glob("year=*")):
+                try:
+                    year_value = int(year_dir.name.split("=", 1)[1])
+                except (IndexError, ValueError):
+                    continue
+                if start_year is not None and year_value < start_year:
+                    continue
+                if end_year is not None and year_value > end_year:
+                    continue
+                selected.extend(sorted(year_dir.rglob("*.parquet")))
+            return selected
+
+        flat_candidates = sorted(parquet_root.glob("*.parquet"))
+        if not flat_candidates:
+            return []
+
+        pattern = re.compile(rf"^{re.escape(symbol)}[_-](\d{{4}})")
+        selected_flat: list[Path] = []
+        for path in flat_candidates:
+            match = pattern.match(path.stem)
+            if match is None:
+                continue
+            year_value = int(match.group(1))
+            if start_year is not None and year_value < start_year:
+                continue
+            if end_year is not None and year_value > end_year:
+                continue
+            selected_flat.append(path)
+        return selected_flat or flat_candidates
 
     @staticmethod
     def _stream_csv_gz(filepath: Path, symbol: str,
@@ -450,37 +507,33 @@ class DataLoader:
         """
         从下载好的 HuggingFace Parquet 分片中提取指定币种数据
 
-        parquet_dir: 存放 shard_*.parquet 的目录
+        parquet_dir: 存放 `symbol=.../year=.../data.parquet` 分区目录
         """
         import pyarrow as pa
         import pyarrow.parquet as pq
 
-        if not parquet_dir:
-            parquet_dir = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-                "data", "history", "hf_parquet"
-            )
-
-        shards = sorted(
-            [os.path.join(parquet_dir, f) for f in os.listdir(parquet_dir)
-             if f.endswith(".parquet")],
+        parquet_root = DataLoader._hf_parquet_root(parquet_dir)
+        shards = DataLoader._select_hf_parquet_shards(
+            str(parquet_root),
+            symbol,
+            start_date=start_date,
+            end_date=end_date,
         )
         if not shards:
-            print(f"  未找到 Parquet 分片: {parquet_dir}")
+            print(f"  未找到 Parquet 分片: {parquet_root}")
             return pd.DataFrame()
 
         print(f"  从 {len(shards)} 个 Parquet 分片提取 {symbol}...")
         tables = []
         for i, shard in enumerate(shards):
             try:
-                table = pq.read_table(
-                    shard,
-                    filters=[("symbol", "=", symbol)],
+                parquet_file = pq.ParquetFile(str(shard))
+                table = parquet_file.read(
                     columns=["bucket_ts", "open", "high", "low", "close", "volume"],
                 )
                 if len(table) > 0:
                     tables.append(table)
-                    print(f"    分片 {i}: {len(table):,} 行", end="\r")
+                    print(f"    分片 {i}: {len(table):,} 行 ({shard.name})", end="\r")
             except Exception as e:
                 print(f"    分片 {i}: 错误 {e}")
 

@@ -397,7 +397,12 @@ def derive_trade_execution_semantics(base: dict[str, Any], filter_meta: dict[str
     has_signal_trigger = bool(filter_meta.get("has_signal_trigger"))
     requires_second_entry = bool(filter_meta.get("requires_second_entry"))
     acceptance_ready = bool(filter_meta.get("acceptance_ready"))
-    executable_signal_ready = not requires_second_entry or signal_rank >= 2 or (has_signal_trigger and acceptance_ready)
+    executable_signal_ready = (
+        not requires_second_entry
+        or signal_rank >= 2
+        or (has_signal_trigger and acceptance_ready)
+        or (stage_family == "stop_continuation" and has_signal_trigger and signal_rank >= 1)
+    )
 
     if stage_family == "watch_only" or status in {"watching", "cooldown"}:
         stage = "WATCH"

@@ -210,20 +210,23 @@ class BrooksFilterMixin:
             }
 
         if broad_channel_like and reversal_clues:
+            broad_channel_reversal_ready = has_second_signal or acceptance_ready or (
+                has_signal_trigger and (failed_breakout_context or has_tr_edge)
+            )
             return {
                 "category": "broad_channel_countertrend_limit",
                 "label": "宽通道逆势先限价",
                 "summary": "宽通道更接近交易区间，逆势反转优先在边缘做 limit scalp，不直接追价做 swing。",
-                "max_status": "entry_ready" if (has_plan and has_tr_edge and has_second_signal) else "pre_signal",
-                "allow_executable": bool(has_plan and has_tr_edge and has_second_signal),
+                "max_status": "entry_ready" if (has_plan and has_tr_edge and broad_channel_reversal_ready) else "pre_signal",
+                "allow_executable": bool(has_plan and has_tr_edge and broad_channel_reversal_ready),
                 "stage_family": "limit_edge",
-                "preferred_style": "反转试探" if not has_second_signal else inferred_style or "Scalp",
+                "preferred_style": "反转试探" if not broad_channel_reversal_ready else inferred_style or "Scalp",
                 "preferred_order_type": "LIMIT",
-                "upgrade_condition": "先等到边缘，再等二次信号；没有二次信号就只保留试探/观察。",
+                "upgrade_condition": "优先等到边缘后的二次信号；如果已经出现明确 rejection / failed breakout 和触发，也可先执行试探限价单。",
                 "brooks_rule": "Broad Channel 本质更像 TR：scalp more、swing less、use limit orders。",
                 "source_refs": ["S4-strategy-match.md", "S6-channel.md", "S5-evaluation.md"],
                 "signal_rank": signal_rank,
-                "requires_second_entry": True,
+                "requires_second_entry": not broad_channel_reversal_ready,
                 "has_signal_trigger": has_signal_trigger,
                 "acceptance_ready": acceptance_ready,
             }
@@ -246,7 +249,7 @@ class BrooksFilterMixin:
                 "brooks_rule": "Broad Channel 更像 TR：逆势多用 limit，顺势只有在恢复信号和接受都清晰时才用 stop。",
                 "source_refs": ["S4-strategy-match.md", "S6-channel.md", "S5-evaluation.md"],
                 "signal_rank": signal_rank,
-                "requires_second_entry": has_first_signal and not has_second_signal,
+                "requires_second_entry": has_first_signal and not (has_second_signal or acceptance_ready),
                 "has_signal_trigger": has_signal_trigger,
                 "acceptance_ready": acceptance_ready,
             }

@@ -20,18 +20,34 @@ def _kind_weight(kind: str) -> float:
     if normalized.startswith("measured_move"):
         return 4.0
     if normalized == "session_open":
-        return 1.7
+        return 1.2
     if normalized == "tr_midline":
-        return 1.4
+        return 1.0
     if normalized in {"major_swing", "prior_level"}:
         return 3.2
     if "gap" in normalized:
         return 2.7
     if normalized == "round_number":
-        return 2.0
+        return 1.4
     if normalized == "ema20":
-        return 1.0
-    return 1.5
+        return 0.8
+    return 1.2
+
+
+def _is_structural_kind(kind: str) -> bool:
+    """判断磁体是否属于 Brooks 里的结构性目标。"""
+    normalized = str(kind or "").lower()
+    return (
+        normalized.startswith("measured_move")
+        or normalized in {"major_swing", "prior_level"}
+        or "gap" in normalized
+    )
+
+
+def _is_soft_reference_kind(kind: str) -> bool:
+    """判断磁体是否只是参考位，而不是硬阻挡位。"""
+    normalized = str(kind or "").lower()
+    return normalized in {"session_open", "tr_midline", "round_number", "ema20"}
 
 
 def _is_same_price(left: float, right: float, entry_price: float) -> bool:
@@ -310,6 +326,19 @@ def resolve_target_path(
         cluster_price = safe_float(cluster.get("price"), 0.0)
         cluster_distance = _distance(entry_price, cluster_price)
         cluster_kind = str(cluster.get("kind") or "")
+        members = cluster.get("members") if isinstance(cluster.get("members"), list) else []
+        structural_members = [
+            member
+            for member in members
+            if _is_structural_kind(str(member.get("kind") or ""))
+        ]
+        has_structural_member = bool(structural_members)
+        major_structural_cluster = any(
+            str(member.get("kind") or "").lower().startswith("measured_move")
+            or str(member.get("kind") or "").lower() in {"major_swing", "prior_level"}
+            or "gap" in str(member.get("kind") or "").lower()
+            for member in members
+        )
         if target_distance <= 0:
             break
         if cluster_distance + 1e-9 >= target_distance * 0.92:
@@ -320,11 +349,19 @@ def resolve_target_path(
             entry_price,
         ):
             continue
-        # Brooks 会把中线 / open 当作参考磁体，但在 broad channel reversal
-        # 或顺势恢复里，不应把它们当成和 MM / prior high-low 同等级的硬阻塞。
-        if cluster_kind in {"tr_midline", "session_open"} and not ("tr_blshs" in route_text or tight_range_like):
+        # Brooks 会把中线、整数位、open、EMA 当作参考磁体，但它们通常不该
+        # 和 MM / prior high-low / gap 一样，被当成硬阻挡。
+        if _is_soft_reference_kind(cluster_kind) and not has_structural_member:
             continue
-        if float(cluster.get("strength") or 0.0) >= 2.0 or int(cluster.get("count") or 0) >= 2:
+        if range_like and not major_structural_cluster and int(cluster.get("count") or 0) < 3:
+            continue
+        if reversal_like and not major_structural_cluster and float(cluster.get("strength") or 0.0) < 4.5:
+            continue
+        if has_structural_member and (
+            major_structural_cluster
+            or float(cluster.get("strength") or 0.0) >= 4.5
+            or int(cluster.get("count") or 0) >= 3
+        ):
             blocker_cluster = cluster
             break
 
@@ -360,6 +397,19 @@ def resolve_target_path(
 
     chosen_strength = float(chosen_cluster.get("strength") or 0.0) if isinstance(chosen_cluster, dict) else 0.0
     chosen_count = int(chosen_cluster.get("count") or 0) if isinstance(chosen_cluster, dict) else 0
+    blocking_strength = float(blocker_cluster.get("strength") or 0.0) if isinstance(blocker_cluster, dict) else 0.0
+    blocking_count = int(blocker_cluster.get("count") or 0) if isinstance(blocker_cluster, dict) else 0
+    blocking_structural = bool(
+        isinstance(blocker_cluster, dict)
+        and any(
+            _is_structural_kind(str(member.get("kind") or ""))
+            for member in (
+                blocker_cluster.get("members")
+                if isinstance(blocker_cluster.get("members"), list)
+                else []
+            )
+        )
+    )
 
     return {
         "path_clear": path_clear,
@@ -370,6 +420,9 @@ def resolve_target_path(
         "blocking_cluster": blocker_cluster,
         "magnet_cluster_count": chosen_count,
         "magnet_cluster_strength": chosen_strength,
+        "blocking_cluster_count": blocking_count,
+        "blocking_cluster_strength": blocking_strength,
+        "blocking_cluster_structural": blocking_structural,
         "magnet_summary": [
             {
                 "price": round(safe_float(item.get("price"), 0.0), 6),

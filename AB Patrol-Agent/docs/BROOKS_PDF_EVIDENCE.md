@@ -1,0 +1,119 @@
+# Brooks PDF 截图证据
+
+> 更新于 2026-03-13
+> 目的：把当前主链里最关键的 Brooks 路由依据，直接落到 PDF 页图，减少只靠 OCR 文字带来的偏差。
+
+## 1. `H2/L2` 是趋势中的标准第二次入场
+
+来源：
+
+- `《价格行为PPT中文笔记》/1.《价格行为学》（基础篇1-36章）.pdf`
+- 页码：`12`
+
+结论：
+
+- 在多头趋势中，Brooks 明确写的是 `look for High 2 (H2) pullback`
+- 入场方式是 `Buy on stop above high of signal bar`
+- 这说明 `H2` 本身就是趋势恢复的标准执行信号，不该被额外工程门槛反复压制
+
+![H2 标准页](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_h2-0012.png)
+
+## 2. 失败突破可以直接转成 `H2` 看涨旗形
+
+来源：
+
+- `《价格行为PPT中文笔记》/1.《价格行为学》（基础篇1-36章）.pdf`
+- 页码：`471`
+
+结论：
+
+- 图上直接写了 `Failed bear BO below TTR`
+- 同一页同时写了 `High 2 Bull Flag`
+- 这支持我们把“失败突破”与 `H2` 恢复看成同一条 Brooks 逻辑链，而不是必须把证据堆满到僵硬
+
+![失败突破与 H2 旗形](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_failed_bo-0471.png)
+
+## 3. 第二个信号是偏好，不是所有情形下的机械强制
+
+来源：
+
+- `《价格行为PPT中文笔记》/1.《价格行为学》（基础篇1-36章）.pdf`
+- 页码：`493`
+- `《价格行为PPT中文笔记》/2.《价格行为学》（进阶篇37-52章）.pdf`
+- 页码：`855`
+
+结论：
+
+- Brooks 说的是：当市场环境和信号较弱、不自信时，等 `2nd signal or strong reversal`
+- 这意味着“第二个信号”是弱环境下的更优选择
+- 但如果本来就是强信号、强反转、优势区环境，就不该被实现层写成统一的硬性否决
+
+![第二个信号页 1](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_second_signal-0493.png)
+
+![第二个信号页 2](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_second_signal-0855.png)
+
+## 4. 通道里仍然可以做 `H2` / `L2`，关键是上下文
+
+来源：
+
+- `阿布10种最佳价格行为交易模式.pdf`
+- 页码：`4`
+- `《价格行为PPT中文笔记》/2.《价格行为学》（进阶篇37-52章）.pdf`
+- 页码：`56`
+
+结论：
+
+- 图里明确写了 `High 2 bull flags and Low 2 bear flags`
+- 同时强调：趋势、通道、区间会让 `H2/L2` 上下文变得复杂
+- 所以正确做法是保留结构判断，而不是用工程阈值把 `H2/L2` 近似写成“区间里一律不做”
+
+![十大模式中的 H2/L2](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/top10_tr-04.png)
+
+![进阶篇 H2 看涨旗形](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_h2_bullflag-0056.png)
+
+## 5. 头肩 / 楔形 / 更低高位常常只是更大区间的一部分
+
+来源：
+
+- `《价格行为PPT中文笔记》/2.《价格行为学》（进阶篇37-52章）.pdf`
+- 页码：`66`
+- `阿布10种最佳价格行为交易模式.pdf`
+- 页码：`10`
+
+结论：
+
+- Brooks 在图上直接写了：
+  - `After Wedge Top, bulls try for trend resumption`
+  - `Often get strong rally to LH MTR`
+  - `Nested HST`
+- 这说明：
+  - 头肩、楔形、双顶双底并不天然就是立即大反转
+  - 它们经常会先发展成更低高位 / 更高低位，或者更大的交易区间
+- 因此我们保留了 `second-leg trap`、`failed breakout`、`trendline break` 这类守门，而不是彻底删空
+
+![楔形后 LH MTR / 嵌套头肩](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_hs_top-0066.png)
+
+![十大模式中的楔形/磁体](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/top10_wedge-10.png)
+
+## 6. 对当前代码的直接影响
+
+这轮截图核对后，当前实现边界可以归纳成这样：
+
+- 可以继续放松的：
+  - `H1/L1` 在优势区、强信号棒、目标路径清晰时，不应再被机械挡住
+  - `H2/L2` 在趋势恢复或区间边缘时，不应被近似强制要求“失败突破 + 趋势线破坏”双证据
+  - `看衰突破` 不应把失败突破证据写成必须全项满足
+- 应继续保留的：
+  - `宽通道 / 交易区间中部不做`
+  - `头肩 / 楔形 / 双顶双底` 在宽通道里要防止把 first reversal 误当成大反转
+  - 结构性磁体与 `second-leg trap` 仍然要作为守门
+
+## 7. 当前最值得继续审的点
+
+从这轮截图和多窗口回测一起看，下一轮最该收的仍然是：
+
+- `高1 / 低1` 在宽通道中的 `follow-through / acceptance`
+- `高2 / 低2` 在深回调趋势恢复场景里的放行边界
+- `看衰突破` 与 `第二腿陷阱` 的 detector 证据拆分
+
+这些点已经有截图依据，不需要再回到“靠经验加减分数”的做法。

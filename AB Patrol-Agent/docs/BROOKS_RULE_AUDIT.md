@@ -44,6 +44,8 @@
 | `blocking_magnet_distance_r < 0.8 / 1.0 / 1.25` | 数值距离阈值没有教材原文 | 已改成只看“路径是否受阻” |
 | `first_target_distance_r < 0.35` | 这类固定 R 距离是工程化量化，不是 Brooks 原句 | 已移除 |
 | `signal_bar_tail_ratio < 0.25` | `0.25` 是实现阈值，不是教材硬值 | 已降成“必须存在明显拒绝尾巴”这一结构要求 |
+| 管理模板里的 `risk_pct > 1.2/1.4/1.6/1.9/2.2/3.0` | 这些风险百分比上限属于资金管理经验值，不是 Brooks 的统一拒单规则 | 本轮已移除 |
+| `score == 0` 直接拒单 | 这是工程分数门槛，不是教材里的入场条件 | 本轮已移除 |
 | live `signal_threshold=80/72/68` | 周期分数门槛不是 Brooks 原生入场条件 | 已从主引擎过滤链移除 |
 | ATR 倍数止损 / ATR 容差 | ATR 不是 Brooks 本质止损依据，只能算工程近似 | 主链止损已改回结构位外，残余 detector 容差继续清理中 |
 
@@ -85,3 +87,24 @@
 2. 修结构判断错误
 
 不再允许靠“加减分数阈值”去堆交易频率。
+
+## 七、本轮新增清理
+
+这轮继续按 Brooks 体系，额外清掉了两类“虽然不是分数，但仍然过于工程化”的实现：
+
+1. 软磁体不再默认当作硬 blocker
+   - `round_number / session_open / tr_midline / ema20`
+   - 现在只作为参考磁体
+   - 真正默认可阻挡的，收回到 `measured_move / prior_level / major_swing / gap`
+2. `H1/L1` 与 `H2/L2` 不再被近似写成“必须二次确认”
+   - 只要满足：
+   - 优势区 / 边缘
+   - 强信号棒
+   - 目标路径清晰
+   - 或已存在反转证据
+   - 就允许一次信号或二次信号直接执行
+
+对应代码：
+
+- [runner.py](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/libs/backtest/runner.py)
+- [target_magnets.py](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/trading/utils/target_magnets.py)

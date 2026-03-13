@@ -78,6 +78,8 @@ class BacktestResult:
     signals_blocked_route: int = 0
     route_block_reasons: dict = field(default_factory=dict)
     entry_block_reasons: dict = field(default_factory=dict)
+    route_block_by_strategy: dict = field(default_factory=dict)
+    entry_block_by_strategy: dict = field(default_factory=dict)
 
     # 配置
     threshold: int = 80
@@ -99,7 +101,9 @@ class BacktestResult:
                       signals_blocked_rr: int = 0, signals_blocked_strategy: int = 0,
                       signals_blocked_route: int = 0,
                       route_block_reasons: dict | None = None,
+                      route_block_by_strategy: dict | None = None,
                       entry_block_reasons: dict | None = None,
+                      entry_block_by_strategy: dict | None = None,
                       days: int = 0,
                       initial_capital: float = 10000.0) -> "BacktestResult":
         """从 SimExchange 生成结果"""
@@ -116,7 +120,9 @@ class BacktestResult:
                 initial_capital=initial_capital,
                 ending_equity=initial_capital,
                 route_block_reasons=dict(route_block_reasons or {}),
+                route_block_by_strategy=dict(route_block_by_strategy or {}),
                 entry_block_reasons=dict(entry_block_reasons or {}),
+                entry_block_by_strategy=dict(entry_block_by_strategy or {}),
             )
 
         wins = [t for t in trades if t.result == "WIN"]
@@ -211,7 +217,9 @@ class BacktestResult:
             signals_blocked_strategy=signals_blocked_strategy,
             signals_blocked_route=signals_blocked_route,
             route_block_reasons=dict(route_block_reasons or {}),
+            route_block_by_strategy=dict(route_block_by_strategy or {}),
             entry_block_reasons=dict(entry_block_reasons or {}),
+            entry_block_by_strategy=dict(entry_block_by_strategy or {}),
             threshold=threshold,
             days=days,
             by_strategy=by_strategy,
@@ -292,7 +300,7 @@ class BacktestResult:
         print(f"  信号通过: {self.signals_passed}")
         print(f"  背景拦截: {self.signals_blocked_bg}")
         print(f"  评分拦截: {self.signals_blocked_score}")
-        print(f"  盈亏比拦截: {self.signals_blocked_rr}")
+        print(f"  入场/管理拦截: {self.signals_blocked_rr}")
         print(f"  策略过滤拦截: {self.signals_blocked_strategy}")
         print(f"  路由拦截: {self.signals_blocked_route}")
         if self.route_block_reasons:
@@ -385,7 +393,9 @@ class BacktestResult:
                 "blocked_strategy": self.signals_blocked_strategy,
                 "blocked_route": self.signals_blocked_route,
                 "route_block_reasons": self.route_block_reasons,
+                "route_block_by_strategy": self.route_block_by_strategy,
                 "entry_block_reasons": self.entry_block_reasons,
+                "entry_block_by_strategy": self.entry_block_by_strategy,
             },
             "by_strategy": self.by_strategy,
             "by_background": self.by_background,

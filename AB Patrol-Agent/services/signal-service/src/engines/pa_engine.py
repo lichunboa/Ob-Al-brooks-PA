@@ -325,6 +325,10 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 probability=0.60,
                 cycle=cycle,
                 timeframe=curr.timeframe,
+                extra={
+                    "signal_bar_quality": sig_quality,
+                    "signal_rank": 1,
+                },
             )
 
         elif cycle == "趋势空":
@@ -382,6 +386,10 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 probability=0.60,
                 cycle=cycle,
                 timeframe=curr.timeframe,
+                extra={
+                    "signal_bar_quality": sig_quality,
+                    "signal_rank": 1,
+                },
             )
 
         elif cycle == "急速多":
@@ -431,6 +439,10 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 probability=0.55,
                 cycle=cycle,
                 timeframe=curr.timeframe,
+                extra={
+                    "signal_bar_quality": sig_quality,
+                    "signal_rank": 1,
+                },
             )
 
         elif cycle == "急速空":
@@ -477,6 +489,10 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 probability=0.55,
                 cycle=cycle,
                 timeframe=curr.timeframe,
+                extra={
+                    "signal_bar_quality": sig_quality,
+                    "signal_rank": 1,
+                },
             )
 
         elif cycle == "区间":
@@ -527,6 +543,10 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     probability=0.50,
                     cycle=cycle,
                     timeframe=curr.timeframe,
+                    extra={
+                        "signal_bar_quality": sig_quality,
+                        "signal_rank": 1,
+                    },
                 )
 
             elif ema_slope_dn:
@@ -565,6 +585,10 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     probability=0.50,
                     cycle=cycle,
                     timeframe=curr.timeframe,
+                    extra={
+                        "signal_bar_quality": sig_quality,
+                        "signal_rank": 1,
+                    },
                 )
 
         return None
@@ -694,6 +718,10 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 probability=0.65,
                 cycle=cycle,
                 timeframe=curr.timeframe,
+                extra={
+                    "signal_bar_quality": sig_quality,
+                    "signal_rank": 2,
+                },
             )
 
         elif cycle == "趋势空":
@@ -792,6 +820,10 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 probability=0.65,
                 cycle=cycle,
                 timeframe=curr.timeframe,
+                extra={
+                    "signal_bar_quality": sig_quality,
+                    "signal_rank": 2,
+                },
             )
 
         return None
@@ -1041,6 +1073,11 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                         "failed_bo_no_new_extreme": no_new_extreme,
                         "failed_bo_strong_ft_bars": strong_ft_bars,
                         "failed_bo_edge_tests": test_count,
+                        "failed_breakout_evidence": True,
+                        "trapped_side": "bull",
+                        "signal_bar_tail_ratio": max(0.0, (float(current.high) - max(float(current.open), float(current.close))) / max(float(current.high) - float(current.low), 1e-9)),
+                        "reclaimed_prior_close": back_in_range,
+                        "broke_micro_extreme": no_new_extreme,
                         "playbook_hint": "TR2_FAILED_BO_FADE",
                         "breakout_extreme": breakout_extreme,
                     },
@@ -1124,6 +1161,11 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                         "failed_bo_no_new_extreme": no_new_extreme,
                         "failed_bo_strong_ft_bars": strong_ft_bars,
                         "failed_bo_edge_tests": test_count,
+                        "failed_breakout_evidence": True,
+                        "trapped_side": "bear",
+                        "signal_bar_tail_ratio": max(0.0, (min(float(current.open), float(current.close)) - float(current.low)) / max(float(current.high) - float(current.low), 1e-9)),
+                        "reclaimed_prior_close": back_in_range,
+                        "broke_micro_extreme": no_new_extreme,
                         "playbook_hint": "TR2_FAILED_BO_FADE",
                         "breakout_extreme": breakout_extreme,
                     },
@@ -2441,6 +2483,8 @@ class PASignalEngine(BaseEngine):
         signal_type = str(getattr(signal, "signal_type", "") or "")
         direction = str(getattr(signal, "direction", "") or "")
         entry_type = str(getattr(signal, "entry_type", "STOP") or "STOP").upper()
+        signal_strength = float(getattr(signal, "strength", 0.0) or 0.0)
+        signal_bar_quality = float(((getattr(signal, "extra", {}) or {}).get("signal_bar_quality")) or 0.0)
         follow_through = bool(getattr(market_state, "follow_through", False))
         pullback_ratio = float(getattr(market_state, "pullback_ratio", 0.0) or 0.0)
         range_edge = str(snapshot.get("range_edge", "") or "")
@@ -2454,6 +2498,10 @@ class PASignalEngine(BaseEngine):
         is_reversal = signal_type in BROOKS_REVERSAL_SIGNALS
         is_breakout_chase = signal_type in BREAKOUT_CHASE_SIGNALS
         is_trend_pullback = signal_type in TREND_PULLBACK_SIGNALS
+        first_entry_signal = signal_type in {"高1", "低1"}
+        second_entry_signal = signal_type in {"高2", "低2"}
+        strong_first_entry = first_entry_signal and (signal_strength >= 80 or signal_bar_quality >= 0.58)
+        strong_second_entry = second_entry_signal and (signal_strength >= 82 or signal_bar_quality >= 0.54)
 
         if market_key == "tight_range":
             if range_zone == "middle":
@@ -2471,8 +2519,14 @@ class PASignalEngine(BaseEngine):
             if (
                 is_trend_pullback
                 and entry_type == "STOP"
-                and pullback_ratio > 0.66
-                and not (follow_through or advantage_match or origin_half_match)
+                and pullback_ratio > 0.72
+                and not (
+                    follow_through
+                    or advantage_match
+                    or origin_half_match
+                    or strong_first_entry
+                    or strong_second_entry
+                )
             ):
                 return False, "宽区间深回调 stop 单先等接受"
 
@@ -2484,14 +2538,19 @@ class PASignalEngine(BaseEngine):
             )
             if is_breakout_chase and not follow_through:
                 return False, "弱趋势里弱突破不预生成"
-            if aligned and signal_type in {"高1", "低1"} and pullback_ratio > 0.45 and not follow_through:
+            if (
+                aligned
+                and signal_type in {"高1", "低1"}
+                and pullback_ratio > 0.58
+                and not (follow_through or (strong_first_entry and (origin_half_match or advantage_match)))
+            ):
                 return False, "宽通道第一腿回调缺少 follow-through"
             if (
                 aligned
                 and signal_type in {"高2", "低2", "20均线缺口", "第一均线缺口", "突破回调"}
-                and pullback_ratio > 0.66
+                and pullback_ratio > 0.72
                 and not follow_through
-                and not (origin_half_match or advantage_match)
+                and not (origin_half_match or advantage_match or strong_second_entry)
             ):
                 return False, "宽通道深回调恢复先等回到有利半区"
 

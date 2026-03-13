@@ -129,6 +129,9 @@ dist/
 # 构建产物
 # ====================
 *.png
+!AB Patrol-Agent/docs/assets/
+!AB Patrol-Agent/docs/assets/brooks_refs/
+!AB Patrol-Agent/docs/assets/brooks_refs/*.png
 polymarket-bot.out
 
 # ====================
