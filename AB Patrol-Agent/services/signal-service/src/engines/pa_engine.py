@@ -120,6 +120,26 @@ EMA_RECOVERY_SIGNALS = {
     "第一均线缺口",
 }
 
+
+def _timeframe_to_minutes(timeframe: str) -> int:
+    """把常见周期文本转换成分钟，供跨周期规则做通用判断。"""
+    label = str(timeframe or "").strip().lower()
+    if not label:
+        return 0
+    if label.endswith("m") and label[:-1].isdigit():
+        return int(label[:-1])
+    if label.endswith("h") and label[:-1].isdigit():
+        return int(label[:-1]) * 60
+    if label.endswith("d") and label[:-1].isdigit():
+        return int(label[:-1]) * 1440
+    return 0
+
+
+def _is_intraday_timeframe(timeframe: str) -> bool:
+    """Brooks 的开盘反转和 HTF 锚点确认都属于日内执行语境。"""
+    minutes = _timeframe_to_minutes(timeframe)
+    return 0 < minutes < 1440
+
 BROOKS_REVERSAL_SIGNALS = {
     "双重顶",
     "双重底",
@@ -869,7 +889,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     valley_idx, valley_low = min(valley_candidates, key=lambda item: item[1])
                     leg2_bars = (len(lookback) - 2) - valley_idx
                     leg2_strength = prev.high - valley_low
-                    if leg2_bars <= 6 and leg2_strength >= range_size * 0.35:
+                    if leg2_bars <= 8 and leg2_strength >= range_size * 0.28:
                         stop = build_tr_second_leg_trap_stop("SELL", lookback, prev.high, prev.high, prev.low, atr)
                         target = range_low + range_size * 0.5
                         return PASignal(
@@ -905,7 +925,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     peak_idx, peak_high = max(peak_candidates, key=lambda item: item[1])
                     leg2_bars = (len(lookback) - 2) - peak_idx
                     leg2_strength = peak_high - prev.low
-                    if leg2_bars <= 6 and leg2_strength >= range_size * 0.35:
+                    if leg2_bars <= 8 and leg2_strength >= range_size * 0.28:
                         stop = build_tr_second_leg_trap_stop("BUY", lookback, prev.low, prev.high, prev.low, atr)
                         target = range_high - range_size * 0.5
                         return PASignal(
@@ -1015,7 +1035,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 if strong_ft_bars >= 2 and not gap_filled and not no_new_extreme:
                     continue
                 test_count = self._count_edge_tests(base_window[-10:], range_high, "SELL", tolerance) + 1
-                if test_count >= 3 and strong_ft_bars >= 1 and not gap_filled:
+                if test_count >= 3 and strong_ft_bars >= 1 and not (gap_filled or rejection_bar or no_new_extreme):
                     continue
                 if not back_in_range or not (gap_filled or no_new_extreme or rejection_bar):
                     continue
@@ -1103,7 +1123,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 if strong_ft_bars >= 2 and not gap_filled and not no_new_extreme:
                     continue
                 test_count = self._count_edge_tests(base_window[-10:], range_low, "BUY", tolerance) + 1
-                if test_count >= 3 and strong_ft_bars >= 1 and not gap_filled:
+                if test_count >= 3 and strong_ft_bars >= 1 and not (gap_filled or rejection_bar or no_new_extreme):
                     continue
                 if not back_in_range or not (gap_filled or no_new_extreme or rejection_bar):
                     continue
@@ -1562,7 +1582,14 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         return None
 
-    def detect_hoy_loy(self, candles: list[Candle], ema20: list[float], cycle: str, atr: float = 0.0) -> Optional[PASignal]:
+    def detect_hoy_loy(
+        self,
+        candles: list[Candle],
+        ema20: list[float],
+        cycle: str,
+        atr: float = 0.0,
+        daily_candles: list[Candle] | None = None,
+    ) -> Optional[PASignal]:
         """
         HOY/LOY 突破策略 (High/Low Of Yesterday)
         Al Brooks: 昨日高低点是日内最关键的 S/R 水平
@@ -1576,30 +1603,37 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         curr = candles[-1]
         prev = candles[-2]
 
-        # 从 K 线时间戳推算昨日高低点
-        # crypto 24/7，以 UTC 0 点为日间分界
-        from datetime import timedelta, timezone
-        try:
-            curr_ts = curr.timestamp
-            # 找当日 0 点（UTC+8 北京时间）
-            beijing_offset = timedelta(hours=8)
-            curr_dt = curr_ts.replace(tzinfo=timezone.utc) + beijing_offset
-            today_start = curr_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-            today_start_utc = today_start - beijing_offset
+        hoy = 0.0
+        loy = 0.0
+        yesterday_range = 0.0
+        if daily_candles and len(daily_candles) >= 2:
+            previous_day = daily_candles[-2]
+            hoy = float(previous_day.high)
+            loy = float(previous_day.low)
+            yesterday_range = hoy - loy
+        else:
+            # 回退逻辑：如果没有日线缓存，再从当前周期里硬算昨日范围。
+            from datetime import timedelta, timezone
+            try:
+                curr_ts = curr.timestamp
+                beijing_offset = timedelta(hours=8)
+                curr_dt = curr_ts.replace(tzinfo=timezone.utc) + beijing_offset
+                today_start = curr_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+                today_start_utc = today_start - beijing_offset
 
-            yesterday_candles = [
-                c for c in candles
-                if c.timestamp.replace(tzinfo=timezone.utc) < today_start_utc
-            ]
-        except Exception:
-            return None  # 时间戳解析失败时跳过
+                yesterday_candles = [
+                    c for c in candles
+                    if c.timestamp.replace(tzinfo=timezone.utc) < today_start_utc
+                ]
+            except Exception:
+                return None
 
-        if len(yesterday_candles) < 6:  # 昨日数据不足
-            return None
+            if len(yesterday_candles) < 6:
+                return None
 
-        hoy = max(c.high for c in yesterday_candles)
-        loy = min(c.low for c in yesterday_candles)
-        yesterday_range = hoy - loy
+            hoy = max(float(c.high) for c in yesterday_candles)
+            loy = min(float(c.low) for c in yesterday_candles)
+            yesterday_range = hoy - loy
 
         if yesterday_range <= 0:
             return None
@@ -1675,20 +1709,26 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         curr = candles[-1]
         prev = candles[-2]
 
-        # 检测旗形：5-10 根小范围震荡
-        flag_candles = candles[-10:-1]
+        # 末端旗形的核心是“已有趋势腿 -> 小旗形压缩 -> 一次失败突破”。
+        # 因此 prev 是突破尝试棒，不能再被算进旗形本身，否则突破条件永远不成立。
+        flag_candles = candles[-10:-2]
+        if len(flag_candles) < 4:
+            return None
+        trend_leg = candles[-25:-10]
         flag_range = max(c.high for c in flag_candles) - min(c.low for c in flag_candles)
-        trend_range = max(c.high for c in candles[-25:-10]) - min(c.low for c in candles[-25:-10])
+        trend_range = max(c.high for c in trend_leg) - min(c.low for c in trend_leg)
+        if trend_range <= 0:
+            return None
 
         # 旗形范围应该明显小于趋势范围
-        if flag_range > trend_range * 0.4:
+        if flag_range > trend_range * 0.6:
             return None
 
         # 检测旗形内 K 线是否较小
         avg_body = sum(CandlePatterns.body_size(c) for c in flag_candles) / len(flag_candles)
-        trend_avg_body = sum(CandlePatterns.body_size(c) for c in candles[-25:-10]) / 15
+        trend_avg_body = sum(CandlePatterns.body_size(c) for c in trend_leg) / len(trend_leg)
 
-        if avg_body > trend_avg_body * 0.5:  # 旗形 K 线应该明显较小
+        if avg_body > trend_avg_body * 0.8:
             return None
 
         if cycle == "趋势多":
@@ -1737,6 +1777,8 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     entry_trigger=prev.high,
                     entry_type="STOP",
                 )
+
+        return None
 
     def detect_breakout_pullback(self, candles: list[Candle], ema20: list[float], cycle: str, atr: float = 0.0) -> Optional[PASignal]:
         """
@@ -1950,7 +1992,7 @@ class PASignalEngine(BaseEngine):
                 "cooldown_multiplier": 1.0,
             },
             "15m": {
-                "allowed_strategies": ["20均线缺口", "突破回调", "首次均线缺口", "双重顶底", "失败突破", "第二腿陷阱", "楔形顶底", "急速通道", "末端旗形", "ii突破", "头肩MTR"],
+                "allowed_strategies": ["20均线缺口", "突破回调", "首次均线缺口", "双重顶底", "失败突破", "第二腿陷阱", "楔形顶底", "急速通道", "末端旗形", "ii突破", "iii突破", "HOY突破", "LOY突破", "头肩MTR"],
                 "cooldown_multiplier": 2.0,
             },
             "30m": {
@@ -1958,12 +2000,12 @@ class PASignalEngine(BaseEngine):
                     "20均线缺口", "突破回调", "首次均线缺口",
                     "双重顶底", "失败突破", "第二腿陷阱",
                     "楔形顶底", "急速通道", "末端旗形",
-                    "ii突破", "头肩MTR",
+                    "ii突破", "iii突破", "HOY突破", "LOY突破", "头肩MTR",
                 ],
                 "cooldown_multiplier": 3.0,
             },
             "1h": {
-                "allowed_strategies": ["楔形顶底", "末端旗形", "头肩MTR"],
+                "allowed_strategies": ["楔形顶底", "末端旗形", "ii突破", "iii突破", "HOY突破", "LOY突破", "头肩MTR"],
                 "cooldown_multiplier": 4.0,
             },
         }
@@ -2336,9 +2378,13 @@ class PASignalEngine(BaseEngine):
         direction = str(getattr(signal, "direction", "") or "")
         timeframe = str(getattr(signal, "timeframe", "") or "")
         extra = dict(getattr(signal, "extra", {}) or {})
-        if timeframe != "5m" or market_key not in {"tight_range", "broad_range"}:
+        timeframe_minutes = _timeframe_to_minutes(timeframe)
+        if not _is_intraday_timeframe(timeframe) or market_key not in {"tight_range", "broad_range"}:
             return False
-        if int(extra.get("session_bar_index", -1) or -1) > 12:
+        session_bar_index = int(extra.get("session_bar_index", -1) or -1)
+        if session_bar_index < 0:
+            return False
+        if (session_bar_index + 1) * timeframe_minutes > 90:
             return False
         if str(extra.get("daily_tr_fade_bias", "") or "").upper() != direction:
             return False
@@ -2360,7 +2406,7 @@ class PASignalEngine(BaseEngine):
         direction = str(getattr(signal, "direction", "") or "")
         timeframe = str(getattr(signal, "timeframe", "") or "")
         extra = dict(getattr(signal, "extra", {}) or {})
-        if timeframe not in {"5m", "15m"}:
+        if not _is_intraday_timeframe(timeframe):
             return False
         if str(extra.get("htf_sr_bias", "") or "").upper() != direction:
             return False
@@ -2399,7 +2445,7 @@ class PASignalEngine(BaseEngine):
         direction = str(getattr(signal, "direction", "") or "")
         timeframe = str(getattr(signal, "timeframe", "") or "")
         extra = dict(getattr(signal, "extra", {}) or {})
-        if timeframe not in {"5m", "15m"}:
+        if not _is_intraday_timeframe(timeframe):
             return False
         if str(extra.get("daily_micro_channel_bias", "") or "").upper() != direction:
             return False
@@ -2664,6 +2710,7 @@ class PASignalEngine(BaseEngine):
         candles = self._fetch_candles(symbol, timeframe, limit=50)
         if len(candles) < 20:
             return []
+        daily_candles = self._fetch_candles(symbol, "1d", limit=3) if _is_intraday_timeframe(timeframe) else []
 
         # 获取周期配置
         tf_config = self.timeframe_config.get(timeframe, self.timeframe_config["5m"])
@@ -2870,13 +2917,15 @@ class PASignalEngine(BaseEngine):
 
         # HOY/LOY 突破: 全状态均可触发，昨日高低点是最关键日内 S/R
         if is_allowed("HOY突破") or is_allowed("LOY突破"):
-            sig = self.detector.detect_hoy_loy(candles, ema20, cycle, atr)
+            sig = self.detector.detect_hoy_loy(candles, ema20, cycle, atr, daily_candles=daily_candles)
             if sig:
                 sig.timeframe = timeframe
                 signals.append(sig)
 
         # ii/ioi 压缩突破: TTR/Tight Channel/Broad Channel/TR 均可
-        if not cycle.startswith("急速") and is_allowed("ii突破"):
+        if not cycle.startswith("急速") and (
+            is_allowed("ii突破") or is_allowed("ioi突破") or is_allowed("iii突破")
+        ):
             sig = self.detector.detect_ii_breakout(candles, ema20, cycle, atr)
             if sig:
                 sig.timeframe = timeframe

@@ -80,6 +80,9 @@ class BacktestResult:
     entry_block_reasons: dict = field(default_factory=dict)
     route_block_by_strategy: dict = field(default_factory=dict)
     entry_block_by_strategy: dict = field(default_factory=dict)
+    signals_generated_by_strategy: dict = field(default_factory=dict)
+    signals_passed_by_strategy: dict = field(default_factory=dict)
+    signals_blocked_strategy_by_strategy: dict = field(default_factory=dict)
 
     # 配置
     threshold: int = 80
@@ -104,6 +107,9 @@ class BacktestResult:
                       route_block_by_strategy: dict | None = None,
                       entry_block_reasons: dict | None = None,
                       entry_block_by_strategy: dict | None = None,
+                      signals_generated_by_strategy: dict | None = None,
+                      signals_passed_by_strategy: dict | None = None,
+                      signals_blocked_strategy_by_strategy: dict | None = None,
                       days: int = 0,
                       initial_capital: float = 10000.0) -> "BacktestResult":
         """从 SimExchange 生成结果"""
@@ -123,6 +129,9 @@ class BacktestResult:
                 route_block_by_strategy=dict(route_block_by_strategy or {}),
                 entry_block_reasons=dict(entry_block_reasons or {}),
                 entry_block_by_strategy=dict(entry_block_by_strategy or {}),
+                signals_generated_by_strategy=dict(signals_generated_by_strategy or {}),
+                signals_passed_by_strategy=dict(signals_passed_by_strategy or {}),
+                signals_blocked_strategy_by_strategy=dict(signals_blocked_strategy_by_strategy or {}),
             )
 
         wins = [t for t in trades if t.result == "WIN"]
@@ -220,6 +229,9 @@ class BacktestResult:
             route_block_by_strategy=dict(route_block_by_strategy or {}),
             entry_block_reasons=dict(entry_block_reasons or {}),
             entry_block_by_strategy=dict(entry_block_by_strategy or {}),
+            signals_generated_by_strategy=dict(signals_generated_by_strategy or {}),
+            signals_passed_by_strategy=dict(signals_passed_by_strategy or {}),
+            signals_blocked_strategy_by_strategy=dict(signals_blocked_strategy_by_strategy or {}),
             threshold=threshold,
             days=days,
             by_strategy=by_strategy,
@@ -311,6 +323,16 @@ class BacktestResult:
             print("  入场主因:")
             for reason, count in sorted(self.entry_block_reasons.items(), key=lambda item: (-item[1], item[0]))[:5]:
                 print(f"    - {reason}: {count}")
+        if self.signals_generated_by_strategy:
+            print("  策略机会:")
+            ranked = sorted(
+                self.signals_generated_by_strategy.items(),
+                key=lambda item: (-item[1], item[0]),
+            )
+            for strategy, generated in ranked[:8]:
+                passed = int(self.signals_passed_by_strategy.get(strategy, 0) or 0)
+                filtered = int(self.signals_blocked_strategy_by_strategy.get(strategy, 0) or 0)
+                print(f"    - {strategy}: 生成{generated} | 通过{passed} | 过滤{filtered}")
         print(f"  评分阈值: {self.threshold}")
 
         print("\n  === 交易统计 ===")
@@ -396,6 +418,9 @@ class BacktestResult:
                 "route_block_by_strategy": self.route_block_by_strategy,
                 "entry_block_reasons": self.entry_block_reasons,
                 "entry_block_by_strategy": self.entry_block_by_strategy,
+                "generated_by_strategy": self.signals_generated_by_strategy,
+                "passed_by_strategy": self.signals_passed_by_strategy,
+                "blocked_strategy_by_strategy": self.signals_blocked_strategy_by_strategy,
             },
             "by_strategy": self.by_strategy,
             "by_background": self.by_background,

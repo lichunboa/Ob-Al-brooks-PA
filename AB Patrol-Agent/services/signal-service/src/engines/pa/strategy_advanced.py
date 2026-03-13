@@ -142,9 +142,14 @@ class AdvancedStrategyDetectorMixin:
         pattern = None
         pattern_bars = []
 
-        if is_inside(bars[-2], bars[-3]) and is_inside(bars[-1], bars[-2]):
-            pattern = "ii"
-            pattern_bars = bars[-3:]
+        if (
+            len(bars) >= 4
+            and is_inside(bars[-3], bars[-4])
+            and is_inside(bars[-2], bars[-3])
+            and is_inside(bars[-1], bars[-2])
+        ):
+            pattern = "iii"
+            pattern_bars = bars[-4:]
         elif (
             len(bars) >= 4
             and is_inside(bars[-3], bars[-4])
@@ -153,14 +158,9 @@ class AdvancedStrategyDetectorMixin:
         ):
             pattern = "ioi"
             pattern_bars = bars[-4:]
-        elif (
-            len(bars) >= 4
-            and is_inside(bars[-3], bars[-4])
-            and is_inside(bars[-2], bars[-3])
-            and is_inside(bars[-1], bars[-2])
-        ):
-            pattern = "iii"
-            pattern_bars = bars[-4:]
+        elif is_inside(bars[-2], bars[-3]) and is_inside(bars[-1], bars[-2]):
+            pattern = "ii"
+            pattern_bars = bars[-3:]
 
         if not pattern:
             return None

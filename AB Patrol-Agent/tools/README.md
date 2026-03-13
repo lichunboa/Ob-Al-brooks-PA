@@ -8,6 +8,7 @@
   - 巡逻控制、交易接入、图表生成、交易所配置
 - `diagnostics/`
   - 系统诊断、上下文审计、数据质量检查、恢复检查
+  - 策略机会审计，例如 `audit_strategy_opportunities.py`
 
 规则：
 

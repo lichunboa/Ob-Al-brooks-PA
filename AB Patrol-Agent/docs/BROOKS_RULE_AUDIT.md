@@ -108,3 +108,67 @@
 
 - [runner.py](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/libs/backtest/runner.py)
 - [target_magnets.py](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/trading/utils/target_magnets.py)
+
+## 八、关于“时间周期不该决定策略逻辑”的当前结论
+
+这轮又额外校准了一条边界：
+
+- Brooks 体系确实不是“5m 一套、15m 一套、1h 再一套完全不同规则”
+- 真正该变化的，是：
+  - 当前周期的市场状态
+  - 更高一级周期给出的背景
+  - 同一信号在不同压缩层级里的空间与位置
+
+因此主链现在采用的原则是：
+
+1. detector 与路由尽量按结构泛化
+   - 不再写死 `15m 为 TR，5m ...`
+   - 改成 `更高一级周期为 TR，当前周期 ...`
+2. 可以保留的周期映射，只限于“更高一级周期上下文”
+   - 例如 `5m -> 15m`
+   - `15m -> 1h`
+   - `1h -> 4h`
+3. 不再允许把单个具体周期写成独占 detector 的前提，除非它真的是日内开盘结构
+
+也就是说：
+
+- 周期可以影响背景
+- 周期不该决定某个 Brooks setup 在逻辑上“只属于 5m”或“只属于 15m”
+
+## 九、这轮新增验证结果
+
+结合 `/tmp/brooks_frequency_audit_20260313.json` 与 `/tmp/brooks_zero_strategy_recheck_20260313.json`，当前可以确认：
+
+1. `末端旗形`
+   - 之前是 detector bug，不是策略天然稀有
+   - 现在已经恢复成正常可生成、可成交
+2. `HOY / LOY / iii`
+   - 已经不再是“完全没有 detector”
+   - 当前主要矛盾转成：
+     - `prior_level` 结构磁体拦截
+     - 弱趋势里 follow-through 不足
+3. `高1 / 低1 / 高2 / 低2`
+   - 之前确实被“偏好第二信号”误写成了“近乎强制第二信号”
+   - 现在已改成：
+     - 边缘/优势区
+     - 强信号棒
+     - 目标路径清晰
+     - 或已有失败突破/受困一侧证据
+     满足其一即可放行
+
+## 十、剩余允许保留的“结构性阻挡”
+
+当前还保留、并且仍然符合 Brooks 的阻挡，只剩这些：
+
+1. `TR / 宽通道中部不做`
+2. `弱趋势 / 宽通道里缺少 follow-through 不追突破`
+3. `结构性磁体前方目标明显受阻`
+4. `宽通道 first reversal` 仍需防止误判成大反转
+5. `第二腿陷阱`、`失败突破`、`趋势线破坏` 仍然是核心反转证据
+
+后续如果继续提高频率，只能通过两种方式：
+
+1. 证明某条结构守门写得比教材更死，然后放宽
+2. 补齐尚未完整实现的 Brooks detector
+
+不再允许恢复任何工程化分数、R 距离或 ATR 阈值来“换频率”。
