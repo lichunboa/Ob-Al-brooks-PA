@@ -1387,6 +1387,12 @@ class BacktestRunner:
             market_state=str(extra.get("market_state", "") or ""),
             route_style=route_style,
             magnets=magnets,
+            signal_type=signal_type,
+            signal_bar_quality=float(signal_bar_context.get("signal_bar_quality", 0.0) or 0.0),
+            follow_through=bool(extra.get("follow_through", False)),
+            higher_follow_through=bool(extra.get("higher_follow_through", False)),
+            broke_micro_extreme=bool(signal_bar_context.get("broke_micro_extreme", False)),
+            reclaimed_prior_close=bool(signal_bar_context.get("reclaimed_prior_close", False)),
         )
         target_path_clear = bool(target_plan.get("path_clear", True))
         recommended_target = float(target_plan.get("recommended_target") or 0.0)

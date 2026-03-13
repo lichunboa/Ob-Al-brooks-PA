@@ -172,3 +172,32 @@
 2. 补齐尚未完整实现的 Brooks detector
 
 不再允许恢复任何工程化分数、R 距离或 ATR 阈值来“换频率”。
+
+## 十一、`prior_level` 的当前边界
+
+这轮把 `prior_level` 单独拆开重新审了一次，当前主链采用的边界是：
+
+1. 单个 `prior_level`
+   - 对真正的 breakout chase，如果已经有足够突破语境，就不再一律挡单
+   - 对趋势中的 pullback continuation，通常先把它当第一测试目标
+2. `prior_level` 结构簇
+   - 如果前方是多个前高前低叠成一簇，仍然保留为硬阻挡
+   - 这类更接近 Brooks 里“市场先去测试阻力，再决定能否真正穿过去”的情形
+
+当前已经确认修掉的一类误杀是：
+
+- `第一均线缺口` / `20均线缺口` / `突破回调`
+  - 过去会因为 `broke_micro_extreme` 被过早视为“强 breakout”
+  - 然后直接跳过前高、改看更远的 measured move
+  - 结果前高又被回头当成 blocker
+
+现在这类 pullback continuation 已经改成：
+
+- 只有真的出现更强的突破延续语境，才优先看更远目标
+- 否则先把最近 `prior_level` 当第一目标
+
+这样保留了 Brooks 的本质：
+
+- 前高前低是磁体和测试位
+- 不是默认 veto
+- 但结构簇仍然是有效阻挡

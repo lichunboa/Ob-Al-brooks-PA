@@ -50,6 +50,16 @@ def _is_soft_reference_kind(kind: str) -> bool:
     return normalized in {"session_open", "tr_midline", "round_number", "ema20"}
 
 
+def _is_single_prior_level_cluster(cluster: dict[str, Any] | None) -> bool:
+    """判断当前簇是否只是一个单独的前高前低阻力。"""
+    if not isinstance(cluster, dict):
+        return False
+    members = cluster.get("members") if isinstance(cluster.get("members"), list) else []
+    if len(members) != 1:
+        return False
+    return str(members[0].get("kind") or "").lower() == "prior_level"
+
+
 def _is_same_price(left: float, right: float, entry_price: float) -> bool:
     tolerance = max(abs(float(entry_price or 0.0)) * 0.0005, 1e-8)
     return abs(float(left or 0.0) - float(right or 0.0)) <= tolerance
@@ -269,6 +279,12 @@ def resolve_target_path(
     market_state: str = "",
     route_style: str = "",
     magnets: list[dict[str, Any]] | None = None,
+    signal_type: str = "",
+    signal_bar_quality: float = 0.0,
+    follow_through: bool = False,
+    higher_follow_through: bool = False,
+    broke_micro_extreme: bool = False,
+    reclaimed_prior_close: bool = False,
 ) -> dict[str, Any]:
     """根据市场状态选择更合理的目标磁体，并判断路径是否受阻。"""
     normalized_side = _normalize_side(side)
@@ -278,10 +294,91 @@ def resolve_target_path(
     risk = abs(entry_price - stop_loss)
     state_text = str(market_state or "").lower()
     route_text = str(route_style or "").lower()
-    tight_range_like = "tight_range" in state_text or "ttr" in state_text
     range_like = "tr" in str(market_state or "").upper() or "range" in state_text or "tr_blshs" in route_text
-    breakout_like = "trend" in state_text or "breakout" in route_text or "brooks_breakout" in route_text
+    signal_label = str(signal_type or "")
+    breakout_signal_set = {
+        "HOY突破",
+        "LOY突破",
+        "ii突破",
+        "ioi突破",
+        "iii突破",
+        "收线追进",
+        "突破回调",
+        "第一均线缺口",
+        "20均线缺口",
+        "高1",
+        "低1",
+        "高2",
+        "低2",
+    }
+    breakout_chase_signals = {
+        "HOY突破",
+        "LOY突破",
+        "ii突破",
+        "ioi突破",
+        "iii突破",
+        "收线追进",
+    }
+    pullback_continuation_signals = {
+        "高1",
+        "低1",
+        "高2",
+        "低2",
+        "突破回调",
+        "20均线缺口",
+        "第一均线缺口",
+    }
+    prior_first_breakout_signals = {
+        "HOY突破",
+        "LOY突破",
+        "ii突破",
+        "ioi突破",
+        "iii突破",
+    }
+    breakout_family_signal = signal_label in breakout_signal_set
+    breakout_chase_signal = signal_label in breakout_chase_signals
+    pullback_continuation_signal = signal_label in pullback_continuation_signals
+    follow_through_ready = bool(follow_through or higher_follow_through)
+    breakout_like = (
+        breakout_family_signal
+        or "trend" in state_text
+        or "breakout" in route_text
+        or "brooks_breakout" in route_text
+    )
     reversal_like = any(token in route_text for token in ("reversal", "mtr", "wedge", "dt_db", "hs"))
+    # Brooks 里真正的 breakout chase 和趋势中的 pullback continuation，
+    # 第一目标通常不同。前者在强突破时可以直接看更远的 MM，
+    # 后者大多数时候仍应先把前高前低当成测试目标，而不是仅凭突破微小极值就跳过。
+    strong_breakout_context = False
+    tradable_breakout_context = False
+    if breakout_chase_signal:
+        strong_breakout_context = (
+            follow_through_ready
+            or signal_bar_quality >= 0.58
+            or broke_micro_extreme
+            or reclaimed_prior_close
+        )
+        tradable_breakout_context = strong_breakout_context or signal_bar_quality >= 0.54
+    elif pullback_continuation_signal:
+        strong_breakout_context = (
+            follow_through_ready
+            or (reclaimed_prior_close and signal_bar_quality >= 0.58)
+            or (broke_micro_extreme and signal_bar_quality >= 0.62)
+        )
+        tradable_breakout_context = strong_breakout_context or (
+            signal_bar_quality >= 0.54 and (follow_through_ready or reclaimed_prior_close)
+        )
+    elif breakout_family_signal:
+        strong_breakout_context = (
+            follow_through_ready
+            or signal_bar_quality >= 0.58
+            or broke_micro_extreme
+        )
+        tradable_breakout_context = (
+            strong_breakout_context
+            or reclaimed_prior_close
+            or signal_bar_quality >= 0.54
+        )
     clusters = _cluster_magnets(magnets, entry_price, risk)
 
     nearest = magnets[0] if magnets else None
@@ -301,7 +398,16 @@ def resolve_target_path(
     if range_like:
         chosen_cluster = midline_cluster or non_ema_cluster or nearest_cluster
     elif breakout_like:
-        if mm_cluster is not None:
+        # Brooks 里前高前低既是磁体，也是常见的第一目标。
+        # 对普通 breakout，更合理的是先把单个 prior level 当测试目标；
+        # 只有强突破、且已有明显 follow-through 时，才优先看更远的 measured move。
+        if prior_cluster is not None and signal_label in prior_first_breakout_signals:
+            chosen_cluster = prior_cluster
+        elif prior_cluster is not None and pullback_continuation_signal and not strong_breakout_context:
+            chosen_cluster = prior_cluster
+        elif prior_cluster is not None and breakout_family_signal and not strong_breakout_context:
+            chosen_cluster = prior_cluster
+        elif mm_cluster is not None:
             chosen_cluster = mm_cluster
         elif prior_cluster is not None:
             chosen_cluster = prior_cluster
@@ -348,6 +454,14 @@ def resolve_target_path(
             safe_float(chosen_cluster.get("price"), 0.0),
             entry_price,
         ):
+            continue
+        if (
+            breakout_like
+            and tradable_breakout_context
+            and str(cluster_kind or "").lower() == "prior_level"
+            and _is_single_prior_level_cluster(cluster)
+        ):
+            # 强或可交易的 breakout 往往会先测试前高前低，单个次级阻力不该默认挡掉整笔交易。
             continue
         # Brooks 会把中线、整数位、open、EMA 当作参考磁体，但它们通常不该
         # 和 MM / prior high-low / gap 一样，被当成硬阻挡。

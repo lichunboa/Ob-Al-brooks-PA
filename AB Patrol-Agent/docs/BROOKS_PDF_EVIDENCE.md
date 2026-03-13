@@ -108,7 +108,30 @@
   - `头肩 / 楔形 / 双顶双底` 在宽通道里要防止把 first reversal 误当成大反转
   - 结构性磁体与 `second-leg trap` 仍然要作为守门
 
-## 7. 当前最值得继续审的点
+## 7. `prior_level` 不是一律的 blocker，更常常先是第一目标
+
+来源：
+
+- `《价格行为PPT中文笔记》/1.《价格行为学》（基础篇1-36章）.pdf`
+- 页码：`346`、`1523`、`1572`、`1732`
+
+结论：
+
+- Brooks 对前高前低、阻力支撑的处理，不是“看到 prior high / prior low 就一律不做”
+- 更准确的顺序是：
+  - 弱 breakout / pullback continuation，先把前高前低当第一测试目标
+  - 真正强 breakout，单个次级阻力常常会失败
+  - 但如果前方不是单个前高，而是多个 prior level 叠成的结构簇，它仍然应该保留成阻挡
+
+![单个次级阻力常常会失败](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_minor_resistance_fail-0346.png)
+
+![没有强突破和跟进时，前高仍是阻力](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_no_strong_bo_prior_high-1523.png)
+
+![市场经常需要先走到阻力位才会遇到卖压](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_get_to_resistance-1572.png)
+
+![阻力常常是测试位和止盈位，不等于每次都要事前否决](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_take_profit_resistance-1732.png)
+
+## 8. 当前最值得继续审的点
 
 从这轮截图和多窗口回测一起看，下一轮最该收的仍然是：
 

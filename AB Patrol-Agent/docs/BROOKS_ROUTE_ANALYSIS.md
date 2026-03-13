@@ -259,7 +259,33 @@ Brooks 对 `H2/L2` 的重点是：
 - `failed breakout / trendline break` 仍然是加分证据
 - 但只要 `H2/L2` 本身已经在优势区、前腿结构正确、信号棒够强，就允许通过
 
-### 3. `看衰突破` 不再要求“失败突破证据全满”
+### 3. `prior_level` 不再对 breakout / continuation 一刀切
+
+依据：
+
+- [BROOKS_PDF_EVIDENCE.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/BROOKS_PDF_EVIDENCE.md)
+
+这轮把 `prior_level` 再拆开成两类：
+
+1. 单个前高前低
+   - 对 `HOY / LOY / ii / ioi / iii / 收线追进` 这类 breakout chase，
+     如果已经有合理的突破语境，就不再默认挡单
+   - 对 `高1/低1/高2/低2/均线缺口/突破回调` 这类 pullback continuation，
+     通常先把它当作第一测试目标
+2. 多个 `prior_level` 叠成的结构簇
+   - 仍然保留成阻挡
+   - 因为这已经不再是“单个次级阻力”，而是更接近真正的结构阻力区
+
+当前这一刀主要修掉的是：
+
+- `第一均线缺口`、`20均线缺口`、`突破回调`
+  - 过去会因为 `broke_micro_extreme` 被提前视为强 breakout
+  - 目标直接跳到 `measured_move`
+  - 然后前高又变成 blocker
+
+现在这类信号只有在更强的突破延续语境下，才会直接优先看更远目标。
+
+### 4. `看衰突破` 不再要求“失败突破证据全满”
 
 依据：
 
@@ -283,7 +309,7 @@ Brooks 的失败突破逻辑是：
 - 再加上拒绝尾巴、受困一侧或趋势线破坏中的任意一类确认
 - 就允许进入执行链
 
-### 4. 宽通道反转不再把“优势区”写得接近“必须贴边”
+### 5. 宽通道反转不再把“优势区”写得接近“必须贴边”
 
 依据：
 
