@@ -227,3 +227,45 @@
 - `iii突破` 的 `prior_level` 问题，在当前复核窗口里已经可以视为关闭
 - `ioi突破` 的主问题，已经从“误归类到 second-leg trap”改正
 - `HOY突破` 当前没有复现出旧的 `prior_level` 阻挡问题
+
+## 十三、这轮继续保留与放宽的边界
+
+基于新增页图 `0290 / 0409 / 0494 / 0605`，这轮主链的边界进一步明确成：
+
+### 继续保留
+
+1. `TR / 宽通道中部不做`
+2. `tight channel` 里的 first reversal 仍然偏保守
+3. `second-leg trap` 仍然是宽通道/交易区间里重要守门
+4. `prior_level` 结构簇仍然是有效硬阻挡
+
+### 本轮放宽
+
+1. `宽通道 / 弱趋势` 里的顺势恢复
+   - 允许 `acceptance_ready / reclaimed_prior_close / stairs / exhaustion`
+     作为 `follow-through` 之外的合法证据。
+2. `H1/L1` 与 `H2/L2`
+   - 不再把“信号成熟度”和“目标路径是否通畅”绑定成一个 veto。
+3. `看衰突破`
+   - 只要已经回区间，且有强 rejection / trapped side / acceptance，不再要求证据项堆满。
+4. `楔形 / 头肩` 在宽通道里
+   - 只要已有 `stairs / exhaustion / failed breakout / trendline break / trapped side` 之一，就不自动压回 `second-leg trap`。
+
+## 十四、本轮多窗口复测后的结论
+
+这轮之后：
+
+1. `5m` 两个独立窗口都明显抬频
+   - `BTCUSDT 2022`: `393 -> 567`
+   - `BTCUSDT 2025`: `388 -> 520`
+2. `15m / 1h` 基本不变
+   - 说明放宽集中发生在顺势恢复链，而不是胡乱放大所有 setup
+3. 剩余主瓶颈已经转移
+   - 从 `宽通道顺势恢复缺少 follow-through`
+   - 转成 `prior_level`、`H2/L2` 失败突破证据、`second-leg trap`
+
+因此，后续如果继续提频，只能继续按 Brooks 去审：
+
+1. `prior_level` 的顺势恢复边界
+2. `H2/L2` 在 `TR / weak trend` 里的失败突破证据要求
+3. `second-leg trap` 与 `楔形 / 头肩 / 双顶双底` 的区分

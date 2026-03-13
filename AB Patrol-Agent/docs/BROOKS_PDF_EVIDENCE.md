@@ -140,3 +140,61 @@
 - `看衰突破` 与 `第二腿陷阱` 的 detector 证据拆分
 
 这些点已经有截图依据，不需要再回到“靠经验加减分数”的做法。
+
+## 9. 一旦进入通道，就按通道交易，不要把所有回调都当成突破
+
+来源：
+
+- `《价格行为PPT中文笔记》/2.《价格行为学》（进阶篇37-52章）.pdf`
+- 页码：`290`
+
+结论：
+
+- Brooks 在页图里直接写了 `If now channel, trade like channel`
+- 这意味着一旦市场已经进入通道阶段，顺势恢复单不能再被当成“必须强 follow-through 的 breakout”
+- 更合理的做法是：
+  - 保留 `follow-through` 作为优势证据
+  - 但允许 `acceptance / 好信号棒 / 已回到有利半区` 的顺势恢复继续存在
+
+![进入通道就按通道交易](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_trade_like_channel-0290.png)
+
+## 10. 宽通道和紧密通道要区别对待
+
+来源：
+
+- `《价格行为PPT中文笔记》/2.《价格行为学》（进阶篇37-52章）.pdf`
+- 页码：`409`、`494`
+
+结论：
+
+- Brooks 明确写了：
+  - `When channel is broad, can make money buying or selling`
+  - `When bull channel is tight like this one, very difficult to make money shorting`
+  - `When bear channel is tight like this one, very difficult to make money buying`
+- 这正好支持当前主链的边界：
+  - 紧密通道里仍然要严控逆势 first reversal
+  - 但宽通道里，`高1/低1/高2/低2` 与反转结构都不该被写成一律“必须等非常强 follow-through”
+
+![紧密多头通道与宽通道的区别](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_bull_channel_tight-0409.png)
+
+![紧密空头通道与宽通道的区别](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_bear_channel_tight-0494.png)
+
+## 11. `second-leg trap` 要保留，但不能把所有宽通道反转都压成它
+
+来源：
+
+- `《价格行为PPT中文笔记》/2.《价格行为学》（进阶篇37-52章）.pdf`
+- 页码：`605`
+
+结论：
+
+- Brooks 在宽幅多头通道案例里直接标了 `Bear channel 2nd Leg Trap in TR`
+- 这说明 `second-leg trap` 确实是宽通道/交易区间里必须保留的守门
+- 但同页也显示：
+  - 宽通道内部会频繁切换成 `tight channel / TR / small PB trend`
+  - 所以不能只要看到 `tr_second_leg` 就把 `楔形 / 头肩 / 双顶双底 / 第二次入场` 一律否决
+- 更符合 Brooks 的写法是：
+  - 保留 `second-leg trap`
+  - 但当已经出现 `stairs / exhaustion / 优势区强信号棒 / acceptance` 时，允许通道恢复和部分反转继续进入下一层检查
+
+![宽通道里的 second-leg trap 只是其中一种结果](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_second_leg_trap-0605.png)

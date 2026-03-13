@@ -2534,6 +2534,10 @@ class PASignalEngine(BaseEngine):
         signal_bar_quality = float(signal_extra.get("signal_bar_quality") or 0.0)
         follow_through = bool(getattr(market_state, "follow_through", False))
         pullback_ratio = float(getattr(market_state, "pullback_ratio", 0.0) or 0.0)
+        reclaimed_prior_close = bool(signal_extra.get("reclaimed_prior_close", False))
+        gap_context = signal_extra.get("gap_context") if isinstance(signal_extra.get("gap_context"), dict) else {}
+        stairs_pattern = bool(gap_context.get("stairs_pattern", False))
+        exhaustion_detected = bool(gap_context.get("exhaustion_detected", False))
         range_edge = str(snapshot.get("range_edge", "") or "")
         range_zone = str(snapshot.get("range_zone", "") or "")
         range_position = float(snapshot.get("range_position", 0.5) or 0.5)
@@ -2549,10 +2553,11 @@ class PASignalEngine(BaseEngine):
         second_entry_signal = signal_type in {"高2", "低2"}
         strong_first_entry = first_entry_signal and (signal_strength >= 80 or signal_bar_quality >= 0.58)
         strong_second_entry = second_entry_signal and (signal_strength >= 82 or signal_bar_quality >= 0.54)
+        continuation_context_ready = reclaimed_prior_close or stairs_pattern or exhaustion_detected
         breakout_mode_pattern = signal_type in {"ii突破", "ioi突破", "iii突破"} and (
             follow_through
             or bool(signal_extra.get("near_ema", False))
-            or bool(signal_extra.get("reclaimed_prior_close", False))
+            or reclaimed_prior_close
             or signal_bar_quality >= 0.54
         )
         hoy_loy_breakout_ready = signal_type in {"HOY突破", "LOY突破", "收线追进"} and (
@@ -2587,6 +2592,7 @@ class PASignalEngine(BaseEngine):
                     or origin_half_match
                     or strong_first_entry
                     or strong_second_entry
+                    or continuation_context_ready
                 )
             ):
                 return False, "宽区间深回调 stop 单先等接受"
@@ -2605,7 +2611,11 @@ class PASignalEngine(BaseEngine):
                 aligned
                 and signal_type in {"高1", "低1"}
                 and pullback_ratio > 0.58
-                and not (follow_through or (strong_first_entry and (origin_half_match or advantage_match)))
+                and not (
+                    follow_through
+                    or continuation_context_ready
+                    or (strong_first_entry and (origin_half_match or advantage_match))
+                )
             ):
                 return False, "宽通道第一腿回调缺少 follow-through"
             if (
@@ -2613,7 +2623,12 @@ class PASignalEngine(BaseEngine):
                 and signal_type in {"高2", "低2", "20均线缺口", "第一均线缺口", "突破回调"}
                 and pullback_ratio > 0.72
                 and not follow_through
-                and not (origin_half_match or advantage_match or strong_second_entry)
+                and not (
+                    origin_half_match
+                    or advantage_match
+                    or strong_second_entry
+                    or continuation_context_ready
+                )
             ):
                 return False, "宽通道深回调恢复先等回到有利半区"
 

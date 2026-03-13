@@ -1889,7 +1889,20 @@ class BacktestRunner:
         weakening = pullback_ratio >= 0.5 or market_state.is_ttr or not follow_through or tbtl_big >= 5
         tradeable_advantage_zone = BacktestRunner._is_advantage_zone(range_position, direction)
         tradeable_edge_zone = BacktestRunner._is_edge_zone(range_position, direction)
+        tradeable_origin_zone = BacktestRunner._range_zone_matches_direction(
+            range_zone,
+            direction,
+            allow_origin=True,
+        )
+        tradeable_zone = tradeable_origin_zone or tradeable_advantage_zone or tradeable_edge_zone
         strong_signal_bar = signal_bar_quality >= 0.58
+        good_signal_bar = signal_bar_quality >= 0.54
+        acceptance_ready = bool(extra.get("acceptance_ready", False))
+        executable_signal_ready = bool(extra.get("executable_signal_ready", False))
+        reclaimed_prior_close = bool(extra.get("reclaimed_prior_close", False))
+        gap_context = extra.get("gap_context") if isinstance(extra.get("gap_context"), dict) else {}
+        stairs_pattern = bool(gap_context.get("stairs_pattern", False))
+        exhaustion_detected = bool(gap_context.get("exhaustion_detected", False))
         classic_reversal_setup = signal_type in {
             "高2",
             "低2",
@@ -1911,7 +1924,14 @@ class BacktestRunner:
                 or second_leg_pressure
                 or (classic_reversal_setup and tradeable_advantage_zone)
             )
-            and (strong_signal_bar or follow_through or signal_bar_quality >= 0.54)
+            and (
+                strong_signal_bar
+                or good_signal_bar
+                or follow_through
+                or (acceptance_ready and executable_signal_ready)
+                or (stairs_pattern and good_signal_bar)
+                or (exhaustion_detected and strong_signal_bar)
+            )
         )
         breakout_mode_ready = False
         if signal_type in {"ii突破", "ioi突破"}:
@@ -1933,6 +1953,36 @@ class BacktestRunner:
                 )
                 and not bool(trapped_side)
             )
+
+        strong_first_entry_recovery = (
+            signal_type in {"高1", "低1"}
+            and good_signal_bar
+            and (
+                tradeable_zone
+                or prior_leg_context == "trend_leg"
+                or (acceptance_ready and executable_signal_ready)
+                or reclaimed_prior_close
+            )
+        )
+        strong_second_entry_recovery = (
+            signal_type in {"高2", "低2", "突破回调", "20均线缺口", "第一均线缺口"}
+            and (good_signal_bar or signal_bar_quality >= 0.52)
+            and (
+                trendline_break_confirmed
+                or tradeable_zone
+                or prior_leg_context in {"trend_leg", "tr_second_leg"}
+                or (acceptance_ready and executable_signal_ready)
+                or reclaimed_prior_close
+                or stairs_pattern
+            )
+        )
+        continuation_context_ready = (
+            acceptance_ready
+            or executable_signal_ready
+            or reclaimed_prior_close
+            or stairs_pattern
+            or exhaustion_detected
+        )
 
         if market_key == "strong_trend_bull":
             if direction == "SELL":
@@ -2024,16 +2074,6 @@ class BacktestRunner:
                 "T6_TR_LEG_CHANNEL_RECOVERY",
                 "T6_TR_LEG_EMA_RECOVERY",
             } or (is_trend and not is_reversal):
-                strong_first_entry_recovery = (
-                    signal_type in {"高1", "低1"}
-                    and signal_bar_quality >= 0.56
-                    and (tradeable_edge_zone or tradeable_advantage_zone or prior_leg_context == "trend_leg")
-                )
-                strong_second_entry_recovery = (
-                    signal_type in {"高2", "低2", "突破回调", "20均线缺口", "第一均线缺口"}
-                    and signal_bar_quality >= 0.54
-                    and (trendline_break_confirmed or tradeable_advantage_zone or prior_leg_context == "trend_leg")
-                )
                 continuation_ready = (
                     follow_through
                     or higher_follow_through
@@ -2041,6 +2081,7 @@ class BacktestRunner:
                     or strong_first_entry_recovery
                     or strong_second_entry_recovery
                     or breakout_mode_ready
+                    or continuation_context_ready
                 )
                 if (
                     range_zone == "middle"
@@ -2060,7 +2101,19 @@ class BacktestRunner:
             aligned_bear = market_key == "weak_trend_bear" and direction == "SELL"
             if is_breakout and not follow_through and not breakout_mode_ready:
                 return False, "弱趋势里缺少 follow-through 不追突破"
-            if (aligned_bull or aligned_bear) and is_trend and pullback_ratio > 0.66 and not follow_through:
+            if (
+                (aligned_bull or aligned_bear)
+                and is_trend
+                and pullback_ratio > 0.66
+                and not (
+                    follow_through
+                    or higher_follow_through
+                    or continuation_context_ready
+                    or strong_first_entry_recovery
+                    or strong_second_entry_recovery
+                    or trendline_break_confirmed
+                )
+            ):
                 return False, "深回调后的趋势延续质量不足"
             if (
                 not (aligned_bull or aligned_bear)
@@ -2168,6 +2221,9 @@ class BacktestRunner:
         trapped_side = str(extra.get("trapped_side") or "")
         prior_leg_context = str(extra.get("prior_leg_context") or "")
         playbook_id = str(extra.get("playbook_id") or "")
+        gap_context = extra.get("gap_context") if isinstance(extra.get("gap_context"), dict) else {}
+        stairs_pattern = bool(gap_context.get("stairs_pattern", False))
+        exhaustion_detected = bool(gap_context.get("exhaustion_detected", False))
         signal_rank = 0
         if signal_type in {"高1", "低1"}:
             signal_rank = 1
@@ -2192,14 +2248,10 @@ class BacktestRunner:
             or follow_through
             or higher_follow_through
         )
-        first_signal_exception = (
-            target_path_clear
-            and good_signal_bar
-            and (
-                reversal_evidence
-                or first_signal_context_ready
-                or prior_leg_context == "tr_second_leg"
-            )
+        first_signal_exception = good_signal_bar and (
+            reversal_evidence
+            or first_signal_context_ready
+            or prior_leg_context == "tr_second_leg"
         )
         h2_l2_context_ready = (
             tradeable_zone
@@ -2208,13 +2260,9 @@ class BacktestRunner:
             or follow_through
             or higher_follow_through
         )
-        second_signal_exception = (
-            target_path_clear
-            and (good_signal_bar or signal_bar_quality >= 0.52)
-            and (
-                reversal_evidence
-                or h2_l2_context_ready
-            )
+        second_signal_exception = (good_signal_bar or signal_bar_quality >= 0.52) and (
+            reversal_evidence
+            or h2_l2_context_ready
         )
 
         def block(stage: str, reason: str) -> tuple[bool, str]:
@@ -2228,7 +2276,8 @@ class BacktestRunner:
                 follow_through
                 or higher_follow_through
                 or first_signal_exception
-                or (tradeable_zone and good_signal_bar and target_path_clear)
+                or (tradeable_zone and good_signal_bar)
+                or (acceptance_ready and executable_signal_ready and good_signal_bar)
             ):
                 return block("watch", "H1/L1 仍缺少 follow-through / acceptance")
             if (
@@ -2240,7 +2289,7 @@ class BacktestRunner:
                     or prior_leg_context == "trend_leg"
                 )
                 and not first_signal_exception
-                and not (tradeable_zone and signal_bar_quality >= 0.56 and target_path_clear)
+                and not (tradeable_zone and signal_bar_quality >= 0.56)
             ):
                 return block("candidate", "第一次信号尚未完成接受，继续等 H2/L2 或二次确认")
 
@@ -2252,6 +2301,8 @@ class BacktestRunner:
                 or trapped_side
                 or trendline_break_confirmed
                 or (tradeable_zone and strong_signal_bar)
+                or (stairs_pattern and tradeable_zone and good_signal_bar)
+                or (exhaustion_detected and tradeable_zone and strong_signal_bar)
             ):
                 return block("candidate", "第二腿陷阱仍缺少 failed breakout / trapped trader 证据")
             if (
@@ -2279,6 +2330,8 @@ class BacktestRunner:
                 or signal_bar_tail_ratio >= 0.14
                 or trendline_break_confirmed
                 or broke_micro_extreme
+                or (tradeable_zone and good_signal_bar and reclaimed_prior_close)
+                or (acceptance_ready and executable_signal_ready and reclaimed_prior_close)
             ):
                 return block("candidate", "看衰突破缺少拒绝或受困一侧证据")
             if (
@@ -2309,6 +2362,14 @@ class BacktestRunner:
                 signal_type in {"双重顶", "双重底", "头肩顶MTR", "头肩底MTR", "楔形顶", "楔形底"}
                 and tradeable_zone
                 and (strong_signal_bar or bool(trapped_side) or signal_bar_quality >= 0.54)
+                and (
+                    signal_type not in {"楔形顶", "楔形底", "头肩顶MTR", "头肩底MTR"}
+                    or stairs_pattern
+                    or exhaustion_detected
+                    or failed_breakout_evidence
+                    or trendline_break_confirmed
+                    or bool(trapped_side)
+                )
             )
             if (
                 prior_leg_context in {"tr_second_leg", "tr_leg"}
@@ -2316,6 +2377,7 @@ class BacktestRunner:
                 and not trendline_break_confirmed
                 and not classic_broad_channel_reversal
                 and not (strong_signal_bar and tradeable_zone)
+                and not (stairs_pattern and tradeable_zone and good_signal_bar)
             ):
                 return block("candidate", "宽通道反转更像 second-leg trap，先等失败突破或趋势线破坏")
 
@@ -2331,7 +2393,8 @@ class BacktestRunner:
                 and not trendline_break_confirmed
                 and not follow_through
                 and not second_signal_exception
-                and not (tradeable_zone and good_signal_bar and target_path_clear)
+                and not (tradeable_zone and good_signal_bar)
+                and not (acceptance_ready and executable_signal_ready and good_signal_bar)
             ):
                 return block("candidate", "区间/弱趋势里的 H2/L2 仍缺少失败突破或趋势线破坏证据")
             if (
