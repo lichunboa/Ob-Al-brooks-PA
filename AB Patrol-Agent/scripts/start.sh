@@ -334,6 +334,22 @@ write_terminal_service_wrapper() {
   shift 4
   local shell_path
   shell_path="$(build_launchd_path)"
+  local forwarded_env_keys=(
+    "AB_PATROL_RESPECT_EXISTING_ENV"
+    "AB_PATROL_EXECUTION_EXCHANGE"
+    "AB_PATROL_EXCHANGE"
+    "AB_PATROL_EXECUTION_MODE"
+    "AB_PATROL_BINANCE_MODE"
+    "AB_PATROL_BINANCE_TESTNET"
+    "AB_PATROL_ENABLE_AUTOTRADE"
+    "AB_PATROL_EXECUTION_BASE"
+    "AB_PATROL_QUERY_BASE"
+    "AB_PATROL_DATA_ROOT"
+    "AB_PATROL_DECISION_PROVIDER"
+    "AB_PATROL_DECISION_FALLBACK"
+    "AB_PATROL_OPENCLAW_AGENT"
+    "AB_PATROL_OPERATOR_AGENT"
+  )
   cat > "$wrapper" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
@@ -350,6 +366,13 @@ if [[ -f $(shell_quote "$ENV_FILE") ]]; then
   set +a
 fi
 EOF
+  local env_key
+  local env_value
+  for env_key in "${forwarded_env_keys[@]}"; do
+    env_value="${!env_key-}"
+    [[ -n "$env_value" ]] || continue
+    printf 'export %s=%s\n' "$env_key" "$(shell_quote "$env_value")" >> "$wrapper"
+  done
   local arg
   local line=""
   for arg in "$@"; do

@@ -55,8 +55,7 @@ MTR_REVERSAL_SIGNALS = {
     "头肩顶MTR",
     "头肩底MTR",
 }
-CHANNEL_REVERSAL_SIGNALS = {"急速通道", "末端旗形", "看衰突破"}
-TRAP_SIGNALS = {"第二腿陷阱"}
+CLIMAX_REVERSAL_SIGNALS = {"急速通道", "末端旗形", "看衰突破", "第二腿陷阱"}
 TREND_PULLBACK_SIGNALS = {"高1", "低1", "高2", "低2", "突破回调"}
 EMA_GAP_SIGNALS = {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"}
 BREAKOUT_CHASE_SIGNALS = {"收线追进", "ii突破", "ioi突破", "iii突破", "HOY突破", "LOY突破"}
@@ -67,6 +66,8 @@ STRATEGY_ALIASES: dict[str, set[str]] = {
     "头肩mtr": {"头肩顶MTR", "头肩底MTR"},
     "头肩MTR": {"头肩顶MTR", "头肩底MTR"},
     "MTR反转族": set(MTR_REVERSAL_SIGNALS),
+    "高潮反转族": set(CLIMAX_REVERSAL_SIGNALS),
+    "高潮/陷阱反转族": set(CLIMAX_REVERSAL_SIGNALS),
     "第二腿陷阱": {"第二腿陷阱", "2nd Leg Trap"},
     "高低1": {"高1", "低1"},
     "高低2": {"高2", "低2"},
@@ -193,10 +194,8 @@ def classify_strategy_family(signal_type: str) -> str:
     label = normalize_strategy_label(signal_type)
     if label in MTR_REVERSAL_SIGNALS:
         return "MTR反转族"
-    if label in CHANNEL_REVERSAL_SIGNALS:
-        return "高潮反转族"
-    if label in TRAP_SIGNALS:
-        return "TR陷阱族"
+    if label in CLIMAX_REVERSAL_SIGNALS:
+        return "高潮/陷阱反转族"
     if label in TREND_PULLBACK_SIGNALS:
         return "趋势恢复族"
     if label in EMA_GAP_SIGNALS:
@@ -209,8 +208,10 @@ def classify_strategy_family(signal_type: str) -> str:
 def normalize_management_style(style: str) -> str:
     """把历史管理模板名归并成当前族级模板。"""
     value = normalize_strategy_label(style)
-    if value in {"brooks_hs_reversal", "brooks_dt_db_reversal", "brooks_wedge_reversal"}:
+    if value in {"brooks_hs_reversal", "brooks_dt_db_reversal"}:
         return "brooks_mtr_reversal"
+    if value in {"brooks_wedge_reversal", "brooks_climax_reversal"}:
+        return "brooks_climax_reversal"
     return value
 
 
@@ -232,14 +233,13 @@ def classify_management_style(
 
     market_key = normalize_strategy_label(market_state)
     higher_key = normalize_strategy_label(higher_market_state)
-    tf = normalize_strategy_label(timeframe)
     order_type = normalize_strategy_label(entry_type).upper()
     route_key = normalize_strategy_label(route_style)
     playbook_key = normalize_strategy_label(playbook_id)
 
-    # Brooks 原课里 5m 纯 TR 优先 BLSHS: limit + scalp。
-    # 但 broad channel 不能一概按 TR scalp 管理，否则会把顺势恢复和 reversal swing 一起压扁。
-    if tf == "5m" and (
+    # Brooks 原课里纯 TR 优先 BLSHS: limit + scalp。
+    # 这里保留的是结构语义，不把它再写成“只限某个固定周期”。
+    if (
         playbook_key in {
             "TR1_BLSHS",
             "TR2_FAILED_BO_FADE",
@@ -285,11 +285,11 @@ def classify_management_style(
         return "brooks_scalp"
     if label in MTR_REVERSAL_SIGNALS:
         return "brooks_mtr_reversal"
-    if label in CHANNEL_REVERSAL_SIGNALS | TRAP_SIGNALS:
-        return "brooks_wedge_reversal"
-    if label in TREND_PULLBACK_SIGNALS | {"ioi突破", "HOY突破", "LOY突破"}:
+    if label in CLIMAX_REVERSAL_SIGNALS:
+        return "brooks_climax_reversal"
+    if label in TREND_PULLBACK_SIGNALS:
         return "brooks_swing"
-    if label in {"收线追进", "ii突破", "iii突破"}:
+    if label in BREAKOUT_CHASE_SIGNALS:
         return "brooks_breakout"
     return "default"
 
@@ -323,23 +323,19 @@ def management_score_floor(
     if style == "brooks_breakout":
         return 66
     if style == "brooks_mtr_reversal":
-        if timeframe == "5m":
-            return 63
-        return 61
+        return 62
     if style == "brooks_t4_wedge_pullback":
-        return 64 if timeframe == "5m" else 62
+        return 63
     if style == "brooks_r3_channel_line_fade":
-        return 68 if timeframe == "5m" else 65
+        return 66
     if style == "brooks_tr4_daily_tr_fade":
         return 57
     if style == "brooks_s1_htf_sr_reversal":
-        return 62 if timeframe == "5m" else 60
+        return 61
     if style == "brooks_s2_micro_channel":
-        return 63 if timeframe == "5m" else 61
-    if style == "brooks_wedge_reversal":
-        if timeframe == "5m":
-            return 66
-        return 63
+        return 62
+    if style == "brooks_climax_reversal":
+        return 64
     if style == "brooks_tr_blshs":
         return 52
     if style == "brooks_swing":

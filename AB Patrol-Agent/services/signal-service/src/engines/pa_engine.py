@@ -1981,10 +1981,10 @@ class PASignalEngine(BaseEngine):
         self.cooldown_seconds = COOLDOWN_SECONDS
         self._cooldown_storage = get_cooldown_storage()
 
-        # 周期配置只保留“允许策略”和冷却，不再用分数阈值挡掉合法 Brooks setup。
+        # 时间周期只承担节奏与冷却换算，不在生成层硬性限定“哪些策略只属于哪个周期”。
         self.timeframe_config = {
             "1m": {
-                "allowed_strategies": ["市价追进", "高1低1", "急速通道"],
+                "allowed_strategies": "all",
                 "cooldown_multiplier": 0.5,
             },
             "5m": {
@@ -1992,20 +1992,15 @@ class PASignalEngine(BaseEngine):
                 "cooldown_multiplier": 1.0,
             },
             "15m": {
-                "allowed_strategies": ["20均线缺口", "突破回调", "首次均线缺口", "双重顶底", "失败突破", "第二腿陷阱", "楔形顶底", "急速通道", "末端旗形", "ii突破", "iii突破", "HOY突破", "LOY突破", "头肩MTR"],
+                "allowed_strategies": "all",
                 "cooldown_multiplier": 2.0,
             },
             "30m": {
-                "allowed_strategies": [
-                    "20均线缺口", "突破回调", "首次均线缺口",
-                    "双重顶底", "失败突破", "第二腿陷阱",
-                    "楔形顶底", "急速通道", "末端旗形",
-                    "ii突破", "iii突破", "HOY突破", "LOY突破", "头肩MTR",
-                ],
+                "allowed_strategies": "all",
                 "cooldown_multiplier": 3.0,
             },
             "1h": {
-                "allowed_strategies": ["楔形顶底", "末端旗形", "ii突破", "iii突破", "HOY突破", "LOY突破", "头肩MTR"],
+                "allowed_strategies": "all",
                 "cooldown_multiplier": 4.0,
             },
         }
@@ -3045,7 +3040,7 @@ class PASignalEngine(BaseEngine):
                 continue
 
             # 多周期趋势验证
-            trend_valid, trend_msg = TrendValidator.validate_trend(candles, sig.direction)
+            trend_valid, trend_msg = TrendValidator.validate_trend(candles, sig.direction, timeframe)
             if not trend_valid:
                 if is_trend_strat:
                     logger.debug(f"趋势策略多周期验证失败: {sig.symbol} {sig.signal_type}")

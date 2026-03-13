@@ -25,7 +25,7 @@ BROOKS_MANAGED_STYLES = {
     "brooks_mtr_reversal",
     "brooks_hs_reversal",
     "brooks_dt_db_reversal",
-    "brooks_wedge_reversal",
+    "brooks_climax_reversal",
     "brooks_t4_wedge_pullback",
     "brooks_r3_channel_line_fade",
     "brooks_tr4_daily_tr_fade",
@@ -188,7 +188,7 @@ class SimExchange:
                 base_zbar = 26
             elif style_key == "brooks_s2_micro_channel":
                 base_zbar = 24
-            elif style_key == "brooks_wedge_reversal":
+            elif style_key == "brooks_climax_reversal":
                 base_zbar = 16
             elif style_key == "brooks_breakout":
                 base_zbar = 18
@@ -591,11 +591,11 @@ class SimExchange:
 
     def _apply_runtime_management(self, trade: Trade, candle, market_data: dict) -> bool:
         """复用真实链 premise/strength 规则处理持仓中的失效与弱跟进。"""
-        if trade.timeframe not in {"1m", "5m"}:
-            return False
-
         module = self._load_runtime_position_manager()
         position, runtime_market = self._build_runtime_market_data(trade, market_data, candle)
+        recent_bars = list(runtime_market.get("recent_bars", []) or [])
+        if len(recent_bars) < 10:
+            return False
         premise = module.premise_check(position, runtime_market)
 
         if premise.get("action") == "CLOSE":
@@ -874,7 +874,7 @@ class SimExchange:
             return {"tp1_r": 1.8, "tp2_r": 3.0, "protect1_r": 0.6, "protect2_r": 1.7, "trail_r": 1.1}
         if style_key == "brooks_s2_micro_channel":
             return {"tp1_r": 1.6, "tp2_r": 2.8, "protect1_r": 0.5, "protect2_r": 1.5, "trail_r": 1.0}
-        if style_key == "brooks_wedge_reversal":
+        if style_key == "brooks_climax_reversal":
             return {"tp1_r": 1.0, "tp2_r": 1.8, "protect1_r": 0.2, "protect2_r": 0.9, "trail_r": 0.75}
         if style_key == "brooks_swing":
             return {"tp1_r": 2.0, "tp2_r": 3.0, "protect1_r": 1.0, "protect2_r": 2.0, "trail_r": 1.25}
@@ -967,7 +967,7 @@ class SimExchange:
             return max(self.max_holding_bars, 96)
         if style_key == "brooks_mtr_reversal":
             return max(self.max_holding_bars, 72)
-        if style_key == "brooks_wedge_reversal":
+        if style_key == "brooks_climax_reversal":
             return max(self.max_holding_bars, 48)
         if style_key == "brooks_breakout":
             return max(self.max_holding_bars, 60)
@@ -998,7 +998,7 @@ class SimExchange:
             return 0.9
         if style_key == "brooks_s2_micro_channel":
             return 0.8
-        if style_key in {"brooks_wedge_reversal", "brooks_tr_blshs"}:
+        if style_key in {"brooks_climax_reversal", "brooks_tr_blshs"}:
             return 0.6
         if style_key in {"brooks_swing", "brooks_breakout"}:
             return 1.0

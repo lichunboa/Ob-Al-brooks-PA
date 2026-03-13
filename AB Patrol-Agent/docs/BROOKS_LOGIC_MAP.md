@@ -62,7 +62,7 @@ Brooks 视角下，一笔交易的完整流程应当是：
   - `brooks_breakout`
   - `brooks_tr_blshs`
   - `brooks_mtr_reversal`
-  - `brooks_wedge_reversal`
+  - `brooks_climax_reversal`
 
 ### D. 报告与审计
 
@@ -83,6 +83,18 @@ Brooks 视角下，一笔交易的完整流程应当是：
 - 回测已使用账户口径，而不再只看 `PF`
 
 ## 4. 当前仍然偏离 Brooks 的部分
+
+### 4.0 家族和时间周期仍需继续清理
+
+- `双重顶底 / 楔形 / 头肩 MTR` 现在已经统一到 `MTR反转族`
+- `急速通道 / 末端旗形 / 看衰突破 / 第二腿陷阱` 应统一理解成 `高潮/陷阱反转族`
+- `收线追进 / ii / ioi / iii / HOY / LOY` 应统一理解成 `突破追随族`
+- 时间周期只应该提供：
+  - 背景
+  - 质量验证
+  - 持仓时长换算
+- 时间周期不应该把同一个 Brooks setup 拆成多套互相冲突的管理语义
+- 生成层、playbook 路由、premise/strength 管理也不应继续保留“只在 5m 生效”的硬编码
 
 ### 4.1 playbook 检测仍偏窄
 

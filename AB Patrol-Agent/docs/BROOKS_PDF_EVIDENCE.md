@@ -255,3 +255,46 @@
 - 这对我们下一阶段重审 `premise failure` 与 `trailing / breakeven` 的边界非常关键
 
 ![保本止损不要被打两次](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_breakeven_twice-0071-0071.png)
+
+## 15. 价格行为对所有市场、所有时间周期都成立
+
+来源：
+
+- `《价格行为PPT中文笔记》/1.《价格行为学》（基础篇1-36章）.pdf`
+- 页码：`100`
+
+结论：
+
+- Brooks 在页图里直接写了 `All Markets and Timeframes: All Have Same Price Action`
+- 同页还直接给出 Daily / 5min / 1min 三张图对照
+- 这支持我们把时间周期当作：
+  - 背景层级
+  - 质量验证
+  - 持仓时长换算
+- 但不应把时间周期写成“这个 setup 只属于某个固定周期”的策略本体
+
+![所有市场和时间周期都有相同价格行为](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_timeframe_same-0100.png)
+
+## 16. `ii / ioi / iii` 本质上都是 breakout-mode 的 inside 组合
+
+来源：
+
+- `《价格行为PPT中文笔记》/1.《价格行为学》（基础篇1-36章）.pdf`
+- 页码：`458`、`459`、`470`
+
+结论：
+
+- Brooks 在相邻页里分别单独列出：
+  - `ii: consecutive inside bars`
+  - `ioi: inside bar after an outside bar`
+  - `iii: 3 consecutive inside bars`
+- 这说明它们是同一 breakout-mode 语义下的不同外观，不应继续拆成多套互相冲突的管理模板
+- 更符合 Brooks 的做法是：
+  - 统一归到 `突破追随族`
+  - 让差异主要体现在触发外观和背景质量，而不是把管理逻辑拆开
+
+![ii inside 组合](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_inside_breakout-0458.png)
+
+![ioi inside 组合](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_inside_breakout-0459.png)
+
+![iii inside 组合](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_inside_breakout_iii-0470.png)

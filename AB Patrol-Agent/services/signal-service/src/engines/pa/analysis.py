@@ -97,50 +97,80 @@ class MeasuredMoveCalculator:
 class TrendValidator:
     """多周期趋势验证。"""
 
+    _HIGHER_TF_MAP = {
+        "1m": "5m",
+        "5m": "15m",
+        "15m": "1h",
+        "30m": "1h",
+        "1h": "4h",
+    }
+    _TIMEFRAME_MINUTES = {
+        "1m": 1,
+        "5m": 5,
+        "15m": 15,
+        "30m": 30,
+        "1h": 60,
+        "4h": 240,
+    }
+
+    @classmethod
+    def _aggregate_to_higher_timeframe(cls, candles: list[Candle], timeframe: str) -> tuple[list[Candle], str]:
+        """把当前周期聚合成更高一级背景，不把固定周期写成策略逻辑。"""
+        base_tf = str(timeframe or "5m")
+        higher_tf = cls._HIGHER_TF_MAP.get(base_tf, "")
+        base_minutes = int(cls._TIMEFRAME_MINUTES.get(base_tf, 0))
+        higher_minutes = int(cls._TIMEFRAME_MINUTES.get(higher_tf, 0))
+        if not higher_tf or base_minutes <= 0 or higher_minutes <= base_minutes:
+            return [], higher_tf
+
+        group_size = max(1, higher_minutes // base_minutes)
+        aggregated: list[Candle] = []
+        for index in range(0, len(candles) - group_size + 1, group_size):
+            chunk = candles[index : index + group_size]
+            if len(chunk) < group_size:
+                continue
+            aggregated.append(
+                Candle(
+                    symbol=chunk[0].symbol,
+                    timestamp=chunk[0].timestamp,
+                    open=chunk[0].open,
+                    high=max(candle.high for candle in chunk),
+                    low=min(candle.low for candle in chunk),
+                    close=chunk[-1].close,
+                    volume=sum(candle.volume for candle in chunk),
+                    timeframe=higher_tf,
+                )
+            )
+        return aggregated, higher_tf
+
     @staticmethod
-    def validate_trend(candles_5m: list[Candle], direction: str) -> tuple[bool, str]:
-        """使用 15 分钟趋势验证 5 分钟信号。"""
-        if len(candles_5m) < 30:
+    def validate_trend(candles: list[Candle], direction: str, timeframe: str = "5m") -> tuple[bool, str]:
+        """使用更高一级背景验证当前周期趋势单。"""
+        if len(candles) < 20:
             return True, "数据不足，跳过验证"
 
-        candles_15m = []
-        for i in range(0, len(candles_5m) - 2, 3):
-            chunk = candles_5m[i : i + 3]
-            if len(chunk) < 3:
-                continue
-
-            agg = Candle(
-                symbol=chunk[0].symbol,
-                timestamp=chunk[0].timestamp,
-                open=chunk[0].open,
-                high=max(c.high for c in chunk),
-                low=min(c.low for c in chunk),
-                close=chunk[-1].close,
-                volume=sum(c.volume for c in chunk),
-                timeframe="15m",
-            )
-            candles_15m.append(agg)
-
-        if len(candles_15m) < 5:
+        candles_higher, higher_tf = TrendValidator._aggregate_to_higher_timeframe(candles, timeframe)
+        if len(candles_higher) < 5:
             return True, "聚合数据不足"
 
-        closes_15m = [c.close for c in candles_15m]
-        ema_15m = calculate_ema(closes_15m, min(20, len(closes_15m)))
-        if not ema_15m:
+        closes_higher = [candle.close for candle in candles_higher]
+        ema_higher = calculate_ema(closes_higher, min(20, len(closes_higher)))
+        if not ema_higher:
             return True, "EMA计算失败"
 
-        slope = ema_slope(ema_15m, 3)
-        current_price = candles_15m[-1].close
-        current_ema = ema_15m[-1]
+        slope = ema_slope(ema_higher, 3)
+        current_price = candles_higher[-1].close
+        current_ema = ema_higher[-1]
+        higher_label = higher_tf or "更高周期"
 
         if direction == "BUY":
             if slope < -0.1 and current_price < current_ema:
-                return False, "15m趋势向下，与BUY信号冲突"
-            return True, "15m趋势支持BUY"
+                return False, f"{higher_label}趋势向下，与BUY信号冲突"
+            return True, f"{higher_label}趋势支持BUY"
 
         if slope > 0.1 and current_price > current_ema:
-            return False, "15m趋势向上，与SELL信号冲突"
-        return True, "15m趋势支持SELL"
+            return False, f"{higher_label}趋势向上，与SELL信号冲突"
+        return True, f"{higher_label}趋势支持SELL"
 
 
 class CandlePatterns:

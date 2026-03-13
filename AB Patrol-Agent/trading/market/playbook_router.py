@@ -325,9 +325,13 @@ def _is_channel_line_bo_fade(signal_type: str, market_key: str) -> bool:
 
 def _is_daily_tr_fade(signal_type: str, direction: str, timeframe: str, extra: dict[str, Any]) -> bool:
     """Daily TR fade 目前只接受早盘的 H1/H2/L1/L2 类确认。"""
-    if str(timeframe or "") != "5m":
+    minutes = int(_TIMEFRAME_MINUTES.get(str(timeframe or ""), 0))
+    if minutes <= 0 or minutes >= 1440:
         return False
-    if int(extra.get("session_bar_index", -1) or -1) > 12:
+    session_bar_index = int(extra.get("session_bar_index", -1) or -1)
+    if session_bar_index < 0:
+        return False
+    if (session_bar_index + 1) * minutes > 90:
         return False
     if str(extra.get("daily_tr_fade_bias", "") or "").upper() != direction:
         return False

@@ -2496,8 +2496,8 @@ class BacktestRunner:
             stop_mult, target_mult = 1.0, 5.2
         elif style == "brooks_s2_micro_channel":
             stop_mult, target_mult = 1.0, 4.8
-        elif style == "brooks_wedge_reversal":
-            # 楔形/高潮后的第一腿多数先按保守 reversal 处理。
+        elif style == "brooks_climax_reversal":
+            # 高潮/陷阱反转族的第一腿多数先按保守 reversal 处理。
             stop_mult, target_mult = 1.0, 2.4
         elif style == "brooks_swing":
             stop_mult, target_mult = 1.0, 6.0
@@ -2525,7 +2525,7 @@ class BacktestRunner:
                     "brooks_tr_blshs",
                     "brooks_scalp",
                     "brooks_mtr_reversal",
-                    "brooks_wedge_reversal",
+                    "brooks_climax_reversal",
                     "brooks_tr4_daily_tr_fade",
                     "brooks_r3_channel_line_fade",
                 }:
@@ -2537,7 +2537,7 @@ class BacktestRunner:
                     "brooks_tr_blshs",
                     "brooks_scalp",
                     "brooks_mtr_reversal",
-                    "brooks_wedge_reversal",
+                    "brooks_climax_reversal",
                     "brooks_tr4_daily_tr_fade",
                     "brooks_r3_channel_line_fade",
                 }:
