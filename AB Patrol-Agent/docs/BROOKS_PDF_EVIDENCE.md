@@ -202,3 +202,56 @@
   - 但当已经出现 `stairs / exhaustion / 优势区强信号棒 / acceptance` 时，允许通道恢复和部分反转继续进入下一层检查
 
 ![宽通道里的 second-leg trap 只是其中一种结果](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_second_leg_trap-0605.png)
+
+## 12. 管理比寻找完美 setup 更重要
+
+来源：
+
+- `《价格行为PPT中文笔记》/1.《价格行为学》（基础篇1-36章）.pdf`
+- 页码：`337`
+
+结论：
+
+- Brooks 在页图里直接写了 `Managing trades well, is more important than spotting perfect setups`
+- 同页还明确给出了：
+  - 第一次做多保本离场
+  - 第二次做多才盈利
+  - 强 BO / TR BO 都可以通过管理实现不同结果
+- 这支持我们把下一阶段重点放在 `premise / partial close / move stop / re-entry` 的整条管理链，而不是继续把所有问题都归咎到信号端
+
+![管理比交易选择更重要](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_management_key-0337-0337.png)
+
+## 13. MTR 家族默认就该计划部分止盈
+
+来源：
+
+- `《价格行为PPT中文笔记》/2.《价格行为学》（进阶篇37-52章）.pdf`
+- 页码：`65`
+
+结论：
+
+- Brooks 在页图里直接写了：
+  - `Since probability for most MTRs is only 40%`
+  - `Always ok to take partial or full profits at 2x Actual Risk`
+- 这说明：
+  - `双重顶底 / 楔形 / 头肩 MTR` 这类反转家族，本来就不应该假设“全都拿大波段”
+  - 在 `2x actual risk` 附近做部分止盈，是 Brooks 允许且常见的默认计划
+
+![MTR 家族的 2R 部分止盈](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_take_profit_risk2-0065-0065.png)
+
+## 14. 保本止损不是无限次给市场重测
+
+来源：
+
+- `《价格行为PPT中文笔记》/2.《价格行为学》（进阶篇37-52章）.pdf`
+- 页码：`71`
+
+结论：
+
+- Brooks 在页图里直接写了 `Breakeven Stop: Do Not Let It Get Hit Twice`
+- 同页给的是 `Sell HH MTR` 场景，说明：
+  - 反转家族即便采用 breakeven 保护，也不是无限次容忍回测
+  - 一旦第一次测试已经走出新低/新高，第二次回测入场价时，保护性离场就是合理动作
+- 这对我们下一阶段重审 `premise failure` 与 `trailing / breakeven` 的边界非常关键
+
+![保本止损不要被打两次](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_breakeven_twice-0071-0071.png)

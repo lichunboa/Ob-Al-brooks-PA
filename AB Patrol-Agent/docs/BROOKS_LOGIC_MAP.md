@@ -61,8 +61,7 @@ Brooks 视角下，一笔交易的完整流程应当是：
   - `brooks_swing`
   - `brooks_breakout`
   - `brooks_tr_blshs`
-  - `brooks_hs_reversal`
-  - `brooks_dt_db_reversal`
+  - `brooks_mtr_reversal`
   - `brooks_wedge_reversal`
 
 ### D. 报告与审计

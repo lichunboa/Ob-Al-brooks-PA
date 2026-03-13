@@ -14,6 +14,7 @@ from importlib import import_module
 from pathlib import Path
 
 from .models import PendingOrder, Trade
+from .strategy_filters import normalize_management_style
 
 # 周期缩放因子（基于 5m = 1）
 TF_SCALE = {"1m": 0.2, "5m": 1, "15m": 3, "30m": 6, "1h": 12}
@@ -21,6 +22,7 @@ _RUNTIME_POSITION_MANAGER = None
 BROOKS_MANAGED_STYLES = {
     "brooks_swing",
     "brooks_breakout",
+    "brooks_mtr_reversal",
     "brooks_hs_reversal",
     "brooks_dt_db_reversal",
     "brooks_wedge_reversal",
@@ -67,6 +69,11 @@ class SimExchange:
         if abs(value - float(trade.take_profit or 0.0)) > 1e-9:
             trade.take_profit_adjust_count += 1
             trade.take_profit = value
+
+    @staticmethod
+    def _style_key(management_style: str) -> str:
+        """把历史管理模板名归并成当前族级模板。"""
+        return normalize_management_style(management_style)
 
     def place_order(self, signal, score: int, background: str):
         """
@@ -165,27 +172,27 @@ class SimExchange:
             # 两阶段:
             #   1. 早期 ZOMBIE (20 bars): 只抓接近平本的 (-0.3R ~ +0.2R)
             #   2. 晚期 ZOMBIE (35 bars): 抓所有未盈利的 (< +0.1R)
-            if trade.management_style == "brooks_swing":
+            style_key = self._style_key(trade.management_style)
+
+            if style_key == "brooks_swing":
                 base_zbar = 28
-            elif trade.management_style == "brooks_hs_reversal":
+            elif style_key == "brooks_mtr_reversal":
+                base_zbar = 20
+            elif style_key == "brooks_t4_wedge_pullback":
                 base_zbar = 24
-            elif trade.management_style == "brooks_dt_db_reversal":
-                base_zbar = 18
-            elif trade.management_style == "brooks_t4_wedge_pullback":
-                base_zbar = 24
-            elif trade.management_style == "brooks_r3_channel_line_fade":
+            elif style_key == "brooks_r3_channel_line_fade":
                 base_zbar = 22
-            elif trade.management_style == "brooks_tr4_daily_tr_fade":
+            elif style_key == "brooks_tr4_daily_tr_fade":
                 base_zbar = 12
-            elif trade.management_style == "brooks_s1_htf_sr_reversal":
+            elif style_key == "brooks_s1_htf_sr_reversal":
                 base_zbar = 26
-            elif trade.management_style == "brooks_s2_micro_channel":
+            elif style_key == "brooks_s2_micro_channel":
                 base_zbar = 24
-            elif trade.management_style == "brooks_wedge_reversal":
+            elif style_key == "brooks_wedge_reversal":
                 base_zbar = 16
-            elif trade.management_style == "brooks_breakout":
+            elif style_key == "brooks_breakout":
                 base_zbar = 18
-            elif trade.management_style == "brooks_tr_blshs":
+            elif style_key == "brooks_tr_blshs":
                 base_zbar = 10
             else:
                 base_zbar = 20 if trade.strategy == "突破回调" else 16
@@ -854,25 +861,24 @@ class SimExchange:
     @staticmethod
     def _management_plan(management_style: str) -> dict[str, float] | None:
         """不同 Brooks 管理模板的分批参数。"""
-        if management_style == "brooks_hs_reversal":
-            return {"tp1_r": 2.0, "tp2_r": 3.2, "protect1_r": 0.75, "protect2_r": 1.75, "trail_r": 1.1}
-        if management_style == "brooks_dt_db_reversal":
-            return {"tp1_r": 1.25, "tp2_r": 2.0, "protect1_r": 0.25, "protect2_r": 1.0, "trail_r": 0.85}
-        if management_style == "brooks_t4_wedge_pullback":
+        style_key = normalize_management_style(management_style)
+        if style_key == "brooks_mtr_reversal":
+            return {"tp1_r": 1.4, "tp2_r": 2.6, "protect1_r": 0.4, "protect2_r": 1.25, "trail_r": 0.95}
+        if style_key == "brooks_t4_wedge_pullback":
             return {"tp1_r": 1.6, "tp2_r": 2.8, "protect1_r": 0.6, "protect2_r": 1.6, "trail_r": 1.0}
-        if management_style == "brooks_r3_channel_line_fade":
+        if style_key == "brooks_r3_channel_line_fade":
             return {"tp1_r": 1.4, "tp2_r": 2.6, "protect1_r": 0.4, "protect2_r": 1.4, "trail_r": 0.95}
-        if management_style == "brooks_tr4_daily_tr_fade":
+        if style_key == "brooks_tr4_daily_tr_fade":
             return {"tp1_r": 1.0, "tp2_r": 1.8, "protect1_r": 0.25, "protect2_r": 0.9, "trail_r": 0.7}
-        if management_style == "brooks_s1_htf_sr_reversal":
+        if style_key == "brooks_s1_htf_sr_reversal":
             return {"tp1_r": 1.8, "tp2_r": 3.0, "protect1_r": 0.6, "protect2_r": 1.7, "trail_r": 1.1}
-        if management_style == "brooks_s2_micro_channel":
+        if style_key == "brooks_s2_micro_channel":
             return {"tp1_r": 1.6, "tp2_r": 2.8, "protect1_r": 0.5, "protect2_r": 1.5, "trail_r": 1.0}
-        if management_style == "brooks_wedge_reversal":
+        if style_key == "brooks_wedge_reversal":
             return {"tp1_r": 1.0, "tp2_r": 1.8, "protect1_r": 0.2, "protect2_r": 0.9, "trail_r": 0.75}
-        if management_style == "brooks_swing":
+        if style_key == "brooks_swing":
             return {"tp1_r": 2.0, "tp2_r": 3.0, "protect1_r": 1.0, "protect2_r": 2.0, "trail_r": 1.25}
-        if management_style == "brooks_breakout":
+        if style_key == "brooks_breakout":
             return {"tp1_r": 2.0, "tp2_r": 3.5, "protect1_r": 0.8, "protect2_r": 2.0, "trail_r": 1.4}
         return None
 
@@ -946,27 +952,26 @@ class SimExchange:
     def _get_max_bars(self, trade: Trade) -> int:
         """根据策略类型返回最大持仓K线数"""
         strategy = trade.strategy
-        if trade.management_style == "brooks_t4_wedge_pullback":
+        style_key = self._style_key(trade.management_style)
+        if style_key == "brooks_t4_wedge_pullback":
             return max(self.max_holding_bars, 72)
-        if trade.management_style == "brooks_r3_channel_line_fade":
+        if style_key == "brooks_r3_channel_line_fade":
             return max(self.max_holding_bars, 84)
-        if trade.management_style == "brooks_tr4_daily_tr_fade":
+        if style_key == "brooks_tr4_daily_tr_fade":
             return max(self.max_holding_bars, 36)
-        if trade.management_style == "brooks_s1_htf_sr_reversal":
+        if style_key == "brooks_s1_htf_sr_reversal":
             return max(self.max_holding_bars, 96)
-        if trade.management_style == "brooks_s2_micro_channel":
+        if style_key == "brooks_s2_micro_channel":
             return max(self.max_holding_bars, 84)
-        if trade.management_style == "brooks_swing":
+        if style_key == "brooks_swing":
             return max(self.max_holding_bars, 96)
-        if trade.management_style == "brooks_hs_reversal":
-            return max(self.max_holding_bars, 84)
-        if trade.management_style == "brooks_dt_db_reversal":
-            return max(self.max_holding_bars, 56)
-        if trade.management_style == "brooks_wedge_reversal":
+        if style_key == "brooks_mtr_reversal":
+            return max(self.max_holding_bars, 72)
+        if style_key == "brooks_wedge_reversal":
             return max(self.max_holding_bars, 48)
-        if trade.management_style == "brooks_breakout":
+        if style_key == "brooks_breakout":
             return max(self.max_holding_bars, 60)
-        if trade.management_style == "brooks_tr_blshs":
+        if style_key == "brooks_tr_blshs":
             return 24
         rush_strats = {"收线追进"}
         reversal_strats = {"双重顶", "双重底", "楔形顶", "楔形底",
@@ -980,21 +985,22 @@ class SimExchange:
     @staticmethod
     def _breakeven_trigger(management_style: str) -> float:
         """不同管理模板的保本触发倍数。"""
-        if management_style == "brooks_hs_reversal":
+        style_key = normalize_management_style(management_style)
+        if style_key == "brooks_mtr_reversal":
+            return 0.7
+        if style_key == "brooks_t4_wedge_pullback":
             return 0.8
-        if management_style == "brooks_t4_wedge_pullback":
-            return 0.8
-        if management_style == "brooks_r3_channel_line_fade":
+        if style_key == "brooks_r3_channel_line_fade":
             return 0.75
-        if management_style == "brooks_tr4_daily_tr_fade":
+        if style_key == "brooks_tr4_daily_tr_fade":
             return 0.55
-        if management_style == "brooks_s1_htf_sr_reversal":
+        if style_key == "brooks_s1_htf_sr_reversal":
             return 0.9
-        if management_style == "brooks_s2_micro_channel":
+        if style_key == "brooks_s2_micro_channel":
             return 0.8
-        if management_style in {"brooks_dt_db_reversal", "brooks_wedge_reversal", "brooks_tr_blshs"}:
+        if style_key in {"brooks_wedge_reversal", "brooks_tr_blshs"}:
             return 0.6
-        if management_style in {"brooks_swing", "brooks_breakout"}:
+        if style_key in {"brooks_swing", "brooks_breakout"}:
             return 1.0
         return 0.7
 

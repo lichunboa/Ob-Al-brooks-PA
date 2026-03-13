@@ -23,7 +23,7 @@ from _bootstrap import ensure_agent_root_on_path
 ROOT = ensure_agent_root_on_path()
 
 from libs.backtest.runner import BacktestConfig, BacktestRunner  # noqa: E402
-
+from libs.backtest.strategy_filters import classify_strategy_family, normalize_management_style  # noqa: E402
 
 PREMISE_EXIT_REASONS = {"PREMISE", "FAILED_FT", "WEAK_SCALP", "ZOMBIE"}
 
@@ -102,6 +102,19 @@ def finalize_component_bucket(bucket: dict[str, Any], total_trades: int) -> dict
     }
 
 
+def new_count_bucket(name: str) -> dict[str, Any]:
+    """初始化按家族/模板聚合的计数桶。"""
+    return {
+        "name": name,
+        "trades": 0,
+        "partial_close_involved": 0,
+        "trailing_stop_exit": 0,
+        "take_profit_exit": 0,
+        "premise_failure_exit": 0,
+        "plain_stop_loss_exit": 0,
+    }
+
+
 def is_partial_close_involved(trade: dict[str, Any]) -> bool:
     """是否发生过分批止盈/减仓。"""
     return any(
@@ -142,6 +155,11 @@ def main() -> None:
         required=True,
         help="窗口列表，格式 2022-01-01:2022-02-01,2023-01-01:2023-02-01",
     )
+    parser.add_argument(
+        "--management-profile",
+        default="brooks_pdf",
+        help="回测管理模板，默认使用 Brooks 管理语义",
+    )
     parser.add_argument("--cache-dir", default=str(ROOT / "data" / "history" / "hf_parquet"), help="历史数据目录")
     parser.add_argument("--output", default="", help="输出 JSON 路径")
     args = parser.parse_args()
@@ -158,6 +176,8 @@ def main() -> None:
         "plain_stop_loss_exit": new_component_bucket("plain_stop_loss_exit"),
     }
     by_strategy: dict[str, dict[str, int]] = {}
+    by_family: dict[str, dict[str, int]] = {}
+    by_management_style: dict[str, dict[str, int]] = {}
     by_exit_reason: dict[str, int] = {}
     sample_rows: list[dict[str, Any]] = []
     total_trades = 0
@@ -173,6 +193,7 @@ def main() -> None:
                     days=max(1, (datetime.fromisoformat(window.end) - datetime.fromisoformat(window.start)).days),
                     threshold=0,
                     cache_dir=args.cache_dir,
+                    management_profile=args.management_profile,
                 )
                 result = BacktestRunner(cfg).run()
                 sample_rows.append(
@@ -189,36 +210,42 @@ def main() -> None:
                 for trade in result.trades:
                     total_trades += 1
                     strategy = str(trade.get("strategy") or "UNKNOWN")
+                    family = classify_strategy_family(strategy)
+                    management_style = normalize_management_style(str(trade.get("management_style") or "default"))
                     exit_reason = str(trade.get("exit_reason") or "UNKNOWN")
                     by_exit_reason[exit_reason] = int(by_exit_reason.get(exit_reason, 0) or 0) + 1
-                    stats = by_strategy.setdefault(
-                        strategy,
-                        {
-                            "partial_close_involved": 0,
-                            "trailing_stop_exit": 0,
-                            "take_profit_exit": 0,
-                            "premise_failure_exit": 0,
-                            "plain_stop_loss_exit": 0,
-                            "trades": 0,
-                        },
-                    )
+                    stats = by_strategy.setdefault(strategy, new_count_bucket(strategy))
+                    family_stats = by_family.setdefault(family, new_count_bucket(family))
+                    style_stats = by_management_style.setdefault(management_style, new_count_bucket(management_style))
                     stats["trades"] += 1
+                    family_stats["trades"] += 1
+                    style_stats["trades"] += 1
 
                     if is_partial_close_involved(trade):
                         update_component_bucket(component_buckets["partial_close_involved"], trade)
                         stats["partial_close_involved"] += 1
+                        family_stats["partial_close_involved"] += 1
+                        style_stats["partial_close_involved"] += 1
                     if is_trailing_stop_exit(trade):
                         update_component_bucket(component_buckets["trailing_stop_exit"], trade)
                         stats["trailing_stop_exit"] += 1
+                        family_stats["trailing_stop_exit"] += 1
+                        style_stats["trailing_stop_exit"] += 1
                     if is_take_profit_exit(trade):
                         update_component_bucket(component_buckets["take_profit_exit"], trade)
                         stats["take_profit_exit"] += 1
+                        family_stats["take_profit_exit"] += 1
+                        style_stats["take_profit_exit"] += 1
                     if is_premise_failure_exit(trade):
                         update_component_bucket(component_buckets["premise_failure_exit"], trade)
                         stats["premise_failure_exit"] += 1
+                        family_stats["premise_failure_exit"] += 1
+                        style_stats["premise_failure_exit"] += 1
                     if exit_reason == "SL" and not is_trailing_stop_exit(trade):
                         update_component_bucket(component_buckets["plain_stop_loss_exit"], trade)
                         stats["plain_stop_loss_exit"] += 1
+                        family_stats["plain_stop_loss_exit"] += 1
+                        style_stats["plain_stop_loss_exit"] += 1
 
     payload = {
         "windows": [asdict(window) for window in windows],
@@ -239,6 +266,20 @@ def main() -> None:
                 **values,
             }
             for strategy, values in sorted(by_strategy.items(), key=lambda item: (-item[1]["trades"], item[0]))
+        ],
+        "by_family": [
+            {
+                "family": family,
+                **values,
+            }
+            for family, values in sorted(by_family.items(), key=lambda item: (-item[1]["trades"], item[0]))
+        ],
+        "by_management_style": [
+            {
+                "management_style": style,
+                **values,
+            }
+            for style, values in sorted(by_management_style.items(), key=lambda item: (-item[1]["trades"], item[0]))
         ],
         "by_exit_reason": dict(sorted(by_exit_reason.items(), key=lambda item: (-int(item[1]), item[0]))),
         "total_trades": total_trades,

@@ -23,8 +23,7 @@ from _bootstrap import ensure_agent_root_on_path
 ROOT = ensure_agent_root_on_path()
 
 from libs.backtest.runner import BacktestConfig, BacktestRunner  # noqa: E402
-from libs.backtest.strategy_filters import ALL_KNOWN_STRATEGIES  # noqa: E402
-
+from libs.backtest.strategy_filters import ALL_KNOWN_STRATEGIES, classify_strategy_family  # noqa: E402
 
 TIMEFRAME_MINUTES = {
     "1m": 1,
@@ -146,6 +145,30 @@ def finalize_bucket(bucket: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def merge_bucket(target: dict[str, Any], source: dict[str, Any]) -> None:
+    """把原始策略桶聚合到族级桶。"""
+    for key in (
+        "generated",
+        "passed",
+        "filtered",
+        "trades",
+        "wins",
+        "losses",
+        "scratches",
+        "gross_profit",
+        "gross_loss",
+        "pnl_sum",
+        "r_multiple_sum",
+        "bars_held_sum",
+        "holding_minutes_sum",
+        "account_pnl_pct_sum",
+        "samples",
+    ):
+        target[key] += source[key]
+    for reason, count in source["exit_reasons"].items():
+        target["exit_reasons"][reason] += count
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="按策略审计成交质量")
     parser.add_argument("--symbols", default="BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT", help="币种，逗号分隔")
@@ -154,6 +177,11 @@ def main() -> None:
         "--windows",
         required=True,
         help="窗口列表，格式 2022-01-01:2022-02-01,2023-01-01:2023-02-01",
+    )
+    parser.add_argument(
+        "--management-profile",
+        default="brooks_pdf",
+        help="回测管理模板，默认使用 Brooks 管理语义",
     )
     parser.add_argument("--cache-dir", default=str(ROOT / "data" / "history" / "hf_parquet"), help="历史数据目录")
     parser.add_argument("--output", default="", help="输出 JSON 路径")
@@ -179,6 +207,7 @@ def main() -> None:
                     days=max(1, (datetime.fromisoformat(window.end) - datetime.fromisoformat(window.start)).days),
                     threshold=0,
                     cache_dir=args.cache_dir,
+                    management_profile=args.management_profile,
                 )
                 result = BacktestRunner(cfg).run()
                 sample_rows.append(
@@ -210,15 +239,32 @@ def main() -> None:
     ]
     strategy_rows.sort(key=lambda item: (-int(item["trades"]), item["strategy"]))
 
+    family_buckets: dict[str, dict[str, Any]] = {}
+    for strategy, bucket in strategy_buckets.items():
+        family = classify_strategy_family(strategy)
+        family_bucket = family_buckets.setdefault(family, new_bucket(family))
+        merge_bucket(family_bucket, bucket)
+    family_rows = []
+    for family, bucket in family_buckets.items():
+        row = finalize_bucket(bucket)
+        row["family"] = family
+        family_rows.append(row)
+    family_rows.sort(key=lambda item: (-int(item["trades"]), item["strategy"]))
+
     payload = {
         "windows": [asdict(window) for window in windows],
         "samples": sample_rows,
         "summary": strategy_rows,
+        "family_summary": family_rows,
         "zero_generated": [row["strategy"] for row in strategy_rows if int(row["generated"]) == 0],
         "zero_passed": [row["strategy"] for row in strategy_rows if int(row["passed"]) == 0],
         "zero_trades": [row["strategy"] for row in strategy_rows if int(row["trades"]) == 0],
         "top_traded": strategy_rows[:10],
-        "worst_profit_factor": sorted(strategy_rows, key=lambda item: (float(item["profit_factor"]), -int(item["trades"])))[:10],
+        "top_families": family_rows[:10],
+        "worst_profit_factor": sorted(
+            strategy_rows,
+            key=lambda item: (float(item["profit_factor"]), -int(item["trades"])),
+        )[:10],
     }
 
     if args.output:

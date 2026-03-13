@@ -47,22 +47,36 @@ ALL_KNOWN_STRATEGIES = {
     "LOY突破",
 }
 
+MTR_REVERSAL_SIGNALS = {
+    "双重顶",
+    "双重底",
+    "楔形顶",
+    "楔形底",
+    "头肩顶MTR",
+    "头肩底MTR",
+}
+CHANNEL_REVERSAL_SIGNALS = {"急速通道", "末端旗形", "看衰突破"}
+TRAP_SIGNALS = {"第二腿陷阱"}
+TREND_PULLBACK_SIGNALS = {"高1", "低1", "高2", "低2", "突破回调"}
+EMA_GAP_SIGNALS = {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"}
+BREAKOUT_CHASE_SIGNALS = {"收线追进", "ii突破", "ioi突破", "iii突破", "HOY突破", "LOY突破"}
 
 STRATEGY_ALIASES: dict[str, set[str]] = {
     "双重顶底": {"双重顶", "双重底"},
     "楔形顶底": {"楔形顶", "楔形底"},
     "头肩mtr": {"头肩顶MTR", "头肩底MTR"},
     "头肩MTR": {"头肩顶MTR", "头肩底MTR"},
+    "MTR反转族": set(MTR_REVERSAL_SIGNALS),
     "第二腿陷阱": {"第二腿陷阱", "2nd Leg Trap"},
     "高低1": {"高1", "低1"},
     "高低2": {"高2", "低2"},
     "高低12": {"高1", "低1", "高2", "低2"},
-    "均线缺口": {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"},
-    "突破追单": {"收线追进", "ii突破", "ioi突破", "iii突破", "HOY突破", "LOY突破"},
-    "突破追随": {"收线追进", "ii突破", "ioi突破", "iii突破", "HOY突破", "LOY突破"},
+    "均线缺口": set(EMA_GAP_SIGNALS),
+    "突破追单": set(BREAKOUT_CHASE_SIGNALS),
+    "突破追随": set(BREAKOUT_CHASE_SIGNALS),
     "inside突破": {"ii突破", "ioi突破", "iii突破"},
-    "反转核心": {"双重顶", "双重底", "楔形顶", "楔形底", "头肩顶MTR", "头肩底MTR"},
-    "趋势回调": {"高1", "低1", "高2", "低2", "突破回调"},
+    "反转核心": set(MTR_REVERSAL_SIGNALS),
+    "趋势回调": set(TREND_PULLBACK_SIGNALS),
 }
 
 
@@ -174,6 +188,32 @@ def default_management_profile(profile: str = "") -> str:
     return str(preset.get("management_profile") or "default")
 
 
+def classify_strategy_family(signal_type: str) -> str:
+    """把原始策略名归并到 Brooks 家族，便于做族级审计。"""
+    label = normalize_strategy_label(signal_type)
+    if label in MTR_REVERSAL_SIGNALS:
+        return "MTR反转族"
+    if label in CHANNEL_REVERSAL_SIGNALS:
+        return "高潮反转族"
+    if label in TRAP_SIGNALS:
+        return "TR陷阱族"
+    if label in TREND_PULLBACK_SIGNALS:
+        return "趋势恢复族"
+    if label in EMA_GAP_SIGNALS:
+        return "均线缺口族"
+    if label in BREAKOUT_CHASE_SIGNALS:
+        return "突破追随族"
+    return label
+
+
+def normalize_management_style(style: str) -> str:
+    """把历史管理模板名归并成当前族级模板。"""
+    value = normalize_strategy_label(style)
+    if value in {"brooks_hs_reversal", "brooks_dt_db_reversal", "brooks_wedge_reversal"}:
+        return "brooks_mtr_reversal"
+    return value
+
+
 def classify_management_style(
     signal_type: str,
     management_profile: str = "default",
@@ -231,7 +271,7 @@ def classify_management_style(
     if playbook_key == CHANNEL_LINE_FADE_PLAYBOOK:
         return "brooks_r3_channel_line_fade"
     if playbook_key == "R1_BROAD_CHANNEL_REVERSAL":
-        return "brooks_wedge_reversal"
+        return "brooks_mtr_reversal"
     if playbook_key == DAILY_TR_FADE_PLAYBOOK:
         return "brooks_tr4_daily_tr_fade"
     if playbook_key == HTF_SR_REVERSAL_PLAYBOOK:
@@ -241,15 +281,13 @@ def classify_management_style(
     if playbook_key == WEDGE_PULLBACK_PLAYBOOK:
         return "brooks_t4_wedge_pullback"
 
-    if label in {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"}:
+    if label in EMA_GAP_SIGNALS:
         return "brooks_scalp"
-    if label in {"头肩顶MTR", "头肩底MTR"}:
-        return "brooks_hs_reversal"
-    if label in {"双重顶", "双重底"}:
-        return "brooks_dt_db_reversal"
-    if label in {"楔形顶", "楔形底", "末端旗形", "急速通道", "看衰突破", "第二腿陷阱"}:
+    if label in MTR_REVERSAL_SIGNALS:
+        return "brooks_mtr_reversal"
+    if label in CHANNEL_REVERSAL_SIGNALS | TRAP_SIGNALS:
         return "brooks_wedge_reversal"
-    if label in {"高1", "低1", "高2", "低2", "突破回调", "ioi突破", "HOY突破", "LOY突破"}:
+    if label in TREND_PULLBACK_SIGNALS | {"ioi突破", "HOY突破", "LOY突破"}:
         return "brooks_swing"
     if label in {"收线追进", "ii突破", "iii突破"}:
         return "brooks_breakout"
@@ -268,7 +306,8 @@ def management_score_floor(
     playbook_id: str = "",
 ) -> int:
     """不同管理模板下的最低分要求。"""
-    style = classify_management_style(
+    style = normalize_management_style(
+        classify_management_style(
         signal_type,
         management_profile,
         market_state=market_state,
@@ -277,14 +316,13 @@ def management_score_floor(
         entry_type=entry_type,
         route_style=route_style,
         playbook_id=playbook_id,
+        )
     )
     if management_profile != "brooks_pdf":
         return 0
     if style == "brooks_breakout":
         return 66
-    if style == "brooks_hs_reversal":
-        return 58
-    if style == "brooks_dt_db_reversal":
+    if style == "brooks_mtr_reversal":
         if timeframe == "5m":
             return 63
         return 61

@@ -49,6 +49,7 @@ from .strategy_filters import (
     default_management_profile,
     describe_strategy_selection,
     is_strategy_allowed,
+    normalize_management_style,
     resolve_strategy_selection,
 )
 
@@ -2470,6 +2471,7 @@ class BacktestRunner:
             route_style=str(extra.get("route_style", "") or ""),
             playbook_id=str(extra.get("playbook_id", "") or ""),
         )
+        style = normalize_management_style(style)
         extra = dict(getattr(event, "extra", {}) or {})
         extra["management_style"] = style
         extra["management_profile"] = management_profile
@@ -2477,12 +2479,10 @@ class BacktestRunner:
 
         if style == "brooks_scalp":
             stop_mult, target_mult = 1.0, 1.4
-        elif style == "brooks_hs_reversal":
-            # 头肩 MTR 通常值得留出更大的 swing 空间。
-            stop_mult, target_mult = 1.0, 5.0
-        elif style == "brooks_dt_db_reversal":
-            # 双顶双底更容易先走一腿 scalp，因此先收紧目标。
-            stop_mult, target_mult = 1.0, 3.0
+        elif style == "brooks_mtr_reversal":
+            # Brooks 里双顶双底、楔形、头肩 MTR 本质上都是反转试探家族。
+            # 默认先按“probe -> 兑现部分利润 -> 再看是否升级 swing”处理。
+            stop_mult, target_mult = 1.0, 3.2
         elif style == "brooks_t4_wedge_pullback":
             # T4 是趋势中的三推回调，允许比普通 reversal 多留一些 swing 空间。
             stop_mult, target_mult = 1.0, 4.6
@@ -2524,7 +2524,7 @@ class BacktestRunner:
                 if style in {
                     "brooks_tr_blshs",
                     "brooks_scalp",
-                    "brooks_dt_db_reversal",
+                    "brooks_mtr_reversal",
                     "brooks_wedge_reversal",
                     "brooks_tr4_daily_tr_fade",
                     "brooks_r3_channel_line_fade",
@@ -2536,7 +2536,7 @@ class BacktestRunner:
                 if style in {
                     "brooks_tr_blshs",
                     "brooks_scalp",
-                    "brooks_dt_db_reversal",
+                    "brooks_mtr_reversal",
                     "brooks_wedge_reversal",
                     "brooks_tr4_daily_tr_fade",
                     "brooks_r3_channel_line_fade",
