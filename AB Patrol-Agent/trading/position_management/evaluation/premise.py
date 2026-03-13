@@ -25,6 +25,7 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
     side = get_position_attr(position, "side", "")
     entry_price = safe_float(get_position_attr(position, "entry_price"), 0)
     entry_time = get_position_attr(position, "entry_time", "")
+    management_style = str(get_position_attr(position, "management_style", "") or "").strip().lower()
 
     ab_state = market_data.get("ab_state", {})
     ab_sr = market_data.get("ab_sr", {})
@@ -67,21 +68,37 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
     signal_price = safe_float(get_position_attr(position, "signal_price"), entry_price)
     signal_high = safe_float(get_position_attr(position, "signal_high"), signal_price)
     signal_low = safe_float(get_position_attr(position, "signal_low"), signal_price)
+    entry_stop = safe_float(get_position_attr(position, "stop_loss"), 0)
+    initial_risk = abs(entry_price - entry_stop)
+    bars_since_entry = len([b for b in recent_bars if get_attr(b, "time", "") > entry_time])
+
+    reversal_styles = {
+        "brooks_mtr_reversal",
+        "brooks_climax_reversal",
+        "brooks_tr_blshs",
+        "brooks_tr4_daily_tr_fade",
+        "brooks_s1_htf_sr_reversal",
+        "brooks_s2_micro_channel",
+    }
+    is_reversal_style = management_style in reversal_styles
+    # 反转/区间 setup 本来就允许更深的回踩，不能用统一固定百分比过早否定。
+    signal_buffer = max(initial_risk * (0.50 if is_reversal_style else 0.25), signal_price * 0.001)
 
     signal_valid = True
     if side == "BUY":
-        if current_price < signal_low * 0.995:
+        if current_price < signal_low - signal_buffer:
             signal_valid = False
     else:
-        if current_price > signal_high * 1.005:
+        if current_price > signal_high + signal_buffer:
             signal_valid = False
 
     checks["signal_validity"] = {
         "pass": signal_valid,
-        "reason": f"信号价={signal_price:.2f}, 当前={current_price:.2f}, {'有效' if signal_valid else '已否定'}",
+        "reason": (
+            f"信号价={signal_price:.2f}, 当前={current_price:.2f}, "
+            f"缓冲={signal_buffer:.4f}, {'有效' if signal_valid else '已深度否定'}"
+        ),
     }
-
-    bars_since_entry = len([b for b in recent_bars if get_attr(b, "time", "") > entry_time])
 
     ft_quality = "good"
     if len(recent_bars) >= 3:
@@ -104,8 +121,6 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
     ab_mm = market_data.get("ab_mm", {}) if isinstance(market_data.get("ab_mm"), dict) else {}
     key_levels = market_data.get("key_levels", {}) if isinstance(market_data.get("key_levels"), dict) else {}
     ab_ema = market_data.get("ab_ema", {}) if isinstance(market_data.get("ab_ema"), dict) else {}
-    entry_stop = safe_float(get_position_attr(position, "stop_loss"), 0)
-
     if not ab_mm and not key_levels:
         path_clear = True
         target_reason = "数据不足，默认通畅"
@@ -172,12 +187,20 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
             "reason": "风险指标异常",
         }
 
+    if not checks["market_state"]["pass"]:
+        return {
+            "valid": False,
+            "checks": checks,
+            "action": "REDUCE",
+            "reason": "市场状态改变，波段降级为保护性管理",
+        }
+
     if not checks["signal_validity"]["pass"]:
         return {
             "valid": False,
             "checks": checks,
-            "action": "CLOSE",
-            "reason": "信号 K 线被否定",
+            "action": "REDUCE" if is_reversal_style else "CLOSE",
+            "reason": "信号 K 线被深度测试，先转保护性管理" if is_reversal_style else "信号 K 线被否定",
         }
 
     if not checks["target_path"]["pass"]:

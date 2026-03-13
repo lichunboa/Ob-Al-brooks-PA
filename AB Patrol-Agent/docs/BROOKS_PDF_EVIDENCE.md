@@ -298,3 +298,45 @@
 ![ioi inside 组合](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_inside_breakout-0459.png)
 
 ![iii inside 组合](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_inside_breakout_iii-0470.png)
+
+## 17. 前提改变后，优先把波段降级成 scalp，而不是机械立即清仓
+
+来源：
+
+- `《价格行为PPT中文笔记》/1.《价格行为学》（基础篇1-36章）.pdf`
+- 页码：`2477`
+
+结论：
+
+- Brooks 在页图里直接写了 `Converting Swing into Scalp: If Premise Changes`
+- 同页还写明：
+  - `If premise changes after entering swing, exit around breakeven or with small scalp`
+- 这说明：
+  - 前提改变并不总等于“立刻认错全平”
+  - 更符合 Brooks 的动作往往是：
+    - 先把波段降级成 scalp
+    - 在保本附近或小利润附近退出
+    - 而不是把所有 premise 变化都当成强制市价止损
+
+![前提改变后把波段降级为 scalp](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_premise_scalp-2477.png)
+
+## 18. 趋势会尊重主要回调，但环境真的改变时就退出
+
+来源：
+
+- `《价格行为PPT中文笔记》/1.《价格行为学》（基础篇1-36章）.pdf`
+- 页码：`2621`
+
+结论：
+
+- Brooks 在同一组主旨页里同时列出：
+  - `Trends respect major pullbacks`
+  - `Exit if premise changes`
+- 这两个要点必须一起读：
+  - 不能因为正常主回调就过早把趋势单扫掉
+  - 但当“趋势继续成立”的前提真的不在了，也不能死扛
+- 这支持我们把 `premise` 调整成：
+  - 正常主回调 / 反转家族深测试：先降级、减仓、转保护
+  - 环境真变坏：再退出
+
+![趋势尊重主要回调，但前提变化时退出](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_premise_exit-2621.png)
