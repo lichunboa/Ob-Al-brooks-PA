@@ -13,17 +13,42 @@ Al Brooks: "Setups look good enough to experts. Experts buy for any reason."
 from typing import Dict, Any, Optional
 
 
+def _normalize_pre_signal(symbol_data: Dict[str, Any]) -> Dict[str, Any]:
+    """统一兼容字符串/字典两种 pre_signal 形态。"""
+
+    raw = symbol_data.get("pre_signal")
+    if isinstance(raw, dict):
+        return raw
+    text = str(raw or "").strip()
+    if not text:
+        return {}
+    side = ""
+    upper_text = text.upper()
+    if "LONG" in upper_text or "BUY" in upper_text:
+        side = "LONG"
+    elif "SHORT" in upper_text or "SELL" in upper_text:
+        side = "SHORT"
+    return {
+        "active": True,
+        "side": side,
+        "label": text,
+    }
+
+
 def should_execute_aggressive(symbol_data: Dict[str, Any]) -> tuple[bool, str]:
     """激进模式：快速判断是否执行
 
     返回: (是否执行, 原因)
     """
 
+    pre_signal = _normalize_pre_signal(symbol_data)
+    planned = symbol_data.get("planned_trade", {}) if isinstance(symbol_data.get("planned_trade"), dict) else {}
+    thesis = str(symbol_data.get("thesis", "") or "")
+
     # 1. 基本检查
-    if not symbol_data.get("pre_signal", {}).get("active"):
+    if not pre_signal.get("active"):
         return False, "无预信号"
 
-    planned = symbol_data.get("planned_trade", {})
     if not planned.get("entry_price"):
         return False, "无入场价"
 
@@ -34,11 +59,11 @@ def should_execute_aggressive(symbol_data: Dict[str, Any]) -> tuple[bool, str]:
 
     # 3. 快速合理性检查（5 项，通过 3 项即可）
     checks = {
-        "has_direction": symbol_data.get("pre_signal", {}).get("side") in ["LONG", "SHORT"],
+        "has_direction": pre_signal.get("side") in ["LONG", "SHORT"],
         "has_entry": planned.get("entry_price") is not None,
         "has_style": planned.get("style") in ["Scalp", "Swing"],
         "not_watching": symbol_data.get("status") != "watching",
-        "has_thesis": len(symbol_data.get("thesis", "")) > 10,
+        "has_thesis": len(thesis) > 10,
     }
 
     passed = sum(checks.values())
@@ -57,9 +82,9 @@ def should_execute_aggressive(symbol_data: Dict[str, Any]) -> tuple[bool, str]:
 def identify_strategy(symbol_data: Dict[str, Any]) -> str:
     """识别策略类型（不需要 LLM）"""
 
-    state = symbol_data.get("market_state", "")
-    stage = symbol_data.get("stage", "")
-    thesis = symbol_data.get("thesis", "")
+    state = str(symbol_data.get("market_state", "") or "")
+    stage = str(symbol_data.get("stage", "") or "")
+    thesis = str(symbol_data.get("thesis", "") or "")
 
     # BO 策略
     if "BO" in state and ("突破" in thesis or "breakout" in stage.lower()):

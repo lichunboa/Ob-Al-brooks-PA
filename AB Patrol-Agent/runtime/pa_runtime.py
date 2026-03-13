@@ -25,6 +25,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+AGENT_ROOT = Path(__file__).resolve().parent.parent
+if str(AGENT_ROOT) not in sys.path:
+    sys.path.insert(0, str(AGENT_ROOT))
+
 from brooks_filter import BrooksFilterMixin
 from chart_manager import ChartManagerMixin
 from config import Config
