@@ -52,31 +52,22 @@ def calculate_partial_close(position: dict[str, Any], market_data: dict[str, Any
             "reason": f"Scalp 到达 TP1 ({profit_r:.2f}R)",
         }
 
-    if style == "Swing" and profit_r >= 1.5:
+    if style == "Swing" and profit_r >= 2.0:
         already_reduced = get_position_attr(position, "tp1_executed", False)
         if not already_reduced:
             return {
                 "should_close": True,
-                "close_ratio": 0.3,
+                "close_ratio": 0.5,
                 "reason": f"Swing 到达 TP1 ({profit_r:.2f}R)",
             }
 
-    if style == "Swing" and profit_r >= 2.5:
+    if style == "Swing" and profit_r >= 3.0:
         tp2_executed = get_position_attr(position, "tp2_executed", False)
         if not tp2_executed:
             return {
                 "should_close": True,
-                "close_ratio": 0.3,
+                "close_ratio": 0.25,
                 "reason": f"Swing 到达 TP2 ({profit_r:.2f}R)",
-            }
-
-    if style == "Swing" and profit_r >= 4.0:
-        tp3_executed = get_position_attr(position, "tp3_executed", False)
-        if not tp3_executed:
-            return {
-                "should_close": True,
-                "close_ratio": 0.2,
-                "reason": f"Swing 到达 TP3 ({profit_r:.2f}R)",
             }
 
     return {

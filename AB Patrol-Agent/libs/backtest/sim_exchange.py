@@ -8,7 +8,6 @@ SimExchange — 模拟交易所
   回测: sim_exchange    → 内存记录
 """
 
-import math
 import sys
 from importlib import import_module
 from pathlib import Path
@@ -33,6 +32,23 @@ BROOKS_MANAGED_STYLES = {
     "brooks_s2_micro_channel",
 }
 BROOKS_REENTRY_STYLES = BROOKS_MANAGED_STYLES | {"brooks_tr_blshs"}
+BROOKS_REVERSAL_STYLES = {
+    "brooks_mtr_reversal",
+    "brooks_climax_reversal",
+    "brooks_r3_channel_line_fade",
+    "brooks_s1_htf_sr_reversal",
+    "brooks_s2_micro_channel",
+}
+BROOKS_TREND_STYLES = {
+    "brooks_swing",
+    "brooks_breakout",
+    "brooks_t4_wedge_pullback",
+}
+BROOKS_TR_SCALP_STYLES = {
+    "brooks_scalp",
+    "brooks_tr_blshs",
+    "brooks_tr4_daily_tr_fade",
+}
 
 
 class SimExchange:
@@ -147,14 +163,7 @@ class SimExchange:
                         new_sl = trade.entry_price * 0.9999
                         self._update_stop_loss(trade, min(trade.stop_loss, new_sl))
 
-            # 周期缩放因子（15m信号需要3x时间，1h需要12x）
             scale = TF_SCALE.get(trade.timeframe, 1)
-            sqrt_s = math.sqrt(scale)
-
-            # 计算此交易的风险百分比（SL 距离）— ZOMBIE 和 SCALP 都需要
-            initial_risk = max(trade.initial_risk, 0.0)
-            risk_pct = initial_risk / trade.entry_price * 100 if trade.entry_price else 0.0
-            risk_pct = max(risk_pct, 0.05)  # 防止除零
 
             exit_price, exit_reason = self._check_stop_target_hits(trade, candle)
             if exit_reason:
@@ -167,11 +176,8 @@ class SimExchange:
             if not closed and market_data:
                 closed = self._apply_runtime_management(trade, candle, market_data)
 
-            # 僵尸止损: 只抓真正"死钱"交易
-            # Al Brooks: 如果交易 premise 已经不成立（长时间无动能），就退出
-            # 两阶段:
-            #   1. 早期 ZOMBIE (20 bars): 只抓接近平本的 (-0.3R ~ +0.2R)
-            #   2. 晚期 ZOMBIE (35 bars): 抓所有未盈利的 (< +0.1R)
+            # 僵尸单: 只抓“长时间没有推进、回到保本附近”的死钱交易。
+            # 先降级成保护性 scalp；如果仍然毫无推进，再真正退出。
             style_key = self._style_key(trade.management_style)
 
             if style_key == "brooks_swing":
@@ -197,52 +203,57 @@ class SimExchange:
             else:
                 base_zbar = 20 if trade.strategy == "突破回调" else 16
             zombie_bar = int(base_zbar * scale)
-            late_zombie = int(zombie_bar * 2)  # 晚期阈值
+            late_zombie = int(zombie_bar * 2)
 
             if not closed and trade.bars_held >= zombie_bar:
-                if trade.direction == "BUY":
-                    zpnl = (candle.close - trade.entry_price) / trade.entry_price * 100
-                else:
-                    zpnl = (trade.entry_price - candle.close) / trade.entry_price * 100
-
-                # 早期: 只抓紧贴平本的无方向交易
+                current_r = self._profit_in_r(trade, candle.close)
+                best_r = self._profit_in_r(trade, trade.best_price)
+                bars_without_progress = max(0, trade.bars_held - int(trade.best_price_bar or 0))
+                early_best_r, late_best_r = self._zombie_best_r_threshold(style_key)
                 early_exit = (
                     trade.bars_held < late_zombie
-                    and -risk_pct * 0.3 < zpnl < risk_pct * 0.2
+                    and bars_without_progress >= max(4, int(2 * scale))
+                    and best_r < early_best_r
+                    and -0.15 < current_r < 0.15
+                    and trade.partial_close_count == 0
                 )
-                # 晚期: 所有未盈利交易都退出（保住资金）
                 late_exit = (
                     trade.bars_held >= late_zombie
-                    and zpnl < risk_pct * 0.1
-                    and zpnl > -risk_pct * 0.8  # 深亏还是让 SL 处理
+                    and bars_without_progress >= max(8, int(4 * scale))
+                    and best_r < late_best_r
+                    and current_r < 0.15
+                    and current_r > -0.60
                 )
 
                 if early_exit or late_exit:
-                    self._close_trade(trade, candle.close, "ZOMBIE", candle.timestamp)
-                    closed = True
+                    if trade.management_state == "protective_scalp" and trade.management_reason == "ZOMBIE":
+                        self._close_trade(trade, candle.close, "ZOMBIE", candle.timestamp)
+                        closed = True
+                    else:
+                        self._activate_protective_scalp(
+                            trade,
+                            candle,
+                            reason="ZOMBIE",
+                            target_r=self._protective_target_r(trade, default_r=0.7),
+                            partial_fraction=0.0,
+                        )
 
-            # Al Brooks 风格 Scalp: 最低 1:1 R:R，然后时间衰减
+            # 显式 scalp 风格只按结构化 scalp 目标出场，不再用工程化时间衰减阈值。
             scalp_start = max(3, int(3 * scale))
             scalp_enabled = self._scalp_exit_enabled(trade.management_style)
             if scalp_enabled and not closed and trade.bars_held >= scalp_start:
-                if trade.direction == "BUY":
-                    scalp_pnl = (candle.close - trade.entry_price) / trade.entry_price * 100
-                else:
-                    scalp_pnl = (trade.entry_price - candle.close) / trade.entry_price * 100
-                # Al Brooks: Scalp 门槛随时间衰减
-                # 早期: 要求至少 1.2:1 R:R (让赢利跑)
-                # 中期: 降到 0.8:1 (锁利)
-                # 晚期: 0.3:1 (任何盈利都拿)
-                b = trade.bars_held
-                if b <= int(5 * scale):
-                    threshold = max(risk_pct * 1.2, 0.4 * sqrt_s)
-                elif b <= int(10 * scale):
-                    threshold = max(risk_pct * 0.8, 0.25 * sqrt_s)
-                elif b <= int(18 * scale):
-                    threshold = max(risk_pct * 0.5, 0.15 * sqrt_s)
-                else:
-                    threshold = max(risk_pct * 0.25, 0.08 * sqrt_s)
-                if scalp_pnl >= threshold:
+                scalp_r = self._profit_in_r(trade, candle.close)
+                best_r = self._profit_in_r(trade, trade.best_price)
+                bars_without_progress = max(0, trade.bars_held - int(trade.best_price_bar or 0))
+                if scalp_r >= self._scalp_target_r(trade):
+                    self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                    closed = True
+                elif (
+                    trade.bars_held >= max(6, int(6 * scale))
+                    and bars_without_progress >= max(2, int(2 * scale))
+                    and best_r >= 0.6
+                    and scalp_r > -0.05
+                ):
                     self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                     closed = True
 
@@ -571,6 +582,11 @@ class SimExchange:
             "entry_price": trade.entry_price,
             "entry_time": trade.entry_time,
             "entry_market_state": trade.market_state,
+            "timeframe": trade.timeframe,
+            "higher_timeframe": trade.higher_timeframe,
+            "management_style": trade.management_style,
+            "stop_loss": trade.stop_loss,
+            "initial_stop_loss": trade.initial_stop_loss or trade.stop_loss,
             "signal_price": trade.entry_trigger or trade.entry_price,
             "signal_high": trade.signal_bar_high or max(trade.entry_price, trade.entry_trigger or trade.entry_price),
             "signal_low": trade.signal_bar_low or min(trade.entry_price, trade.entry_trigger or trade.entry_price),
@@ -597,19 +613,28 @@ class SimExchange:
         if len(recent_bars) < 10:
             return False
         premise = module.premise_check(position, runtime_market)
+        profit_r = self._profit_in_r(trade, candle.close)
+        scale = TF_SCALE.get(trade.timeframe, 1)
+        style_key = self._style_key(trade.management_style)
 
         if premise.get("action") == "CLOSE":
             self._close_trade(trade, candle.close, "PREMISE", candle.timestamp)
             return True
 
-        if premise.get("action") == "REDUCE" and trade.remaining_size > 0.5:
-            trade.premise_reduce_count += 1
-            self._realize_partial(trade, candle.close, 0.5)
+        if premise.get("action") == "REDUCE":
+            if trade.management_reason != "PREMISE":
+                trade.premise_reduce_count += 1
+                self._activate_protective_scalp(
+                    trade,
+                    candle,
+                    reason="PREMISE",
+                    target_r=self._protective_target_r(trade),
+                    partial_fraction=0.33 if trade.remaining_size > 0.66 else 0.0,
+                )
+            return False
 
         strength = module.strength_check(position, runtime_market)
         strength_score = int(strength.get("strength_score", 0) or 0)
-        profit_r = self._profit_in_r(trade, candle.close)
-        scale = TF_SCALE.get(trade.timeframe, 1)
 
         if (
             trade.management_style == "brooks_breakout"
@@ -617,17 +642,45 @@ class SimExchange:
             and strength_score <= 1
             and profit_r < 0.35
         ):
-            self._close_trade(trade, candle.close, "FAILED_FT", candle.timestamp)
-            return True
+            if (
+                trade.management_state == "protective_scalp"
+                and trade.management_reason == "FAILED_FT"
+                and trade.bars_held >= max(5, int(5 * scale))
+                and profit_r < 0.15
+            ):
+                self._close_trade(trade, candle.close, "FAILED_FT", candle.timestamp)
+                return True
+            self._activate_protective_scalp(
+                trade,
+                candle,
+                reason="FAILED_FT",
+                target_r=self._protective_target_r(trade, default_r=1.15),
+                partial_fraction=0.25 if trade.remaining_size > 0.55 else 0.0,
+            )
+            return False
 
         if (
-            trade.management_style in {"brooks_tr_blshs", "brooks_tr4_daily_tr_fade"}
+            style_key in {"brooks_tr_blshs", "brooks_tr4_daily_tr_fade", "brooks_scalp"}
             and trade.bars_held >= max(3, int(3 * scale))
             and strength_score <= 1
             and profit_r < 0.20
         ):
-            self._close_trade(trade, candle.close, "WEAK_SCALP", candle.timestamp)
-            return True
+            if (
+                trade.management_state == "protective_scalp"
+                and trade.management_reason == "WEAK_SCALP"
+                and trade.bars_held >= max(6, int(6 * scale))
+                and profit_r < 0.10
+            ):
+                self._close_trade(trade, candle.close, "WEAK_SCALP", candle.timestamp)
+                return True
+            self._activate_protective_scalp(
+                trade,
+                candle,
+                reason="WEAK_SCALP",
+                target_r=self._protective_target_r(trade, default_r=0.8),
+                partial_fraction=0.25 if profit_r > 0.10 and trade.remaining_size > 0.5 else 0.0,
+            )
+            return False
 
         return False
 
@@ -795,16 +848,23 @@ class SimExchange:
     def _update_extremes(trade: Trade, candle) -> None:
         """更新交易期间的有利/不利极值。"""
         if trade.direction == "BUY":
-            trade.best_price = max(trade.best_price or trade.entry_price, candle.high)
+            previous_best = trade.best_price or trade.entry_price
+            trade.best_price = max(previous_best, candle.high)
+            if trade.best_price > previous_best + 1e-9:
+                trade.best_price_bar = trade.bars_held
             trade.worst_price = min(trade.worst_price or trade.entry_price, candle.low)
         else:
-            trade.best_price = min(trade.best_price or trade.entry_price, candle.low)
+            previous_best = trade.best_price or trade.entry_price
+            trade.best_price = min(previous_best, candle.low)
+            if trade.best_price < previous_best - 1e-9:
+                trade.best_price_bar = trade.bars_held
             trade.worst_price = max(trade.worst_price or trade.entry_price, candle.high)
 
     def _check_stop_target_hits(self, trade: Trade, candle) -> tuple[float, str]:
         """检测当前 K 线是否先触发止损或最终止盈。"""
         allow_fixed_tp = not (
             trade.management_style in BROOKS_MANAGED_STYLES
+            and trade.management_state != "protective_scalp"
             and not trade.tp2_done
         )
 
@@ -832,7 +892,12 @@ class SimExchange:
     def _apply_brooks_management(self, trade: Trade, candle) -> None:
         """Brooks 风格持仓管理：2R/3R 分批、保护性移损与余仓 trailing。"""
         plan = self._management_plan(trade.management_style)
-        if not plan or trade.initial_risk <= 0 or trade.remaining_size <= 0:
+        if (
+            not plan
+            or trade.initial_risk <= 0
+            or trade.remaining_size <= 0
+            or trade.management_state == "protective_scalp"
+        ):
             return
 
         tp1_r = plan["tp1_r"]
@@ -898,6 +963,91 @@ class SimExchange:
         if trade.direction == "BUY":
             return (price - trade.entry_price) / risk
         return (trade.entry_price - price) / risk
+
+    def _protective_target_r(self, trade: Trade, default_r: float = 1.0) -> float:
+        """前提转弱后，把余仓目标收回到更符合 Brooks 的保护性 scalp 目标。"""
+        style_key = self._style_key(trade.management_style)
+        target_r = default_r
+        if style_key in BROOKS_TR_SCALP_STYLES:
+            target_r = 0.8
+        elif style_key in BROOKS_REVERSAL_STYLES:
+            target_r = 1.0
+        elif style_key == "brooks_breakout":
+            target_r = 1.25
+        elif style_key in BROOKS_TREND_STYLES:
+            target_r = 1.1
+        magnet_r = self._magnet_take_r(trade)
+        if magnet_r > 0:
+            target_r = min(target_r, max(0.55, magnet_r))
+        return max(0.45, target_r)
+
+    def _protective_lock_r(self, trade: Trade) -> float:
+        """弱化管理下允许保护住的最小利润。"""
+        style_key = self._style_key(trade.management_style)
+        if style_key in BROOKS_TR_SCALP_STYLES:
+            return 0.05
+        if style_key in BROOKS_REVERSAL_STYLES:
+            return 0.15
+        if style_key == "brooks_breakout":
+            return 0.20
+        return 0.25
+
+    def _update_take_profit_tighter(self, trade: Trade, new_take_profit: float) -> None:
+        """只允许把目标收紧，不把目标无理由放远。"""
+        candidate = float(new_take_profit or 0.0)
+        if candidate <= 0:
+            return
+        current = float(trade.take_profit or 0.0)
+        if trade.direction == "BUY":
+            if current <= 0 or candidate < current:
+                self._update_take_profit(trade, candidate)
+            return
+        if current <= 0 or candidate > current:
+            self._update_take_profit(trade, candidate)
+
+    def _activate_protective_scalp(
+        self,
+        trade: Trade,
+        candle,
+        *,
+        reason: str,
+        target_r: float = 0.0,
+        partial_fraction: float = 0.0,
+    ) -> None:
+        """把原本的 swing / reversal 降级成保护性 scalp，而不是直接一刀切。"""
+        if trade.management_state != "protective_scalp" and partial_fraction > 0 and trade.remaining_size > 0.34:
+            self._realize_partial(trade, candle.close, partial_fraction)
+        profit_r = self._profit_in_r(trade, candle.close)
+        protect_r = self._protective_lock_r(trade)
+        if target_r <= 0:
+            target_r = self._protective_target_r(trade)
+        self._update_take_profit_tighter(trade, self._price_at_r(trade, target_r))
+        if profit_r >= max(protect_r, 0.15):
+            self._update_stop_loss(trade, self._protective_stop(trade, protect_r))
+        elif profit_r >= 0:
+            self._update_stop_loss(trade, self._protective_stop(trade, 0.0))
+        trade.management_state = "protective_scalp"
+        trade.management_reason = reason
+
+    @staticmethod
+    def _zombie_best_r_threshold(style_key: str) -> tuple[float, float]:
+        """不同家族允许的最小推进幅度。"""
+        if style_key in BROOKS_TR_SCALP_STYLES:
+            return 0.25, 0.50
+        if style_key in BROOKS_REVERSAL_STYLES:
+            return 0.40, 0.80
+        if style_key in BROOKS_TREND_STYLES:
+            return 0.60, 1.00
+        return 0.35, 0.70
+
+    def _scalp_target_r(self, trade: Trade) -> float:
+        """显式 scalp 风格只用结构化 scalp 目标，不再用时间衰减阈值。"""
+        style_key = self._style_key(trade.management_style)
+        target_r = 1.5 if style_key == "brooks_scalp" else 1.0
+        magnet_r = self._magnet_take_r(trade)
+        if magnet_r > 0:
+            target_r = min(target_r, max(0.6, magnet_r))
+        return max(0.6, target_r)
 
     def _price_at_r(self, trade: Trade, multiple: float) -> float:
         """把 R 倍数转成具体价格。"""
@@ -1006,8 +1156,8 @@ class SimExchange:
 
     @staticmethod
     def _scalp_exit_enabled(management_style: str) -> bool:
-        """Brooks swing / reversal / breakout 默认让利润跑，不做过早 scalp。"""
-        return management_style not in BROOKS_MANAGED_STYLES
+        """只有显式 scalp 家族才允许使用结构化 scalp 出场。"""
+        return normalize_management_style(management_style) in {"brooks_scalp", "brooks_tr_blshs"}
 
     def match_reentry(self, signal) -> dict | None:
         """检查当前信号是否满足同方向重入条件。"""

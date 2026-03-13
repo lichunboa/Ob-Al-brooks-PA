@@ -38,27 +38,6 @@ def calculate_trailing_sl(position: dict[str, Any], market_data: dict[str, Any])
     else:
         profit_r = (entry_price - current_price) / initial_risk
 
-    if profit_r >= 1.5:
-        if style == "Scalp":
-            if side == "BUY":
-                new_sl = entry_price + initial_risk * 0.5
-            else:
-                new_sl = entry_price - initial_risk * 0.5
-
-            if (side == "BUY" and new_sl > current_sl) or (side == "SELL" and new_sl < current_sl):
-                return {
-                    "should_trail": True,
-                    "new_sl": new_sl,
-                    "reason": f"Scalp 浮盈 {profit_r:.2f}R，移到保本+0.5R",
-                }
-        else:
-            if (side == "BUY" and entry_price > current_sl) or (side == "SELL" and entry_price < current_sl):
-                return {
-                    "should_trail": True,
-                    "new_sl": entry_price,
-                    "reason": f"浮盈 {profit_r:.2f}R，移到保本",
-                }
-
     ab_sr = market_data.get("ab_sr", {})
     major_hl = safe_float(ab_sr.get("major_hl"), 0)
     major_lh = safe_float(ab_sr.get("major_lh"), 0)
@@ -77,7 +56,40 @@ def calculate_trailing_sl(position: dict[str, Any], market_data: dict[str, Any])
             "reason": f"新 Major LH 形成: {major_lh:.2f}",
         }
 
+    tp1_executed = bool(get_position_attr(position, "tp1_executed", False))
+
+    if style == "Swing" and tp1_executed:
+        if (side == "BUY" and entry_price > current_sl) or (side == "SELL" and entry_price < current_sl):
+            return {
+                "should_trail": True,
+                "new_sl": entry_price,
+                "reason": f"Swing 已到 TP1（{profit_r:.2f}R），移到保本",
+            }
+
+    if style == "反转试探" and profit_r >= 0.8:
+        if (side == "BUY" and entry_price > current_sl) or (side == "SELL" and entry_price < current_sl):
+            return {
+                "should_trail": True,
+                "new_sl": entry_price,
+                "reason": f"反转试探已走出 {profit_r:.2f}R，移到保本",
+            }
+
     if style == "Scalp" and profit_r >= 1.0:
+        if side == "BUY":
+            protected_sl = entry_price if profit_r < 1.5 else entry_price + initial_risk * 0.25
+        else:
+            protected_sl = entry_price if profit_r < 1.5 else entry_price - initial_risk * 0.25
+
+        if (side == "BUY" and protected_sl > current_sl) or (side == "SELL" and protected_sl < current_sl):
+            return {
+                "should_trail": True,
+                "new_sl": protected_sl,
+                "reason": (
+                    f"Scalp 浮盈 {profit_r:.2f}R，"
+                    f"{'移到保本' if abs(protected_sl - entry_price) < 1e-9 else '移到保本上方保护利润'}"
+                ),
+            }
+
         minor_hl = safe_float(ab_sr.get("minor_hl"), 0)
         minor_lh = safe_float(ab_sr.get("minor_lh"), 0)
 

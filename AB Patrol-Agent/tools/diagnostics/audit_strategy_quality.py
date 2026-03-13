@@ -145,6 +145,22 @@ def finalize_bucket(bucket: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_sample_row(symbol: str, timeframe: str, window: AuditWindow, bucket: dict[str, Any]) -> dict[str, Any]:
+    """把单个品种/周期样本桶整理成输出行。"""
+    row = finalize_bucket(bucket)
+    return {
+        "symbol": symbol,
+        "timeframe": timeframe,
+        "window": window.label,
+        "start": window.start,
+        "end": window.end,
+        "total_trades": row["trades"],
+        "win_rate": row["win_rate"],
+        "profit_factor": row["profit_factor"],
+        "avg_r_multiple": row["avg_r_multiple"],
+    }
+
+
 def merge_bucket(target: dict[str, Any], source: dict[str, Any]) -> None:
     """把原始策略桶聚合到族级桶。"""
     for key in (
@@ -196,43 +212,40 @@ def main() -> None:
     }
     sample_rows: list[dict[str, Any]] = []
 
-    for symbol in symbols:
-        for timeframe in timeframes:
-            for window in windows:
-                cfg = BacktestConfig(
-                    symbols=[symbol],
-                    timeframes=[timeframe],
-                    start_date=window.start,
-                    end_date=window.end,
-                    days=max(1, (datetime.fromisoformat(window.end) - datetime.fromisoformat(window.start)).days),
-                    threshold=0,
-                    cache_dir=args.cache_dir,
-                    management_profile=args.management_profile,
-                )
-                result = BacktestRunner(cfg).run()
-                sample_rows.append(
-                    {
-                        "symbol": symbol,
-                        "timeframe": timeframe,
-                        "window": window.label,
-                        "start": window.start,
-                        "end": window.end,
-                        "total_trades": result.total_trades,
-                        "win_rate": result.win_rate,
-                        "profit_factor": result.profit_factor,
-                    }
-                )
+    for window in windows:
+        cfg = BacktestConfig(
+            symbols=symbols,
+            timeframes=timeframes,
+            start_date=window.start,
+            end_date=window.end,
+            days=max(1, (datetime.fromisoformat(window.end) - datetime.fromisoformat(window.start)).days),
+            threshold=0,
+            cache_dir=args.cache_dir,
+            management_profile=args.management_profile,
+        )
+        result = BacktestRunner(cfg).run()
 
-                for strategy in ALL_KNOWN_STRATEGIES:
-                    bucket = strategy_buckets[strategy]
-                    bucket["generated"] += int(result.signals_generated_by_strategy.get(strategy, 0) or 0)
-                    bucket["passed"] += int(result.signals_passed_by_strategy.get(strategy, 0) or 0)
-                    bucket["filtered"] += int(result.signals_blocked_strategy_by_strategy.get(strategy, 0) or 0)
+        for strategy in ALL_KNOWN_STRATEGIES:
+            bucket = strategy_buckets[strategy]
+            bucket["generated"] += int(result.signals_generated_by_strategy.get(strategy, 0) or 0)
+            bucket["passed"] += int(result.signals_passed_by_strategy.get(strategy, 0) or 0)
+            bucket["filtered"] += int(result.signals_blocked_strategy_by_strategy.get(strategy, 0) or 0)
 
-                for trade in result.trades:
-                    strategy = str(trade.get("strategy") or "UNKNOWN")
-                    strategy_buckets.setdefault(strategy, new_bucket(strategy))
-                    update_bucket_from_trade(strategy_buckets[strategy], trade)
+        sample_buckets: dict[tuple[str, str], dict[str, Any]] = {}
+        for trade in result.trades:
+            strategy = str(trade.get("strategy") or "UNKNOWN")
+            strategy_buckets.setdefault(strategy, new_bucket(strategy))
+            update_bucket_from_trade(strategy_buckets[strategy], trade)
+
+            sample_key = (
+                str(trade.get("symbol") or "UNKNOWN"),
+                str(trade.get("timeframe") or "UNKNOWN"),
+            )
+            sample_bucket = sample_buckets.setdefault(sample_key, new_bucket("sample"))
+            update_bucket_from_trade(sample_bucket, trade)
+
+        for (symbol, timeframe), bucket in sorted(sample_buckets.items()):
+            sample_rows.append(build_sample_row(symbol, timeframe, window, bucket))
 
     strategy_rows = [
         finalize_bucket(bucket) for bucket in sorted(strategy_buckets.values(), key=lambda item: item["strategy"])

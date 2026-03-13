@@ -113,14 +113,19 @@ def strength_check(position: dict[str, Any], market_data: dict[str, Any]) -> dic
 
     multi_tf_align = False
     if timeframes:
-        tf_5m = timeframes.get("5m", {})
-        tf_15m = timeframes.get("15m", {})
-        trend_5m = str(tf_5m.get("trend", "")).lower()
-        trend_15m = str(tf_15m.get("trend", "")).lower()
+        current_tf = str(get_position_attr(position, "timeframe", "") or "")
+        higher_tf = str(get_position_attr(position, "higher_timeframe", "") or "")
+        ordered_tfs = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"]
+        if not higher_tf and current_tf in ordered_tfs:
+            current_index = ordered_tfs.index(current_tf)
+            if current_index + 1 < len(ordered_tfs):
+                higher_tf = ordered_tfs[current_index + 1]
+        current_trend = str((timeframes.get(current_tf, {}) or {}).get("trend", "")).lower()
+        higher_trend = str((timeframes.get(higher_tf, {}) or {}).get("trend", "")).lower()
         if side == "BUY":
-            multi_tf_align = "bull" in trend_5m and "bull" in trend_15m
+            multi_tf_align = "bull" in current_trend and "bull" in higher_trend
         else:
-            multi_tf_align = "bear" in trend_5m and "bear" in trend_15m
+            multi_tf_align = "bear" in current_trend and "bear" in higher_trend
     signals["multi_tf_align"] = multi_tf_align
 
     strength_score = sum(1 for value in signals.values() if value)
