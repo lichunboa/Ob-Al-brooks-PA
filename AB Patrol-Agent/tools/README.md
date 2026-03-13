@@ -9,6 +9,8 @@
 - `diagnostics/`
   - 系统诊断、上下文审计、数据质量检查、恢复检查
   - 策略机会审计，例如 `audit_strategy_opportunities.py`
+  - 策略质量审计，例如 `audit_strategy_quality.py`
+  - 持仓管理链拆解，例如 `audit_management_chain.py`
 
 规则：
 

@@ -52,6 +52,22 @@ class SimExchange:
         self.reentry_watch: dict[str, dict] = {}  # {symbol: 被止损后的重入观察窗口}
         self._current_date: str = ""
 
+    @staticmethod
+    def _update_stop_loss(trade: Trade, new_stop_loss: float) -> None:
+        """在真正发生变化时记录止损调整次数。"""
+        value = float(new_stop_loss or 0.0)
+        if abs(value - float(trade.stop_loss or 0.0)) > 1e-9:
+            trade.stop_adjust_count += 1
+            trade.stop_loss = value
+
+    @staticmethod
+    def _update_take_profit(trade: Trade, new_take_profit: float) -> None:
+        """在真正发生变化时记录止盈调整次数。"""
+        value = float(new_take_profit or 0.0)
+        if abs(value - float(trade.take_profit or 0.0)) > 1e-9:
+            trade.take_profit_adjust_count += 1
+            trade.take_profit = value
+
     def place_order(self, signal, score: int, background: str):
         """
         接收信号并开仓
@@ -116,13 +132,13 @@ class SimExchange:
                     sl_dist = trade.entry_price - trade.stop_loss
                     if sl_dist > 0 and unrealized >= sl_dist * be_trigger:
                         new_sl = trade.entry_price * 1.0001
-                        trade.stop_loss = max(trade.stop_loss, new_sl)
+                        self._update_stop_loss(trade, max(trade.stop_loss, new_sl))
                 elif trade.direction == "SELL":
                     unrealized = trade.entry_price - candle.low
                     sl_dist = trade.stop_loss - trade.entry_price
                     if sl_dist > 0 and unrealized >= sl_dist * be_trigger:
                         new_sl = trade.entry_price * 0.9999
-                        trade.stop_loss = min(trade.stop_loss, new_sl)
+                        self._update_stop_loss(trade, min(trade.stop_loss, new_sl))
 
             # 周期缩放因子（15m信号需要3x时间，1h需要12x）
             scale = TF_SCALE.get(trade.timeframe, 1)
@@ -319,11 +335,11 @@ class SimExchange:
         leg_stop = float(getattr(signal, "stop_loss", trade.stop_loss) or trade.stop_loss)
         leg_tp = float(getattr(signal, "take_profit", trade.take_profit) or trade.take_profit)
         if trade.direction == "BUY":
-            trade.stop_loss = min(trade.stop_loss, leg_stop)
-            trade.take_profit = max(trade.take_profit, leg_tp)
+            self._update_stop_loss(trade, min(trade.stop_loss, leg_stop))
+            self._update_take_profit(trade, max(trade.take_profit, leg_tp))
         else:
-            trade.stop_loss = max(trade.stop_loss, leg_stop)
-            trade.take_profit = min(trade.take_profit, leg_tp)
+            self._update_stop_loss(trade, max(trade.stop_loss, leg_stop))
+            self._update_take_profit(trade, min(trade.take_profit, leg_tp))
         trade.risk_percent = total_risk
         trade.scale_legs += 1
         trade.initial_risk = abs(trade.entry_price - trade.stop_loss)
@@ -580,6 +596,7 @@ class SimExchange:
             return True
 
         if premise.get("action") == "REDUCE" and trade.remaining_size > 0.5:
+            trade.premise_reduce_count += 1
             self._realize_partial(trade, candle.close, 0.5)
 
         strength = module.strength_check(position, runtime_market)
@@ -824,15 +841,15 @@ class SimExchange:
         if not trade.tp1_done and profit_r >= tp1_r:
             self._realize_partial(trade, self._price_at_r(trade, tp1_r), 0.50)
             trade.tp1_done = True
-            trade.stop_loss = self._protective_stop(trade, plan["protect1_r"])
+            self._update_stop_loss(trade, self._protective_stop(trade, plan["protect1_r"]))
 
         if not trade.tp2_done and profit_r >= tp2_r:
             self._realize_partial(trade, self._price_at_r(trade, tp2_r), 0.25)
             trade.tp2_done = True
-            trade.stop_loss = self._protective_stop(trade, plan["protect2_r"])
+            self._update_stop_loss(trade, self._protective_stop(trade, plan["protect2_r"]))
 
         if trade.tp2_done and trade.remaining_size > 0:
-            trade.stop_loss = self._trail_stop(trade, plan["trail_r"], plan["protect2_r"])
+            self._update_stop_loss(trade, self._trail_stop(trade, plan["trail_r"], plan["protect2_r"]))
 
     @staticmethod
     def _management_plan(management_style: str) -> dict[str, float] | None:
@@ -905,6 +922,7 @@ class SimExchange:
         size = min(max(size_fraction, 0.0), trade.remaining_size)
         if size <= 0:
             return
+        trade.partial_close_count += 1
         trade.realized_pnl_pct += self._calc_pnl(trade.entry_price, exit_price, trade.direction) * size
         trade.remaining_size = max(0.0, trade.remaining_size - size)
 

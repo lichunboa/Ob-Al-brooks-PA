@@ -154,6 +154,10 @@ class Trade:
     position_notional_estimate: float = 0.0
     tp1_done: bool = False
     tp2_done: bool = False
+    partial_close_count: int = 0
+    stop_adjust_count: int = 0
+    take_profit_adjust_count: int = 0
+    premise_reduce_count: int = 0
     best_price: float = 0.0
     worst_price: float = 0.0
 
