@@ -91,6 +91,26 @@ class SimExchange:
         """把历史管理模板名归并成当前族级模板。"""
         return normalize_management_style(management_style)
 
+    def _family_key(self, trade: Trade) -> str:
+        """把管理模板归并到更稳定的 Brooks 管理家族。"""
+        style_key = self._style_key(trade.management_style)
+        if style_key in {"brooks_swing", "brooks_t4_wedge_pullback"}:
+            return "trend_recovery"
+        if style_key in {
+            "brooks_mtr_reversal",
+            "brooks_r3_channel_line_fade",
+            "brooks_s1_htf_sr_reversal",
+            "brooks_s2_micro_channel",
+        }:
+            return "mtr_reversal"
+        if style_key == "brooks_climax_reversal":
+            return "climax_reversal"
+        if style_key == "brooks_breakout":
+            return "breakout_follow"
+        if style_key in BROOKS_TR_SCALP_STYLES:
+            return "tr_scalp"
+        return "other"
+
     def place_order(self, signal, score: int, background: str):
         """
         接收信号并开仓
@@ -324,14 +344,20 @@ class SimExchange:
         signal_price = float(getattr(signal, "price", trade.best_price or trade.entry_price) or trade.entry_price)
         open_r = self._trade_open_r(trade, signal_price)
         if intent == "PYRAMID_ADD":
-            if open_r < 0.9:
+            if open_r < 1.25:
                 return False
             if trade.direction == "BUY" and trade.stop_loss + 1e-9 < trade.entry_price:
                 return False
             if trade.direction == "SELL" and trade.stop_loss - 1e-9 > trade.entry_price:
                 return False
             return True
-        return open_r >= 0.25
+        if open_r < 0.75:
+            return False
+        if trade.tp1_done:
+            return True
+        if trade.direction == "BUY":
+            return trade.stop_loss + 1e-9 >= trade.entry_price
+        return trade.stop_loss - 1e-9 <= trade.entry_price
 
     def _apply_scale_in(self, trade: Trade, signal) -> None:
         """把同方向加仓并入现有持仓，并限制总风险不超过 1%。"""
@@ -616,20 +642,34 @@ class SimExchange:
         profit_r = self._profit_in_r(trade, candle.close)
         scale = TF_SCALE.get(trade.timeframe, 1)
         style_key = self._style_key(trade.management_style)
+        family_key = self._family_key(trade)
 
         if premise.get("action") == "CLOSE":
             self._close_trade(trade, candle.close, "PREMISE", candle.timestamp)
             return True
 
         if premise.get("action") == "REDUCE":
+            if (
+                trade.management_state == "protective_scalp"
+                and trade.management_reason == "PREMISE"
+                and trade.bars_held >= max(5, int(5 * scale))
+                and profit_r < max(0.10, self._protective_lock_r(trade))
+            ):
+                self._close_trade(trade, candle.close, "PREMISE", candle.timestamp)
+                return True
             if trade.management_reason != "PREMISE":
+                partial_fraction = 0.0
+                if family_key == "trend_recovery" and profit_r > 0.10 and trade.remaining_size > 0.6:
+                    partial_fraction = 0.25
+                elif family_key == "mtr_reversal" and profit_r > 0.20 and trade.remaining_size > 0.66:
+                    partial_fraction = 0.33
                 trade.premise_reduce_count += 1
                 self._activate_protective_scalp(
                     trade,
                     candle,
                     reason="PREMISE",
                     target_r=self._protective_target_r(trade),
-                    partial_fraction=0.33 if trade.remaining_size > 0.66 else 0.0,
+                    partial_fraction=partial_fraction,
                 )
             return False
 
@@ -656,6 +696,29 @@ class SimExchange:
                 reason="FAILED_FT",
                 target_r=self._protective_target_r(trade, default_r=1.15),
                 partial_fraction=0.25 if trade.remaining_size > 0.55 else 0.0,
+            )
+            return False
+
+        if (
+            family_key == "trend_recovery"
+            and trade.bars_held >= max(3, int(3 * scale))
+            and strength_score <= 1
+            and profit_r < 0.45
+        ):
+            if (
+                trade.management_state == "protective_scalp"
+                and trade.management_reason == "WEAK_SCALP"
+                and trade.bars_held >= max(6, int(6 * scale))
+                and profit_r < 0.10
+            ):
+                self._close_trade(trade, candle.close, "WEAK_SCALP", candle.timestamp)
+                return True
+            self._activate_protective_scalp(
+                trade,
+                candle,
+                reason="WEAK_SCALP",
+                target_r=self._protective_target_r(trade, default_r=0.9),
+                partial_fraction=0.25 if profit_r > 0.12 and trade.remaining_size > 0.5 else 0.0,
             )
             return False
 
@@ -910,6 +973,23 @@ class SimExchange:
                 tp2_r = max(tp1_r + 0.15, magnet_take_r)
 
         profit_r = self._profit_in_r(trade, candle.close)
+        bars_without_progress = max(0, trade.bars_held - int(trade.best_price_bar or 0))
+        style_key = self._style_key(trade.management_style)
+
+        # 趋势恢复族一旦已经走出接近 1R，又长时间无推进，就先保护到保本，
+        # 避免把原本接近成功的 PB 重新吐回成满损。
+        if (
+            style_key in {"brooks_swing", "brooks_t4_wedge_pullback"}
+            and not trade.tp1_done
+            and profit_r >= 0.9
+            and bars_without_progress >= max(2, int(2 * TF_SCALE.get(trade.timeframe, 1)))
+        ):
+            self._update_stop_loss(trade, self._protective_stop(trade, 0.0))
+
+        # MTR 家族更符合“2R 兑现一半，余仓转保护”的语义。
+        if style_key == "brooks_mtr_reversal" and not trade.tp1_done and profit_r >= 1.1:
+            self._update_stop_loss(trade, self._protective_stop(trade, 0.15))
+
         if not trade.tp1_done and profit_r >= tp1_r:
             self._realize_partial(trade, self._price_at_r(trade, tp1_r), 0.50)
             trade.tp1_done = True
@@ -928,7 +1008,7 @@ class SimExchange:
         """不同 Brooks 管理模板的分批参数。"""
         style_key = normalize_management_style(management_style)
         if style_key == "brooks_mtr_reversal":
-            return {"tp1_r": 1.4, "tp2_r": 2.6, "protect1_r": 0.4, "protect2_r": 1.25, "trail_r": 0.95}
+            return {"tp1_r": 2.0, "tp2_r": 3.0, "protect1_r": 0.75, "protect2_r": 1.60, "trail_r": 1.05}
         if style_key == "brooks_t4_wedge_pullback":
             return {"tp1_r": 1.6, "tp2_r": 2.8, "protect1_r": 0.6, "protect2_r": 1.6, "trail_r": 1.0}
         if style_key == "brooks_r3_channel_line_fade":
@@ -983,14 +1063,38 @@ class SimExchange:
 
     def _protective_lock_r(self, trade: Trade) -> float:
         """弱化管理下允许保护住的最小利润。"""
-        style_key = self._style_key(trade.management_style)
-        if style_key in BROOKS_TR_SCALP_STYLES:
+        family_key = self._family_key(trade)
+        if family_key == "tr_scalp":
             return 0.05
-        if style_key in BROOKS_REVERSAL_STYLES:
+        if family_key in {"mtr_reversal", "climax_reversal"}:
             return 0.15
-        if style_key == "brooks_breakout":
+        if family_key == "breakout_follow":
             return 0.20
         return 0.25
+
+    def _protective_loss_cap_r(self, trade: Trade, reason: str) -> float:
+        """弱化管理后允许保留的最大负向 R。"""
+        family_key = self._family_key(trade)
+        reason_key = str(reason or "").upper()
+        if family_key == "trend_recovery":
+            if reason_key == "FAILED_FT":
+                return -0.15
+            if reason_key == "WEAK_SCALP":
+                return -0.20
+            return -0.25
+        if family_key == "mtr_reversal":
+            if reason_key == "WEAK_SCALP":
+                return -0.25
+            return -0.35
+        if family_key == "climax_reversal":
+            return -0.30
+        if family_key == "breakout_follow":
+            if reason_key == "FAILED_FT":
+                return -0.12
+            return -0.20
+        if family_key == "tr_scalp":
+            return -0.15
+        return -0.30
 
     def _update_take_profit_tighter(self, trade: Trade, new_take_profit: float) -> None:
         """只允许把目标收紧，不把目标无理由放远。"""
@@ -1026,6 +1130,8 @@ class SimExchange:
             self._update_stop_loss(trade, self._protective_stop(trade, protect_r))
         elif profit_r >= 0:
             self._update_stop_loss(trade, self._protective_stop(trade, 0.0))
+        else:
+            self._update_stop_loss(trade, self._protective_stop(trade, self._protective_loss_cap_r(trade, reason)))
         trade.management_state = "protective_scalp"
         trade.management_reason = reason
 
@@ -1194,6 +1300,11 @@ class SimExchange:
             self.reentry_watch.pop(trade.symbol, None)
             return
         if trade.management_style not in BROOKS_REENTRY_STYLES:
+            return
+        # 只给“曾经证明过 premise”的交易保留重入窗口，
+        # 避免把纯粹失败的入场反复重做成摊损。
+        best_r = self._profit_in_r(trade, trade.best_price or trade.entry_price)
+        if best_r < 0.25 and not trade.tp1_done:
             return
         self.reentry_watch[trade.symbol] = {
             "direction": trade.direction,
