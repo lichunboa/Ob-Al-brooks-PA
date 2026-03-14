@@ -162,6 +162,9 @@ class Trade:
     management_reason: str = ""
     management_reason_detail: str = ""
     management_state_bar: int = 0
+    protective_runner_kept: bool = False
+    trailing_exit_type: str = ""
+    profit_exit_type: str = ""
     best_price: float = 0.0
     best_price_bar: int = 0
     worst_price: float = 0.0

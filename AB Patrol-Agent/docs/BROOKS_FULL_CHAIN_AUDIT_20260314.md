@@ -372,11 +372,150 @@
 3. `trailing` 统计里混着保护性移损和真正余仓 trailing，导致管理质量还不够纯
 4. 趋势恢复族虽然已经比以前更像 Brooks，但它作为最大交易来源，PF 仍明显低于其它家族，足以把整体系统拖在 `1` 以下
 
-## 9. 下一步建议
+## 9. 第四阶段结果：把 trailing 与 `SCALP / TP1/TP2` 边界彻底拆开
 
-下一阶段如果继续沿 Brooks 体系推进，优先级应是：
+这一步不再继续放宽信号，也没有继续按某个品种或某个时间周期做特调。
 
-1. 继续拆趋势恢复族的保护性管理
-2. 把 trailing 明确拆成“保护性止损”和“真正余仓 trailing”
-3. 再审 `partial close` 的比例、余仓保留条件和退出条件
-4. 最后才去判断哪些策略族适合优先进 demo 主链采样
+本轮代码重点只有两件事：
+
+1. 把止损退出细分成：
+   - `protective_stop`
+   - `runner_trailing`
+   - `adjusted_stop`
+2. 把利润退出细分成：
+   - `protective_scalp`
+   - `protective_scalp_runner`
+   - `tp_after_scaleout`
+   - `full_tp`
+
+对应结果文件：
+
+- [/tmp/ab_selected_management_report_20260314_v4.json](/tmp/ab_selected_management_report_20260314_v4.json)
+- [/tmp/ab_selected_management_report_20260314_v5.json](/tmp/ab_selected_management_report_20260314_v5.json)
+
+### 9.1 v4 -> v5 的量化结果
+
+整体几乎不变：
+
+- 总交易数：`3285 -> 3285`
+- 加权胜率：`26.39% -> 26.39%`
+- 平均 PF：`0.600 -> 0.600`
+
+这件事很重要，因为它说明：
+
+- 这轮不是“数值突破”
+- 但也不是白做
+- 它的价值主要是把以前混在一起的管理结果拆清了
+
+也就是说，**这一轮更像“找到了真正的根因”，而不是“又往前推了 0.01”**。
+
+### 9.2 新拆出来的管理结果
+
+`v5` 里最关键的新分层是：
+
+| 动作 | 交易数 | PF | 平均 R | 胜率 |
+| --- | --- | --- | --- | --- |
+| `protective_stop_exit` | `1302` | `0.032` | `-0.266` | `3.69%` |
+| `runner_trailing_exit` | `130` | `133.454` | `0.972` | `91.54%` |
+| `protective_scalp_exit` | `72` | `999.0` | `0.196` | `83.33%` |
+| `tp_after_scaleout_exit` | `172` | `291.178` | `0.400` | `87.79%` |
+
+这组数字直接说明：
+
+1. 真正的问题不是 “trailing 本身不行”
+2. 真正的问题也不是 “TP1/TP2 不行”
+3. 一旦一笔单成功进入：
+   - `tp_after_scaleout`
+   - `protective_scalp`
+   - `runner_trailing`
+   这些阶段，结果其实非常好
+4. **系统真正的大坑是：太多单在走到成熟 runner 之前，就被降级成了 `protective_stop`**
+
+换句话说：
+
+- Brooks 的“赚大钱”那一段，我们并不是不会
+- Brooks 的“先活下来、别把普通 PB 又吐回去”这一段，仍然没完全做好
+
+### 9.3 为什么这比原来的 `trailing_stop_exit` 统计更有用
+
+在 `v4` 之前，`trailing_stop_exit` 是混在一起看的：
+
+- 真正优质的余仓 trailing
+- 保护性移损后被打掉
+- 接近保本的保护止损
+
+所以当时看到 `trailing PF` 很低，无法判断问题到底出在哪。
+
+现在拆开之后结论已经非常明确：
+
+- `runner_trailing` 本身是优秀的
+- 差的是 `protective_stop`
+
+因此当前最深层的问题，不是 trailing 的方向错了，而是：
+
+- 太多交易过早退化成“只能保护”的状态
+- 但又还没优雅地转成 `SCALP / BE / 小赢`
+
+## 10. 根因重新判断
+
+到了这一步，根因已经可以重新表述，而且比之前更具体。
+
+### 10.1 不是信号缺失
+
+当前系统已经不是“识别不到 Brooks setup”：
+
+- 各家族都有稳定信号
+- 主力策略都有足够交易数
+- 频率不是主问题
+
+### 10.2 也不只是 trailing 问题
+
+`runner_trailing_exit` 的结果已经证明：
+
+- 真正成熟 runner 的 trailing 是有效的
+- 系统不是完全不会 trailing
+
+### 10.3 真正的系统级根因
+
+当前和 Brooks 的深层差距，已经非常集中地落在这 3 点：
+
+1. **趋势恢复族的“普通 PB”仍然有太多单会过早退化**
+   - `高1/低1/高2/低2` 仍是最大交易来源
+   - 它们的 top exit 仍然是 `SL`
+   - 这说明入场后 premise 还不够稳定
+
+2. **退化后的交易，仍有太多进入 `protective_stop`，而不是更优雅地结束**
+   - `protective_scalp_exit` 是好的
+   - `tp_after_scaleout` 是好的
+   - 但数量都远小于 `protective_stop_exit`
+
+3. **系统还没有把 Brooks 的“first buy / second buy / channel -> TR”彻底代码化成不同命运**
+   - `first buy` 更偏保本和小 scalp
+   - `second buy` 更应该允许 `scalp part, swing part`
+   - `tight channel -> TR` 应更早接受“趋势已经不再是单边趋势”
+
+这也就解释了为什么我们前几轮每次都只涨一点点：
+
+- 我们之前一直在修“表层动作”
+- 现在才真正看到：**系统的大亏损桶不是 `TP`、不是 runner，而是 `protective_stop`**
+
+## 11. 下一步建议
+
+如果继续沿 Brooks 体系推进，优先级现在已经可以收敛成这 3 件事：
+
+1. 继续压缩 `protective_stop_exit`
+   - 目标不是更早止损
+   - 而是让更多保护态单转成：
+     - `protective_scalp_exit`
+     - `breakeven_stop_exit`
+     - `tp_after_scaleout_exit`
+
+2. 把趋势恢复族再往下拆成更明确的命运链
+   - `first buy -> BE / 小 scalp`
+   - `second buy -> scalp part, swing part`
+   - `channel -> TR -> 更早兑现`
+
+3. 再做一轮“从信号到离场”的全局对照
+   - 哪些动作已经贴近 Brooks
+   - 哪些动作仍然只是工程上的近似物
+   - 尤其盯住 `高1/低1/高2/低2`

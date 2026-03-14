@@ -224,6 +224,26 @@ class SimExchange:
             "protect_r": 0.0,
         }
 
+    @staticmethod
+    def _classify_stop_exit_type(trade: Trade) -> str:
+        """把止损退出细分成保护性止损与真正余仓 trailing。"""
+        adjusted = abs(float(trade.stop_loss or 0.0) - float(trade.initial_stop_loss or 0.0)) > 1e-9
+        adjusted = adjusted or int(trade.stop_adjust_count or 0) > 0
+        if not adjusted:
+            return ""
+        if bool(trade.protective_runner_kept) or str(trade.management_state or "") == "protective_scalp":
+            return "protective_stop"
+        if bool(trade.tp1_done) or bool(trade.tp2_done) or int(trade.partial_close_count or 0) > 0:
+            return "runner_trailing"
+        return "adjusted_stop"
+
+    @staticmethod
+    def _classify_tp_exit_type(trade: Trade) -> str:
+        """把止盈退出细分成整体止盈与缩放后止盈。"""
+        if bool(trade.tp1_done) or bool(trade.tp2_done) or int(trade.partial_close_count or 0) > 0:
+            return "tp_after_scaleout"
+        return "full_tp"
+
     def place_order(self, signal, score: int, background: str):
         """
         接收信号并开仓
@@ -1105,11 +1125,15 @@ class SimExchange:
 
         if sl_hit and tp_hit:
             if sl_dist <= tp_dist:
+                trade.trailing_exit_type = self._classify_stop_exit_type(trade)
                 return trade.stop_loss, "SL"
+            trade.profit_exit_type = self._classify_tp_exit_type(trade)
             return trade.take_profit, "TP"
         if sl_hit:
+            trade.trailing_exit_type = self._classify_stop_exit_type(trade)
             return trade.stop_loss, "SL"
         if tp_hit:
+            trade.profit_exit_type = self._classify_tp_exit_type(trade)
             return trade.take_profit, "TP"
         return 0.0, ""
 
@@ -1342,6 +1366,7 @@ class SimExchange:
         extra_partial_r = float(plan["extra_partial_r"])
         extra_partial_fraction = float(plan["extra_partial_fraction"])
         protect_r = float(plan["protect_r"])
+        allow_runner = detail == "second_entry_profit"
 
         if (
             profit_r >= extra_partial_r
@@ -1350,6 +1375,48 @@ class SimExchange:
         ):
             self._realize_partial(trade, candle.close, extra_partial_fraction)
             self._update_stop_loss(trade, self._protective_stop(trade, protect_r))
+
+        if (
+            allow_runner
+            and not trade.protective_runner_kept
+            and bars_without_progress >= stale_bars
+            and profit_r >= max(profit_exit_r, 0.18)
+            and best_r >= max(extra_partial_r, 0.80)
+            and trade.remaining_size > 0.22
+        ):
+            trim_size = max(0.0, trade.remaining_size - 0.18)
+            if trim_size > 0.02:
+                self._realize_partial(trade, candle.close, trim_size)
+            trade.protective_runner_kept = True
+            self._update_stop_loss(trade, self._protective_stop(trade, max(protect_r, 0.18)))
+            structure_stop = self._structure_stop_from_market(
+                trade,
+                candle,
+                market_data,
+                min_profit_r=0.12,
+            )
+            if structure_stop > 0:
+                self._update_stop_loss(trade, structure_stop)
+            return False
+
+        if trade.protective_runner_kept:
+            structure_stop = self._structure_stop_from_market(
+                trade,
+                candle,
+                market_data,
+                min_profit_r=0.10,
+            )
+            if structure_stop > 0:
+                self._update_stop_loss(trade, structure_stop)
+            else:
+                self._update_stop_loss(trade, self._trail_stop(trade, 0.85, max(protect_r, 0.18)))
+            if (
+                bars_in_state >= force_exit_bars * 2
+                and bars_without_progress >= stale_bars * 2
+                and profit_r < max(profit_exit_r, 0.15)
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
 
         if (
             bars_without_progress >= stale_bars
@@ -1412,6 +1479,7 @@ class SimExchange:
         trade.management_reason = reason
         trade.management_reason_detail = detail
         trade.management_state_bar = trade.bars_held
+        trade.protective_runner_kept = False
 
     @staticmethod
     def _zombie_best_r_threshold(style_key: str) -> tuple[float, float]:
@@ -1498,6 +1566,15 @@ class SimExchange:
         trade.pnl_pct = trade.realized_pnl_pct
         trade.exit_time = exit_time
         trade.exit_reason = reason
+        if reason == "SCALP":
+            if str(trade.management_state or "") == "protective_scalp":
+                trade.profit_exit_type = "protective_scalp_runner" if trade.protective_runner_kept else "protective_scalp"
+            else:
+                trade.profit_exit_type = "plain_scalp"
+        elif reason == "TP" and not trade.profit_exit_type:
+            trade.profit_exit_type = self._classify_tp_exit_type(trade)
+        elif reason == "SL" and not trade.trailing_exit_type:
+            trade.trailing_exit_type = self._classify_stop_exit_type(trade)
         if trade.pnl_pct > 0.05:
             trade.result = "WIN"
         elif trade.pnl_pct < -0.05:

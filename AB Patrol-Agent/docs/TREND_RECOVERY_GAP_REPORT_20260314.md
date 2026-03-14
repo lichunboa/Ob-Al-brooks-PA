@@ -443,3 +443,90 @@
 1. `SCALP` 和 `TP1/TP2` 的分工边界
 2. `SCALP` 后是否保留少量 runner
 3. `Major HL / LH` 和主动 `SCALP` 之间谁优先
+
+---
+
+## 11. 第四阶段结果：把 `protective_stop / runner_trailing / SCALP / TP1/TP2` 真正拆开
+
+第三阶段之后，最大的问题已经不是“不知道要保护”，而是：
+
+- 我们不知道当前差的到底是 trailing 本身
+- 还是“保护性止损”被混进 trailing 里，把统计看脏了
+
+因此第四阶段做的重点不是继续改频率，而是：
+
+1. 把 `SL` 细分成：
+   - `protective_stop`
+   - `runner_trailing`
+2. 把利润退出细分成：
+   - `protective_scalp`
+   - `protective_scalp_runner`
+   - `tp_after_scaleout`
+   - `full_tp`
+
+结果文件：
+
+- [/tmp/ab_selected_management_report_20260314_v4.json](/tmp/ab_selected_management_report_20260314_v4.json)
+- [/tmp/ab_selected_management_report_20260314_v5.json](/tmp/ab_selected_management_report_20260314_v5.json)
+
+### 11.1 数值结果
+
+这一步几乎没有改变总表现：
+
+- 总交易数：`3285 -> 3285`
+- 加权胜率：`26.39% -> 26.39%`
+- 平均 PF：`0.600 -> 0.600`
+
+这说明第四阶段不是“又优化出一截盈利”，而是终于把根因拆清了。
+
+### 11.2 真正重要的新增分层
+
+| 动作 | 交易数 | PF | 平均 R | 胜率 |
+| --- | --- | --- | --- | --- |
+| `protective_stop_exit` | `1302` | `0.032` | `-0.266` | `3.69%` |
+| `runner_trailing_exit` | `130` | `133.454` | `0.972` | `91.54%` |
+| `protective_scalp_exit` | `72` | `999.0` | `0.196` | `83.33%` |
+| `tp_after_scaleout_exit` | `172` | `291.178` | `0.400` | `87.79%` |
+
+这 4 组数据把趋势恢复族当前最深的症结完全暴露出来了：
+
+1. 真正的余仓 trailing 是有效的，而且非常强
+2. `TP1/TP2` 之后的止盈也是有效的
+3. 主动 `protective_scalp` 兑现也是有效的
+4. **最差的不是 trailing，也不是 TP，而是 `protective_stop`**
+
+### 11.3 这对趋势恢复族意味着什么
+
+趋势恢复族当前不是“不会赚钱”，而是：
+
+- 只有一小部分交易能走到 Brooks 式的成熟阶段
+  - `tp_after_scaleout`
+  - `runner_trailing`
+  - `protective_scalp_exit`
+- 更大一部分交易，在 premise 开始退化后，仍然以 `protective_stop` 结束
+
+因此，趋势恢复族当前和 Brooks 的真实差距已经可以重新定义：
+
+- 不是 `H1/H2` 检测不到
+- 不是 `TP1/TP2` 不会做
+- 不是 runner trailing 不会做
+- 而是 **太多普通 PB 还没来得及“成熟”，就先退化成了坏的保护态**
+
+### 11.4 第四阶段后的判断
+
+现在可以把趋势恢复族的问题收敛成一句话：
+
+> 当前系统已经学会了 Brooks 的“成熟交易怎么赚钱”，但还没有学会 Brooks 的“普通 PB 在变弱时，怎样优雅地保命并保住一部分利润”。
+
+这也是为什么最近几轮每次指标只涨一点点：
+
+- 大桶亏损一直不是出在 `runner_trailing`
+- 而是出在 `protective_stop`
+
+下一步如果继续沿 Brooks 体系推进，就不该再泛调“要不要保护”，而是只做一件事：
+
+- 继续把 `protective_stop` 往
+  - `protective_scalp_exit`
+  - `breakeven_stop_exit`
+  - `tp_after_scaleout_exit`
+  这三类里挪

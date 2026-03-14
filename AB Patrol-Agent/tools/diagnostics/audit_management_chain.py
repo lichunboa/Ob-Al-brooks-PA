@@ -140,6 +140,16 @@ def is_trailing_stop_exit(trade: dict[str, Any]) -> bool:
     return abs(final_stop - initial_stop) > 1e-9 or int(trade.get("stop_adjust_count", 0) or 0) > 0
 
 
+def is_protective_stop_exit(trade: dict[str, Any]) -> bool:
+    """是否属于保护性止损被打。"""
+    return str(trade.get("trailing_exit_type") or "") == "protective_stop"
+
+
+def is_runner_trailing_exit(trade: dict[str, Any]) -> bool:
+    """是否属于真正余仓 trailing 退出。"""
+    return str(trade.get("trailing_exit_type") or "") == "runner_trailing"
+
+
 def is_take_profit_exit(trade: dict[str, Any]) -> bool:
     """是否由最终止盈单结束。"""
     return str(trade.get("exit_reason") or "") == "TP"
@@ -169,6 +179,16 @@ def is_protective_scalp_involved(trade: dict[str, Any]) -> bool:
     return str(trade.get("management_state") or "") == "protective_scalp"
 
 
+def is_protective_scalp_exit(trade: dict[str, Any]) -> bool:
+    """是否由保护态主动兑现退出。"""
+    return str(trade.get("profit_exit_type") or "") in {"protective_scalp", "protective_scalp_runner"}
+
+
+def is_tp_after_scaleout_exit(trade: dict[str, Any]) -> bool:
+    """是否属于 TP1/TP2 之后的余仓止盈。"""
+    return str(trade.get("profit_exit_type") or "") == "tp_after_scaleout"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="拆解回测中的持仓管理链影响")
     parser.add_argument("--symbols", default="BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT", help="币种，逗号分隔")
@@ -194,11 +214,15 @@ def main() -> None:
     component_buckets = {
         "partial_close_involved": new_component_bucket("partial_close_involved"),
         "trailing_stop_exit": new_component_bucket("trailing_stop_exit"),
+        "protective_stop_exit": new_component_bucket("protective_stop_exit"),
+        "runner_trailing_exit": new_component_bucket("runner_trailing_exit"),
         "breakeven_stop_exit": new_component_bucket("breakeven_stop_exit"),
         "take_profit_exit": new_component_bucket("take_profit_exit"),
+        "tp_after_scaleout_exit": new_component_bucket("tp_after_scaleout_exit"),
         "premise_failure_exit": new_component_bucket("premise_failure_exit"),
         "plain_stop_loss_exit": new_component_bucket("plain_stop_loss_exit"),
         "protective_scalp_involved": new_component_bucket("protective_scalp_involved"),
+        "protective_scalp_exit": new_component_bucket("protective_scalp_exit"),
         "reentry_trade": new_component_bucket("reentry_trade"),
         "scale_in_trade": new_component_bucket("scale_in_trade"),
     }
@@ -258,6 +282,10 @@ def main() -> None:
                 stats["trailing_stop_exit"] += 1
                 family_stats["trailing_stop_exit"] += 1
                 style_stats["trailing_stop_exit"] += 1
+            if is_protective_stop_exit(trade):
+                update_component_bucket(component_buckets["protective_stop_exit"], trade)
+            if is_runner_trailing_exit(trade):
+                update_component_bucket(component_buckets["runner_trailing_exit"], trade)
             if is_breakeven_stop_exit(trade):
                 update_component_bucket(component_buckets["breakeven_stop_exit"], trade)
                 stats["breakeven_stop_exit"] += 1
@@ -268,6 +296,8 @@ def main() -> None:
                 stats["take_profit_exit"] += 1
                 family_stats["take_profit_exit"] += 1
                 style_stats["take_profit_exit"] += 1
+            if is_tp_after_scaleout_exit(trade):
+                update_component_bucket(component_buckets["tp_after_scaleout_exit"], trade)
             if is_premise_failure_exit(trade):
                 update_component_bucket(component_buckets["premise_failure_exit"], trade)
                 stats["premise_failure_exit"] += 1
@@ -283,6 +313,8 @@ def main() -> None:
                 stats["protective_scalp_involved"] += 1
                 family_stats["protective_scalp_involved"] += 1
                 style_stats["protective_scalp_involved"] += 1
+            if is_protective_scalp_exit(trade):
+                update_component_bucket(component_buckets["protective_scalp_exit"], trade)
             if int(trade.get("reentry_attempt", 0) or 0) > 0:
                 update_component_bucket(component_buckets["reentry_trade"], trade)
                 stats["reentry_trade"] += 1
