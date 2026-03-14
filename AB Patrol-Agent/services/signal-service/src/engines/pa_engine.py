@@ -889,7 +889,16 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     valley_idx, valley_low = min(valley_candidates, key=lambda item: item[1])
                     leg2_bars = (len(lookback) - 2) - valley_idx
                     leg2_strength = prev.high - valley_low
-                    if leg2_bars <= 8 and leg2_strength >= range_size * 0.28:
+                    edge_tests = self._count_edge_tests(lookback[:-2], range_high, "SELL", tolerance)
+                    breakout_excess = max(float(prev.high) - range_high, 0.0)
+                    back_in_range = float(curr.close) <= range_high + tolerance * 0.10
+                    if (
+                        edge_tests >= 2
+                        and leg2_bars <= 8
+                        and leg2_strength >= range_size * 0.28
+                        and breakout_excess <= range_size * 0.18
+                        and back_in_range
+                    ):
                         stop = build_tr_second_leg_trap_stop("SELL", lookback, prev.high, prev.high, prev.low, atr)
                         target = range_low + range_size * 0.5
                         return PASignal(
@@ -913,6 +922,8 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                                 "second_leg_extreme": prev.high,
                                 "first_leg_extreme": first_high,
                                 "valley_low": valley_low,
+                                "edge_tests": edge_tests,
+                                "back_in_range": back_in_range,
                             },
                         )
 
@@ -925,7 +936,16 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     peak_idx, peak_high = max(peak_candidates, key=lambda item: item[1])
                     leg2_bars = (len(lookback) - 2) - peak_idx
                     leg2_strength = peak_high - prev.low
-                    if leg2_bars <= 8 and leg2_strength >= range_size * 0.28:
+                    edge_tests = self._count_edge_tests(lookback[:-2], range_low, "BUY", tolerance)
+                    breakout_excess = max(range_low - float(prev.low), 0.0)
+                    back_in_range = float(curr.close) >= range_low - tolerance * 0.10
+                    if (
+                        edge_tests >= 2
+                        and leg2_bars <= 8
+                        and leg2_strength >= range_size * 0.28
+                        and breakout_excess <= range_size * 0.18
+                        and back_in_range
+                    ):
                         stop = build_tr_second_leg_trap_stop("BUY", lookback, prev.low, prev.high, prev.low, atr)
                         target = range_high - range_size * 0.5
                         return PASignal(
@@ -949,6 +969,8 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                                 "second_leg_extreme": prev.low,
                                 "first_leg_extreme": first_low,
                                 "peak_high": peak_high,
+                                "edge_tests": edge_tests,
+                                "back_in_range": back_in_range,
                             },
                         )
 
@@ -1745,6 +1767,27 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         if avg_body > trend_avg_body * 0.8:
             return None
 
+        # Brooks: final flag 本质上是 late trend 的小型 TTR / wedge。
+        # 因此既要有强趋势腿，也要有明显压缩重叠，而不是普通趋势中的任意小回调。
+        overlap_count = 0
+        for idx in range(1, len(flag_candles)):
+            prev_bar = flag_candles[idx - 1]
+            bar = flag_candles[idx]
+            if float(bar.high) >= float(prev_bar.low) and float(bar.low) <= float(prev_bar.high):
+                overlap_count += 1
+        if cycle == "趋势多":
+            trend_strong_bars = sum(1 for bar in trend_leg if CandlePatterns.is_strong_bull(bar))
+            counter_bars = sum(1 for bar in trend_leg if CandlePatterns.is_bear(bar))
+        else:
+            trend_strong_bars = sum(1 for bar in trend_leg if CandlePatterns.is_strong_bear(bar))
+            counter_bars = sum(1 for bar in trend_leg if CandlePatterns.is_bull(bar))
+        if overlap_count < len(flag_candles) - 3:
+            return None
+        if trend_strong_bars < 3:
+            return None
+        if counter_bars > len(trend_leg) * 0.35:
+            return None
+
         # === Brooks 磁力位检查 ===
         # 趋势必须接近支撑/阻力（用更长 lookback 的 swing high/low 作为磁力位）
         extended = candles[-60:] if len(candles) >= 60 else candles
@@ -1772,7 +1815,8 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
             # 上升趋势末端旗形：突破失败 = 做空
             flag_high = max(c.high for c in flag_candles)
-            if prev.high > flag_high and curr.close < prev.low:
+            failed_back_into_flag = float(curr.close) <= flag_high - flag_range * 0.10
+            if prev.high > flag_high and curr.close < prev.low and failed_back_into_flag:
                 stop_buffer = max(max(c.high - c.low for c in flag_candles) * 0.08, abs(prev.high) * 0.0001)
                 stop = prev.high + stop_buffer
                 target = min(c.low for c in flag_candles)
@@ -1810,7 +1854,8 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 return None
 
             flag_low = min(c.low for c in flag_candles)
-            if prev.low < flag_low and curr.close > prev.high:
+            failed_back_into_flag = float(curr.close) >= flag_low + flag_range * 0.10
+            if prev.low < flag_low and curr.close > prev.high and failed_back_into_flag:
                 stop_buffer = max(max(c.high - c.low for c in flag_candles) * 0.08, abs(prev.low) * 0.0001)
                 stop = prev.low - stop_buffer
                 target = max(c.high for c in flag_candles)

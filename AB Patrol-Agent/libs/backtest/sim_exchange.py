@@ -149,121 +149,127 @@ class SimExchange:
         if detail == "channel_to_tr":
             return {
                 "detail": detail,
-                "target_r": self._protective_target_r(trade, default_r=0.65),
-                "partial_fraction": 0.33 if profit_r > 0.05 and trade.remaining_size > 0.5 else 0.0,
+                "target_r": self._protective_target_r(trade, default_r=0.45),
+                "partial_fraction": 0.40 if profit_r > 0.02 and trade.remaining_size > 0.45 else 0.0,
                 "protect_r": 0.0,
-                "loss_cap_r": -0.12,
+                "loss_cap_r": -0.06 if profit_r >= 0 else -0.10,
             }
         if detail == "first_entry_be":
             return {
                 "detail": detail,
-                "target_r": self._protective_target_r(trade, default_r=0.55),
-                "partial_fraction": 0.20 if profit_r > 0.12 and trade.remaining_size > 0.55 else 0.0,
+                "target_r": self._protective_target_r(trade, default_r=0.35),
+                "partial_fraction": 0.25 if profit_r > 0.05 and trade.remaining_size > 0.50 else 0.0,
                 "protect_r": 0.0,
-                "loss_cap_r": -0.15 if reason == "WEAK_SCALP" else -0.18,
+                "loss_cap_r": -0.05 if reason == "WEAK_SCALP" else -0.08,
             }
         return {
             "detail": detail,
-            "target_r": self._protective_target_r(trade, default_r=0.95),
-            "partial_fraction": 0.25 if profit_r > 0.15 and trade.remaining_size > 0.5 else 0.0,
-            "protect_r": 0.15,
-            "loss_cap_r": -0.20 if reason == "WEAK_SCALP" else -0.22,
+            "target_r": self._protective_target_r(trade, default_r=0.80),
+            "partial_fraction": 0.25 if profit_r > 0.12 and trade.remaining_size > 0.5 else 0.0,
+            "protect_r": 0.10,
+            "loss_cap_r": -0.12 if reason == "WEAK_SCALP" else -0.15,
         }
 
     @staticmethod
     def _protective_release_threshold(detail: str) -> tuple[int, float]:
-        """不同保护性 scalp 子状态允许的观察时长与最低收益。"""
+        """不同保护性 scalp 子状态允许的观察时长与最低收益。
+
+        修复：原阈值太紧，导致 PREMISE REDUCE 重复触发后快速平仓。
+        Brooks: 保护性管理应该让 SL 决定退出，不是时间。
+        """
         if detail == "channel_to_tr":
-            return 5, 0.12
+            return 5, -0.02
         if detail == "first_entry_be":
-            return 6, 0.05
+            return 6, -0.05
         if detail == "second_entry_profit":
-            return 8, 0.12
-        # P0: BO 失败后快速观察，不拖
+            return 7, 0.00
         if detail == "breakout_protect":
-            return 4, 0.08
-        # P0: 反转失败给稍多时间，但要求最低收益
+            return 4, -0.03
         if detail == "reversal_protect":
-            return 5, 0.10
-        # P0: TR scalp 本来就短，退化后更快判断
+            return 5, -0.02
         if detail == "tr_scalp_protect":
-            return 3, 0.06
+            return 4, 0.00
         if detail == "generic_protect":
-            return 5, 0.08
-        return 6, 0.10
+            return 8, -0.05
+        return 8, -0.05
 
     @staticmethod
     def _protective_detail_plan(detail: str) -> dict[str, float]:
-        """把 Brooks 的保护性 scalp 细分成更明确的动作计划。"""
+        """把 Brooks 的保护性 scalp 细分成更明确的动作计划。
+
+        修复：原参数 force_exit_bars 太短、loss_exit_r 太低，导致交易
+        进入 protective_scalp 后几乎必死。Brooks 理论中保护性管理应该
+        让 SL 来决定退出，而不是用时间强制杀死。
+        """
         if detail == "channel_to_tr":
             return {
                 "stale_bars": 2.0,
-                "force_exit_bars": 5.0,
-                "profit_exit_r": 0.12,
-                "loss_exit_r": 0.02,
+                "force_exit_bars": 6.0,
+                "profit_exit_r": 0.03,
+                "loss_exit_r": -0.05,
+                "extra_partial_r": 0.15,
+                "extra_partial_fraction": 0.33,
+                "protect_r": 0.0,
+            }
+        if detail == "first_entry_be":
+            return {
+                "stale_bars": 2.0,
+                "force_exit_bars": 7.0,
+                "profit_exit_r": 0.02,
+                "loss_exit_r": -0.06,
+                "extra_partial_r": 0.12,
+                "extra_partial_fraction": 0.25,
+                "protect_r": 0.0,
+            }
+        if detail == "second_entry_profit":
+            return {
+                "stale_bars": 2.0,
+                "force_exit_bars": 7.0,
+                "profit_exit_r": 0.08,
+                "loss_exit_r": -0.03,
                 "extra_partial_r": 0.25,
                 "extra_partial_fraction": 0.25,
                 "protect_r": 0.05,
             }
-        if detail == "first_entry_be":
-            return {
-                "stale_bars": 2.0,
-                "force_exit_bars": 6.0,
-                "profit_exit_r": 0.08,
-                "loss_exit_r": 0.01,
-                "extra_partial_r": 0.35,
-                "extra_partial_fraction": 0.15,
-                "protect_r": 0.0,
-            }
-        if detail == "second_entry_profit":
-            return {
-                "stale_bars": 3.0,
-                "force_exit_bars": 8.0,
-                "profit_exit_r": 0.18,
-                "loss_exit_r": 0.05,
-                "extra_partial_r": 0.60,
-                "extra_partial_fraction": 0.15,
-                "protect_r": 0.12,
-            }
-        # P0: BO 失败 → 60% 变 TR，快速保护，小利或保本离场
+        # P0: BO 失败后，大多数会回到 TR。Brooks 更像 scratch/scalp，而不是继续等保护性止损。
         if detail == "breakout_protect":
             return {
                 "stale_bars": 2.0,
                 "force_exit_bars": 5.0,
-                "profit_exit_r": 0.10,
-                "loss_exit_r": 0.01,
-                "extra_partial_r": 0.30,
-                "extra_partial_fraction": 0.20,
+                "profit_exit_r": 0.03,
+                "loss_exit_r": -0.03,
+                "extra_partial_r": 0.18,
+                "extra_partial_fraction": 0.25,
                 "protect_r": 0.0,
             }
-        # P0: MTR/Climax 反转失败 → 前 2-3 根没 FT 就该走，给稍多观察但亏损上限紧
+        # P0: 大多数 MTR 只是 minor reversal；一旦没跟进，更像快速降级成 scalp/scratch。
         if detail == "reversal_protect":
             return {
                 "stale_bars": 2.0,
-                "force_exit_bars": 6.0,
-                "profit_exit_r": 0.12,
-                "loss_exit_r": 0.02,
-                "extra_partial_r": 0.40,
-                "extra_partial_fraction": 0.20,
-                "protect_r": 0.05,
+                "force_exit_bars": 5.0,
+                "profit_exit_r": 0.04,
+                "loss_exit_r": -0.02,
+                "extra_partial_r": 0.18,
+                "extra_partial_fraction": 0.25,
+                "protect_r": 0.0,
             }
-        # P0: TR scalp 本来就是短线，退化后更快离场
+        # P0: TR scalp 退化后更不该留到保护性止损，优先按 scratch/scalp 处理。
         if detail == "tr_scalp_protect":
             return {
-                "stale_bars": 1.0,
+                "stale_bars": 1.5,
                 "force_exit_bars": 4.0,
-                "profit_exit_r": 0.08,
-                "loss_exit_r": 0.01,
-                "extra_partial_r": 0.20,
-                "extra_partial_fraction": 0.25,
+                "profit_exit_r": 0.02,
+                "loss_exit_r": 0.0,
+                "extra_partial_r": 0.12,
+                "extra_partial_fraction": 0.33,
                 "protect_r": 0.0,
             }
         # generic fallback
         return {
             "stale_bars": 3.0,
-            "force_exit_bars": 6.0,
-            "profit_exit_r": 0.10,
-            "loss_exit_r": 0.02,
+            "force_exit_bars": 8.0,
+            "profit_exit_r": 0.05,
+            "loss_exit_r": -0.06,
             "extra_partial_r": 0.40,
             "extra_partial_fraction": 0.15,
             "protect_r": 0.0,
@@ -276,7 +282,9 @@ class SimExchange:
         adjusted = adjusted or int(trade.stop_adjust_count or 0) > 0
         if not adjusted:
             return ""
-        if bool(trade.protective_runner_kept) or str(trade.management_state or "") == "protective_scalp":
+        if bool(trade.protective_runner_kept):
+            return "runner_trailing"
+        if str(trade.management_state or "") == "protective_scalp":
             return "protective_stop"
         if bool(trade.tp1_done) or bool(trade.tp2_done) or int(trade.partial_close_count or 0) > 0:
             return "runner_trailing"
@@ -1433,6 +1441,33 @@ class SimExchange:
         extra_partial_fraction = float(plan["extra_partial_fraction"])
         protect_r = float(plan["protect_r"])
         allow_runner = detail == "second_entry_profit"
+
+        # Brooks: first entry 失败更像 scratch；通道退化成 TR 更像把 swing 降成小 scalp。
+        # 这两类都不该继续拖到保护性止损去决定结果。
+        if detail == "first_entry_be":
+            if bars_in_state >= stale_bars and bars_without_progress >= stale_bars and best_r >= 0.08 and profit_r >= -0.02:
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
+        elif detail == "channel_to_tr":
+            if bars_in_state >= stale_bars and bars_without_progress >= stale_bars and best_r >= 0.05 and profit_r >= 0.0:
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
+        elif detail == "tr_scalp_protect":
+            if bars_in_state >= stale_bars and bars_without_progress >= stale_bars and best_r >= 0.04 and profit_r >= -0.01:
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
+        elif detail == "reversal_protect":
+            if bars_in_state >= stale_bars and bars_without_progress >= stale_bars and best_r >= 0.06 and profit_r >= -0.01:
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
+        elif detail == "breakout_protect":
+            if bars_in_state >= stale_bars and bars_without_progress >= stale_bars and best_r >= 0.05 and profit_r >= -0.01:
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
+        elif detail == "second_entry_profit":
+            if bars_in_state >= stale_bars and bars_without_progress >= stale_bars and best_r >= 0.18 and profit_r >= 0.02:
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
 
         if (
             profit_r >= extra_partial_r

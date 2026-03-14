@@ -87,13 +87,14 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
     is_reversal_style = management_style in reversal_styles
     is_trend_recovery_style = management_style in trend_recovery_styles
     # 趋势恢复 setup 经常会经历更深的测试，尤其 H1 可能只是更大 PB 的第一腿。
-    # 因此不能把“跌破信号棒极值一点点”直接当成彻底无效。
+    # 因此不能把”跌破信号棒极值一点点”直接当成彻底无效。
+    # Brooks: 大部分正常回撤会测试信号棒，只有深度否定（超过 1R）才真正无效
     if is_reversal_style:
-        buffer_ratio = 0.50
+        buffer_ratio = 0.75
     elif is_trend_recovery_style:
-        buffer_ratio = 0.40
+        buffer_ratio = 0.60
     else:
-        buffer_ratio = 0.25
+        buffer_ratio = 0.50
     signal_buffer = max(initial_risk * buffer_ratio, signal_price * 0.001)
 
     signal_valid = True
@@ -148,15 +149,21 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
                 if body > avg_body * 0.8:
                     ft_score += 0.5  # 实体够大
 
-        # good >= 3.0, fair >= 1.5, poor < 1.5
+        # good >= 3.0, fair >= 1.0, poor < 1.0
+        # Brooks: 趋势中 pause bar 是正常的，只有完全没有 FT 才算 poor
         if ft_score >= 3.0:
             ft_quality = "good"
-        elif ft_score >= 1.5:
+        elif ft_score >= 1.0:
             ft_quality = "fair"
         else:
             ft_quality = "poor"
 
-    ft_valid = ft_quality != "poor" or bars_since_entry < 3
+    # Brooks: 入场后需要足够时间发展；如果价格已经朝有利方向移动，FT 弱不致命
+    in_profit = (
+        (side == "BUY" and current_price > entry_price)
+        or (side != "BUY" and current_price < entry_price)
+    )
+    ft_valid = ft_quality != "poor" or bars_since_entry < 5 or in_profit
     checks["follow_through"] = {
         "pass": ft_valid,
         "reason": f"FT={ft_quality}, bars={bars_since_entry}",
@@ -244,13 +251,13 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
         return {
             "valid": False,
             "checks": checks,
-            "action": "REDUCE" if (is_reversal_style or is_trend_recovery_style) else "CLOSE",
+            "action": "REDUCE",
             "reason": (
                 "信号 K 线被深度测试，先转保护性管理"
                 if is_reversal_style
                 else "趋势恢复单被深测，先降级为保护性 scalp"
                 if is_trend_recovery_style
-                else "信号 K 线被否定"
+                else "信号 K 线被深度否定，降级为保护性管理"
             ),
         }
 

@@ -353,6 +353,7 @@ class AdvancedStrategyDetectorMixin:
             return None
 
         lookback = candles[-30:]
+        ema_tail = ema20[-30:]
         highs = [candle.high for candle in lookback]
         lows = [candle.low for candle in lookback]
         curr = candles[-1]
@@ -397,8 +398,21 @@ class AdvancedStrategyDetectorMixin:
                                     abs(curr.high - right_shoulder) <= shoulder_tolerance
                                     and CandlePatterns.is_bear(curr)
                                 )
+                                post_head_bars = lookback[head_idx + 1 :]
+                                post_head_ema = ema_tail[head_idx + 1 :]
+                                bear_ema_closes = sum(
+                                    1
+                                    for bar, ema in zip(post_head_bars, post_head_ema)
+                                    if float(bar.close) < float(ema)
+                                )
+                                major_channel_break = (
+                                    bear_ema_closes >= 2
+                                    or min(float(bar.low) for bar in post_head_bars) <= neckline + neckline_tolerance
+                                )
                                 if not (neckline_test or right_shoulder_reversal):
                                     pass  # 价格离 neckline 太远，还没到突破位
+                                elif not major_channel_break:
+                                    pass  # 大多数头肩只是 minor reversal，等真正 break major channel
                                 else:
                                     reversal = CandlePatterns.is_reversal_bar(curr, prev)
                                     if reversal == "空头反转":
@@ -436,6 +450,8 @@ class AdvancedStrategyDetectorMixin:
                                                 "left_shoulder": left_shoulder,
                                                 "right_shoulder": right_shoulder,
                                                 "neckline": neckline,
+                                                "bear_ema_closes": bear_ema_closes,
+                                                "major_channel_break": major_channel_break,
                                             },
                                         )
 
@@ -482,7 +498,20 @@ class AdvancedStrategyDetectorMixin:
                     abs(curr.low - right_shoulder_low) <= shoulder_tolerance
                     and CandlePatterns.is_bull(curr)
                 )
+                post_head_bars = lookback[head_low_idx + 1 :]
+                post_head_ema = ema_tail[head_low_idx + 1 :]
+                bull_ema_closes = sum(
+                    1
+                    for bar, ema in zip(post_head_bars, post_head_ema)
+                    if float(bar.close) > float(ema)
+                )
+                major_channel_break = (
+                    bull_ema_closes >= 2
+                    or max(float(bar.high) for bar in post_head_bars) >= neckline - neckline_tolerance
+                )
                 if not (neckline_test or right_shoulder_reversal):
+                    return None
+                if not major_channel_break:
                     return None
 
                 reversal = CandlePatterns.is_reversal_bar(curr, prev)
@@ -521,6 +550,8 @@ class AdvancedStrategyDetectorMixin:
                             "left_shoulder": left_shoulder_low,
                             "right_shoulder": right_shoulder_low,
                             "neckline": neckline,
+                            "bull_ema_closes": bull_ema_closes,
+                            "major_channel_break": major_channel_break,
                         },
                     )
 
