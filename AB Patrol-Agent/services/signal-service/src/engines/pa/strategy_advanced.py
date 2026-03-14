@@ -345,7 +345,7 @@ class AdvancedStrategyDetectorMixin:
         Brooks 核心规则：
         - H&S = MTR 变体，80% 会失败
         - TBTL: head 之后必须有 Two Legs 结构（不是简单 bar 计数）
-        - Neckline: 必须被突破或正在被测试
+        - Neckline 可以作为确认，但 right shoulder 反转本身也可以是 Brooks 入场点
         - MTR 三步曲：破线 → 回望1/3 → 破发
         - 概率 40%（Brooks: 60% 的 MTR 会失败）
         """
@@ -384,9 +384,20 @@ class AdvancedStrategyDetectorMixin:
                                 left_neckline = min(lows[left_shoulder_idx:head_idx])
                                 right_neckline = min(lows[head_idx:])
                                 neckline = max(left_neckline, right_neckline)
-
-                                # 当前价格必须接近或已突破 neckline
-                                if curr.close > neckline + head_range * 0.15:
+                                neckline_tolerance = max(
+                                    self._structure_buffer(lookback, float(neckline)),
+                                    abs(head_high) * 0.001,
+                                )
+                                shoulder_tolerance = max(
+                                    self._structure_buffer(lookback, float(right_shoulder)),
+                                    abs(head_high) * 0.001,
+                                )
+                                neckline_test = curr.close <= neckline + neckline_tolerance
+                                right_shoulder_reversal = (
+                                    abs(curr.high - right_shoulder) <= shoulder_tolerance
+                                    and CandlePatterns.is_bear(curr)
+                                )
+                                if not (neckline_test or right_shoulder_reversal):
                                     pass  # 价格离 neckline 太远，还没到突破位
                                 else:
                                     reversal = CandlePatterns.is_reversal_bar(curr, prev)
@@ -458,9 +469,20 @@ class AdvancedStrategyDetectorMixin:
                 left_neckline = max(highs[left_shoulder_idx:head_low_idx])
                 right_neckline = max(highs[head_low_idx:])
                 neckline = min(left_neckline, right_neckline)
-
-                # 当前价格必须接近或已突破 neckline
-                if curr.close < neckline - head_range * 0.15:
+                neckline_tolerance = max(
+                    self._structure_buffer(lookback, float(neckline)),
+                    abs(head_low) * 0.001,
+                )
+                shoulder_tolerance = max(
+                    self._structure_buffer(lookback, float(right_shoulder_low)),
+                    abs(head_low) * 0.001,
+                )
+                neckline_test = curr.close >= neckline - neckline_tolerance
+                right_shoulder_reversal = (
+                    abs(curr.low - right_shoulder_low) <= shoulder_tolerance
+                    and CandlePatterns.is_bull(curr)
+                )
+                if not (neckline_test or right_shoulder_reversal):
                     return None
 
                 reversal = CandlePatterns.is_reversal_bar(curr, prev)

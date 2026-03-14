@@ -901,7 +901,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                             price=curr.close,
                             stop_loss=stop,
                             take_profit=target,
-                            probability=0.50,
+                            probability=0.62,
                             cycle="区间",
                             timeframe=curr.timeframe,
                             signal_bar_high=prev.high,
@@ -937,7 +937,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                             price=curr.close,
                             stop_loss=stop,
                             take_profit=target,
-                            probability=0.50,
+                            probability=0.62,
                             cycle="区间",
                             timeframe=curr.timeframe,
                             signal_bar_high=prev.high,
@@ -1306,7 +1306,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         Brooks 核心规则：
         - "所有双底都是H2买入形态" → DT=L2, DB=H2，本检测器只在
           H2/L2 未触发时作为补充（避免重复信号）
-        - 容差收紧：0.2%（原 0.5% 在 crypto 5m 上太宽）
+        - 双顶/底的“接近”应由结构波动决定，而不是固定百分比
         - 两顶/底之间必须有明显回撤（≥40% of range）
         - 概率 40%：Brooks "60% 的反转会失败"
         """
@@ -1325,19 +1325,18 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         # --- 双重顶检测 ---
         if max_idx < len(lookback) - 3:
-            # 容差收紧到 0.2%（原 0.5%）
-            if abs(curr.high - max_high) / max_high < 0.002:
+            top_tolerance = self._swing_tolerance(lookback, float(max_high))
+            if abs(curr.high - max_high) <= top_tolerance:
                 reversal = CandlePatterns.is_reversal_bar(curr, prev)
                 if reversal == "空头反转":
                     range_size = max_high - min_low
-                    # 两顶之间必须有 ≥40% 回撤（Brooks 40% 规则）
-                    pullback = max_high - min(c.low for c in lookback[max_idx + 1:]) if max_idx + 1 < len(lookback) else 0
+                    retest_leg = lookback[max_idx + 1 : -1]
+                    if not retest_leg:
+                        return None
+                    # 关键不是固定隔多少根，而是第一次测试后有没有形成真实回撤腿。
+                    pullback_low = min(c.low for c in retest_leg)
+                    pullback = max_high - pullback_low
                     if range_size > 0 and pullback / range_size >= 0.4:
-                        # 两顶间距至少 5 根（太近 = 噪音，不是真正的双重测试）
-                        bar_gap = len(lookback) - 1 - max_idx
-                        if bar_gap < 5:
-                            return None
-
                         stop = build_reversal_structure_stop(
                             "SELL",
                             candles,
@@ -1356,7 +1355,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                             signal_type="双重顶",
                             direction="SELL",
                             strength=78,
-                            message=f"双重顶(L2变体)，间距{bar_gap}bar，回撤{pullback/range_size:.0%}",
+                            message=f"双重顶(L2变体)，结构回撤{pullback/range_size:.0%}",
                             price=curr.close,
                             stop_loss=stop,
                             take_profit=target,
@@ -1367,16 +1366,17 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         # --- 双重底检测 ---
         if min_idx < len(lookback) - 3:
-            if abs(curr.low - min_low) / min_low < 0.002:
+            bottom_tolerance = self._swing_tolerance(lookback, float(min_low))
+            if abs(curr.low - min_low) <= bottom_tolerance:
                 reversal = CandlePatterns.is_reversal_bar(curr, prev)
                 if reversal == "多头反转":
                     range_size = max_high - min_low
-                    pullback = max(c.high for c in lookback[min_idx + 1:]) - min_low if min_idx + 1 < len(lookback) else 0
+                    retest_leg = lookback[min_idx + 1 : -1]
+                    if not retest_leg:
+                        return None
+                    pullback_high = max(c.high for c in retest_leg)
+                    pullback = pullback_high - min_low
                     if range_size > 0 and pullback / range_size >= 0.4:
-                        bar_gap = len(lookback) - 1 - min_idx
-                        if bar_gap < 5:
-                            return None
-
                         stop = build_reversal_structure_stop(
                             "BUY",
                             candles,
@@ -1395,7 +1395,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                             signal_type="双重底",
                             direction="BUY",
                             strength=78,
-                            message=f"双重底(H2变体)，间距{bar_gap}bar，回撤{pullback/range_size:.0%}",
+                            message=f"双重底(H2变体)，结构回撤{pullback/range_size:.0%}",
                             price=curr.close,
                             stop_loss=stop,
                             take_profit=target,
@@ -1715,7 +1715,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         - 关键条件：趋势必须接近磁力位（S/R）
         - 旗形范围 < 趋势腿范围（压缩）
         - K线实体缩小（动能衰竭）
-        - 概率 ~45%：比普通反转高一点（因为有趋势衰竭确认）
+        - “接近磁力位”应由结构波动定义，而不是固定 ATR 倍数
         """
         if not cycle.startswith("趋势") or len(candles) < 25:
             return None
@@ -1758,10 +1758,12 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if prior_highs:
                 resistance = max(prior_highs)
                 flag_high = max(c.high for c in flag_candles)
-                # 旗形高点必须在阻力位附近（1 ATR 以内）或已超过
                 magnet_distance = resistance - flag_high
-                atr_ref = atr if atr > 0 else trend_range / 15
-                near_magnet = magnet_distance < atr_ref * 1.5
+                magnet_tolerance = max(
+                    self._swing_tolerance(extended, float(resistance)),
+                    self._structure_buffer(flag_candles, float(resistance)),
+                )
+                near_magnet = magnet_distance <= magnet_tolerance
                 past_magnet = flag_high >= resistance
                 if not (near_magnet or past_magnet):
                     return None
@@ -1780,11 +1782,11 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     signal_type="末端旗形",
                     direction="SELL",
                     strength=80,
-                    message="上升趋势末端旗形突破失败，接近阻力位",
+                    message="上升趋势末端旗形突破失败，接近结构阻力位",
                     price=curr.close,
                     stop_loss=stop,
                     take_profit=target,
-                    probability=0.45,
+                    probability=0.55,
                     cycle="反转空",
                     timeframe=curr.timeframe,
                 )
@@ -1796,8 +1798,11 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 support = min(prior_lows)
                 flag_low = min(c.low for c in flag_candles)
                 magnet_distance = flag_low - support
-                atr_ref = atr if atr > 0 else trend_range / 15
-                near_magnet = magnet_distance < atr_ref * 1.5
+                magnet_tolerance = max(
+                    self._swing_tolerance(extended, float(support)),
+                    self._structure_buffer(flag_candles, float(support)),
+                )
+                near_magnet = magnet_distance <= magnet_tolerance
                 past_magnet = flag_low <= support
                 if not (near_magnet or past_magnet):
                     return None
@@ -1815,11 +1820,11 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     signal_type="末端旗形",
                     direction="BUY",
                     strength=80,
-                    message="下降趋势末端旗形突破失败，接近支撑位",
+                    message="下降趋势末端旗形突破失败，接近结构支撑位",
                     price=curr.close,
                     stop_loss=stop,
                     take_profit=target,
-                    probability=0.45,
+                    probability=0.55,
                     cycle="反转多",
                     timeframe=curr.timeframe,
                     signal_bar_high=prev.high,
