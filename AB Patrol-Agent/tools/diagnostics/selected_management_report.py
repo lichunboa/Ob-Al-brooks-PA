@@ -14,6 +14,7 @@ import argparse
 import json
 from collections import defaultdict
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -129,6 +130,13 @@ def finalize_quality_bucket(bucket: dict[str, Any]) -> dict[str, Any]:
             sorted(bucket["exit_reasons"].items(), key=lambda item: (-int(item[1]), item[0]))[:5]
         ),
     }
+
+
+def scenario_days(start: str, end: str) -> int:
+    """返回场景跨度天数（含首尾）。"""
+    start_dt = datetime.strptime(start, "%Y-%m-%d")
+    end_dt = datetime.strptime(end, "%Y-%m-%d")
+    return max(1, (end_dt - start_dt).days + 1)
 
 
 def merge_quality_bucket(target: dict[str, Any], source: dict[str, Any]) -> None:
@@ -404,6 +412,8 @@ def main() -> None:
                 update_component_bucket(management_components["scale_in_trade"], trade)
 
         sample_row = finalize_quality_bucket(sample_bucket)
+        days = scenario_days(scenario.start, scenario.end)
+        total_cost_pct = sum(float(trade.get("total_cost_pct", 0.0) or 0.0) for trade in result.trades)
         sample_row.update(
             {
                 "label": scenario.label,
@@ -411,11 +421,15 @@ def main() -> None:
                 "timeframe": scenario.timeframe,
                 "start": scenario.start,
                 "end": scenario.end,
+                "days": days,
+                "avg_trades_per_day": sample_row["trades"] / days if days else 0.0,
                 "signals_generated": result.signals_generated,
                 "signals_passed": result.signals_passed,
                 "signals_blocked_route": result.signals_blocked_route,
                 "signals_blocked_management": result.signals_blocked_rr,
                 "by_exit_reason": result.by_exit_reason,
+                "total_cost_pct": total_cost_pct,
+                "avg_cost_pct_per_trade": total_cost_pct / sample_row["trades"] if sample_row["trades"] else 0.0,
             }
         )
         scenario_rows.append(sample_row)
@@ -446,6 +460,7 @@ def main() -> None:
     strategy_rows.sort(key=lambda item: (-int(item["trades"]), item["name"]))
     family_rows = [finalize_quality_bucket(bucket) for bucket in family_buckets.values()]
     family_rows.sort(key=lambda item: (-int(item["trades"]), item["name"]))
+    total_cost_pct = sum(float(row.get("total_cost_pct", 0.0) or 0.0) for row in scenario_rows)
 
     payload = {
         "scenarios": [asdict(item) for item in scenarios],
@@ -460,6 +475,10 @@ def main() -> None:
         "strategy_summary": strategy_rows,
         "family_summary": family_rows,
         "total_trades": total_trades,
+        "overall_costs": {
+            "total_cost_pct": total_cost_pct,
+            "avg_cost_pct_per_trade": total_cost_pct / total_trades if total_trades else 0.0,
+        },
     }
 
     output_path = Path(args.output)

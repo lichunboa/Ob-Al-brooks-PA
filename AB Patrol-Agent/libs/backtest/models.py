@@ -165,6 +165,10 @@ class Trade:
     protective_runner_kept: bool = False
     trailing_exit_type: str = ""
     profit_exit_type: str = ""
+    market_cost_profile: str = ""
+    entry_cost_pct: float = 0.0
+    exit_cost_pct: float = 0.0
+    total_cost_pct: float = 0.0
     best_price: float = 0.0
     best_price_bar: int = 0
     worst_price: float = 0.0

@@ -71,6 +71,54 @@ class SimExchange:
         self._current_date: str = ""
 
     @staticmethod
+    def _market_cost_profile(symbol: str) -> str:
+        """按交易品种归类成本模型。"""
+        key = str(symbol or "").strip().upper()
+        if key.endswith("USDT") or key.endswith("-USDT-SWAP") or key.endswith("USDTPERP"):
+            return "crypto_futures"
+        if key in {"XAUUSD", "XAGUSD"}:
+            return "metals_cfd"
+        if key.startswith("US ") or "TECH" in key or "NAS" in key or "SPX" in key:
+            return "index_cfd"
+        return "forex_cfd"
+
+    def _cost_rates(self, trade: Trade, *, is_entry: bool, exit_reason: str = "") -> tuple[float, float]:
+        """返回 (手续费率, 滑点率)。"""
+        profile = str(trade.market_cost_profile or self._market_cost_profile(trade.symbol))
+        entry_type = str(trade.entry_type or "STOP").upper()
+        profit_exit_type = str(trade.profit_exit_type or "")
+        reason = str(exit_reason or "").upper()
+
+        if profile == "crypto_futures":
+            maker_fee = min(float(self.fee_rate or 0.0), 0.0002)
+            taker_fee = max(float(self.fee_rate or 0.0), maker_fee)
+            maker_slippage = 0.00002
+            taker_slippage = 0.00008
+        elif profile == "forex_cfd":
+            maker_fee = 0.00002
+            taker_fee = 0.00004
+            maker_slippage = 0.00001
+            taker_slippage = 0.00003
+        elif profile == "metals_cfd":
+            maker_fee = 0.00004
+            taker_fee = 0.00007
+            maker_slippage = 0.00002
+            taker_slippage = 0.00005
+        else:
+            maker_fee = 0.00005
+            taker_fee = 0.00008
+            maker_slippage = 0.00002
+            taker_slippage = 0.00005
+
+        if is_entry:
+            is_maker = entry_type == "LIMIT"
+        else:
+            is_maker = reason == "TP" or (reason == "PARTIAL" and profit_exit_type in {"full_tp", "tp_after_scaleout"})
+        if is_maker:
+            return maker_fee, maker_slippage
+        return taker_fee, taker_slippage
+
+    @staticmethod
     def _update_stop_loss(trade: Trade, new_stop_loss: float) -> None:
         """在真正发生变化时记录止损调整次数。"""
         value = float(new_stop_loss or 0.0)
@@ -168,6 +216,88 @@ class SimExchange:
             "partial_fraction": 0.25 if profit_r > 0.12 and trade.remaining_size > 0.5 else 0.0,
             "protect_r": 0.10,
             "loss_cap_r": -0.12 if reason == "WEAK_SCALP" else -0.15,
+        }
+
+    def _family_protective_profile(
+        self,
+        trade: Trade,
+        market_data: dict | None,
+        *,
+        reason: str,
+        profit_r: float,
+    ) -> dict[str, float | str]:
+        """按 Brooks 家族统一生成保护性管理 profile。"""
+        family_key = self._family_key(trade)
+        market_state = self._market_state_key(trade, market_data)
+        route_style = str(trade.route_style or "").strip().lower()
+        tr_context = market_state in {"tr", "tight_range", "broad_range", "bc"} or "tr_" in route_style
+        strong_follow = bool(trade.follow_through or trade.higher_follow_through)
+        reversal_confirmed = bool(trade.trendline_break_confirmed or trade.failed_breakout_evidence)
+        target_path_clear = bool(trade.target_path_clear)
+
+        if family_key == "trend_recovery":
+            return self._trend_recovery_protective_profile(
+                trade,
+                market_data,
+                reason=reason,
+                profit_r=profit_r,
+            )
+        if family_key == "mtr_reversal":
+            cautious_context = tr_context or not reversal_confirmed
+            return {
+                "detail": "reversal_protect",
+                "target_r": self._protective_target_r(
+                    trade,
+                    default_r=0.70 if cautious_context else 0.95,
+                ),
+                "partial_fraction": 0.30
+                if profit_r > (0.08 if cautious_context else 0.16) and trade.remaining_size > 0.55
+                else 0.0,
+                "protect_r": 0.05 if profit_r > 0.12 else 0.0,
+                "loss_cap_r": -0.10 if cautious_context else -0.16,
+            }
+        if family_key == "climax_reversal":
+            cautious_context = tr_context or not reversal_confirmed
+            return {
+                "detail": "reversal_protect",
+                "target_r": self._protective_target_r(
+                    trade,
+                    default_r=0.60 if cautious_context else 0.85,
+                ),
+                "partial_fraction": 0.35
+                if profit_r > (0.06 if cautious_context else 0.12) and trade.remaining_size > 0.52
+                else 0.0,
+                "protect_r": 0.03 if profit_r > 0.08 else 0.0,
+                "loss_cap_r": -0.08 if cautious_context else -0.12,
+            }
+        if family_key == "breakout_follow":
+            weak_breakout = (not strong_follow) or (not target_path_clear)
+            return {
+                "detail": "breakout_protect",
+                "target_r": self._protective_target_r(
+                    trade,
+                    default_r=0.60 if weak_breakout else 0.95,
+                ),
+                "partial_fraction": 0.25
+                if profit_r > (0.06 if weak_breakout else 0.12) and trade.remaining_size > 0.55
+                else 0.0,
+                "protect_r": 0.04 if profit_r > 0.10 else 0.0,
+                "loss_cap_r": -0.08 if reason == "FAILED_FT" else -0.12,
+            }
+        if family_key == "tr_scalp":
+            return {
+                "detail": "tr_scalp_protect",
+                "target_r": self._protective_target_r(trade, default_r=0.40),
+                "partial_fraction": 0.25 if profit_r > 0.04 and trade.remaining_size > 0.50 else 0.0,
+                "protect_r": 0.0,
+                "loss_cap_r": -0.04 if reason == "WEAK_SCALP" else -0.06,
+            }
+        return {
+            "detail": "generic_protect",
+            "target_r": self._protective_target_r(trade, default_r=0.60),
+            "partial_fraction": 0.20 if profit_r > 0.10 and trade.remaining_size > 0.55 else 0.0,
+            "protect_r": 0.0,
+            "loss_cap_r": -0.10,
         }
 
     @staticmethod
@@ -678,6 +808,7 @@ class SimExchange:
             risk_percent=self._signal_risk_percent(signal),
             original_entry_price=original_entry,
             reentry_attempt=int(extra.get("reentry_attempt", 0) or 0),
+            market_cost_profile=self._market_cost_profile(signal.symbol),
         )
         trade.initial_stop_loss = stop_loss
         trade.initial_risk = abs(entry_price - stop_loss)
@@ -865,35 +996,22 @@ class SimExchange:
                     self._close_trade(trade, candle.close, "PREMISE", candle.timestamp)
                     return True
             if trade.management_reason != "PREMISE":
-                partial_fraction = 0.0
-                protective_target_r = self._protective_target_r(trade)
-                protect_r_override = None
-                loss_cap_override = None
-                detail = ""
-                if family_key == "trend_recovery" and profit_r > 0.10 and trade.remaining_size > 0.6:
-                    profile = self._trend_recovery_protective_profile(
-                        trade,
-                        market_data,
-                        reason="PREMISE",
-                        profit_r=profit_r,
-                    )
-                    detail = str(profile["detail"])
-                    partial_fraction = float(profile["partial_fraction"])
-                    protective_target_r = float(profile["target_r"])
-                    protect_r_override = float(profile["protect_r"])
-                    loss_cap_override = float(profile["loss_cap_r"])
-                elif family_key == "mtr_reversal" and profit_r > 0.20 and trade.remaining_size > 0.66:
-                    partial_fraction = 0.33
+                profile = self._family_protective_profile(
+                    trade,
+                    market_data,
+                    reason="PREMISE",
+                    profit_r=profit_r,
+                )
                 trade.premise_reduce_count += 1
                 self._activate_protective_scalp(
                     trade,
                     candle,
                     reason="PREMISE",
-                    target_r=protective_target_r,
-                    partial_fraction=partial_fraction,
-                    detail=detail,
-                    protect_r_override=protect_r_override,
-                    loss_cap_override=loss_cap_override,
+                    target_r=float(profile["target_r"]),
+                    partial_fraction=float(profile["partial_fraction"]),
+                    detail=str(profile["detail"]),
+                    protect_r_override=float(profile["protect_r"]),
+                    loss_cap_override=float(profile["loss_cap_r"]),
                 )
             return False
 
@@ -914,12 +1032,21 @@ class SimExchange:
             ):
                 self._close_trade(trade, candle.close, "FAILED_FT", candle.timestamp)
                 return True
+            profile = self._family_protective_profile(
+                trade,
+                market_data,
+                reason="FAILED_FT",
+                profit_r=profit_r,
+            )
             self._activate_protective_scalp(
                 trade,
                 candle,
                 reason="FAILED_FT",
-                target_r=self._protective_target_r(trade, default_r=1.15),
-                partial_fraction=0.25 if trade.remaining_size > 0.55 else 0.0,
+                target_r=float(profile["target_r"]),
+                partial_fraction=float(profile["partial_fraction"]),
+                detail=str(profile["detail"]),
+                protect_r_override=float(profile["protect_r"]),
+                loss_cap_override=float(profile["loss_cap_r"]),
             )
             return False
 
@@ -938,7 +1065,40 @@ class SimExchange:
                 if trade.bars_held >= max(wait_bars, int(wait_bars * scale)) and profit_r < min_profit:
                     self._close_trade(trade, candle.close, "WEAK_SCALP", candle.timestamp)
                     return True
-            profile = self._trend_recovery_protective_profile(
+            profile = self._family_protective_profile(
+                trade,
+                market_data,
+                reason="WEAK_SCALP",
+                profit_r=profit_r,
+            )
+            self._activate_protective_scalp(
+                trade,
+                candle,
+                reason="WEAK_SCALP",
+                target_r=float(profile["target_r"]),
+                partial_fraction=float(profile["partial_fraction"]),
+                detail=str(profile["detail"]),
+                protect_r_override=float(profile["protect_r"]),
+                loss_cap_override=float(profile["loss_cap_r"]),
+            )
+            return False
+
+        if (
+            family_key in {"mtr_reversal", "climax_reversal"}
+            and trade.bars_held >= max(4, int(4 * scale))
+            and strength_score <= 1
+            and profit_r < 0.35
+            and max(0, trade.bars_held - int(trade.best_price_bar or 0)) >= max(2, int(2 * scale))
+        ):
+            if (
+                trade.management_state == "protective_scalp"
+                and trade.management_reason == "WEAK_SCALP"
+            ):
+                wait_bars, min_profit = self._protective_release_threshold(str(trade.management_reason_detail or ""))
+                if trade.bars_held >= max(wait_bars, int(wait_bars * scale)) and profit_r < min_profit:
+                    self._close_trade(trade, candle.close, "WEAK_SCALP", candle.timestamp)
+                    return True
+            profile = self._family_protective_profile(
                 trade,
                 market_data,
                 reason="WEAK_SCALP",
@@ -970,12 +1130,21 @@ class SimExchange:
             ):
                 self._close_trade(trade, candle.close, "WEAK_SCALP", candle.timestamp)
                 return True
+            profile = self._family_protective_profile(
+                trade,
+                market_data,
+                reason="WEAK_SCALP",
+                profit_r=profit_r,
+            )
             self._activate_protective_scalp(
                 trade,
                 candle,
                 reason="WEAK_SCALP",
-                target_r=self._protective_target_r(trade, default_r=0.8),
-                partial_fraction=0.25 if profit_r > 0.10 and trade.remaining_size > 0.5 else 0.0,
+                target_r=float(profile["target_r"]),
+                partial_fraction=float(profile["partial_fraction"]),
+                detail=str(profile["detail"]),
+                protect_r_override=float(profile["protect_r"]),
+                loss_cap_override=float(profile["loss_cap_r"]),
             )
             return False
 
@@ -1113,16 +1282,24 @@ class SimExchange:
             base = max(base, 2)
         return max(1, base)
 
-    def _calc_pnl(self, entry: float, exit_price: float, direction: str) -> float:
-        """计算 PnL%（含双边手续费）"""
+    @staticmethod
+    def _raw_move_pct(entry: float, exit_price: float, direction: str) -> float:
+        """计算未扣成本的价格变动百分比。"""
         if entry == 0:
             return 0.0
         if direction == "BUY":
-            raw = (exit_price - entry) / entry * 100
-        else:
-            raw = (entry - exit_price) / entry * 100
-        fee = self.fee_rate * 2 * 100  # 双边手续费百分比
-        return raw - fee
+            return (exit_price - entry) / entry * 100
+        return (entry - exit_price) / entry * 100
+
+    def _calc_trade_leg_pnl(self, trade: Trade, exit_price: float, exit_reason: str) -> tuple[float, float, float]:
+        """计算单笔/单腿净收益，并返回成本拆分。"""
+        raw = self._raw_move_pct(trade.entry_price, exit_price, trade.direction)
+        entry_fee, entry_slippage = self._cost_rates(trade, is_entry=True)
+        exit_fee, exit_slippage = self._cost_rates(trade, is_entry=False, exit_reason=exit_reason)
+        entry_cost_pct = (entry_fee + entry_slippage) * 100
+        exit_cost_pct = (exit_fee + exit_slippage) * 100
+        total_cost_pct = entry_cost_pct + exit_cost_pct
+        return raw - total_cost_pct, entry_cost_pct, exit_cost_pct
 
     def _record_close(self, trade: Trade):
         """记录平仓统计"""
@@ -1274,7 +1451,7 @@ class SimExchange:
             self._update_stop_loss(trade, self._protective_stop(trade, 0.15))
 
         if not trade.tp1_done and profit_r >= tp1_r:
-            self._realize_partial(trade, self._price_at_r(trade, tp1_r), tp1_fraction)
+            self._realize_partial(trade, self._price_at_r(trade, tp1_r), tp1_fraction, reason="TP")
             trade.tp1_done = True
             self._update_stop_loss(trade, self._protective_stop(trade, plan["protect1_r"]))
 
@@ -1289,12 +1466,12 @@ class SimExchange:
                 and bars_without_progress >= max(2, int(2 * TF_SCALE.get(trade.timeframe, 1)))
                 and trade.remaining_size > 0.3
             ):
-                self._realize_partial(trade, candle.close, 0.20)
+                self._realize_partial(trade, candle.close, 0.20, reason="REDUCE")
                 trade.tp2_done = True
                 self._update_stop_loss(trade, self._protective_stop(trade, 0.05))
 
         if not trade.tp2_done and profit_r >= tp2_r:
-            self._realize_partial(trade, self._price_at_r(trade, tp2_r), tp2_fraction)
+            self._realize_partial(trade, self._price_at_r(trade, tp2_r), tp2_fraction, reason="TP")
             trade.tp2_done = True
             self._update_stop_loss(trade, self._protective_stop(trade, plan["protect2_r"]))
 
@@ -1311,7 +1488,7 @@ class SimExchange:
                     and not trade.tp2_done
                     and trade.remaining_size > 0.30
                 ):
-                    self._realize_partial(trade, candle.close, 0.15)
+                    self._realize_partial(trade, candle.close, 0.15, reason="SCALP")
                     trade.tp2_done = True
                     self._update_stop_loss(trade, self._protective_stop(trade, 0.60))
 
@@ -1426,6 +1603,7 @@ class SimExchange:
         detail = str(trade.management_reason_detail or "")
         if not detail:
             return False
+        current_reason = str(trade.management_reason or "").upper()
         scale = TF_SCALE.get(trade.timeframe, 1)
         profit_r = self._profit_in_r(trade, candle.close)
         best_r = self._profit_in_r(trade, trade.best_price or trade.entry_price)
@@ -1440,7 +1618,17 @@ class SimExchange:
         extra_partial_r = float(plan["extra_partial_r"])
         extra_partial_fraction = float(plan["extra_partial_fraction"])
         protect_r = float(plan["protect_r"])
-        allow_runner = detail == "second_entry_profit"
+        market_state = self._market_state_key(trade, market_data)
+        route_style = str(trade.route_style or "").strip().lower()
+        tr_context = market_state in {"tr", "tight_range", "broad_range", "bc"} or "tr_" in route_style
+        strong_follow = bool(trade.follow_through or trade.higher_follow_through)
+        reversal_confirmed = bool(trade.trendline_break_confirmed or trade.failed_breakout_evidence)
+        allow_runner = (
+            detail == "second_entry_profit"
+            and strong_follow
+            and bool(trade.target_path_clear)
+            and not tr_context
+        )
 
         # Brooks: first entry 失败更像 scratch；通道退化成 TR 更像把 swing 降成小 scalp。
         # 这两类都不该继续拖到保护性止损去决定结果。
@@ -1453,18 +1641,88 @@ class SimExchange:
                 self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                 return True
         elif detail == "tr_scalp_protect":
+            if (
+                current_reason in {"PREMISE", "WEAK_SCALP"}
+                and bars_in_state >= stale_bars
+                and bars_without_progress >= stale_bars
+                and best_r >= 0.03
+                and profit_r >= -0.03
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
+            if (
+                bars_in_state >= stale_bars
+                and best_r >= 0.08
+                and profit_r >= 0.01
+                and bars_without_progress >= stale_bars
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
             if bars_in_state >= stale_bars and bars_without_progress >= stale_bars and best_r >= 0.04 and profit_r >= -0.01:
                 self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                 return True
         elif detail == "reversal_protect":
+            if (
+                current_reason in {"PREMISE", "WEAK_SCALP"}
+                and not reversal_confirmed
+                and bars_in_state >= stale_bars
+                and bars_without_progress >= max(1, stale_bars - 1)
+                and best_r >= 0.04
+                and profit_r >= -0.04
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
+            if (
+                not reversal_confirmed
+                and bars_in_state >= stale_bars
+                and best_r >= 0.10
+                and profit_r >= 0.0
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
             if bars_in_state >= stale_bars and bars_without_progress >= stale_bars and best_r >= 0.06 and profit_r >= -0.01:
                 self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                 return True
         elif detail == "breakout_protect":
+            if (
+                current_reason == "FAILED_FT"
+                and bars_in_state >= stale_bars
+                and bars_without_progress >= stale_bars
+                and best_r >= 0.04
+                and profit_r >= -0.04
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
+            if (
+                (not strong_follow or not bool(trade.target_path_clear))
+                and bars_in_state >= stale_bars
+                and best_r >= 0.10
+                and profit_r >= 0.0
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
             if bars_in_state >= stale_bars and bars_without_progress >= stale_bars and best_r >= 0.05 and profit_r >= -0.01:
                 self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                 return True
         elif detail == "second_entry_profit":
+            if (
+                current_reason in {"PREMISE", "WEAK_SCALP"}
+                and (tr_context or not strong_follow)
+                and bars_in_state >= stale_bars
+                and bars_without_progress >= stale_bars
+                and best_r >= 0.08
+                and profit_r >= -0.03
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
+            if (
+                (tr_context or not strong_follow)
+                and bars_in_state >= stale_bars
+                and best_r >= 0.18
+                and profit_r >= 0.03
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
             if bars_in_state >= stale_bars and bars_without_progress >= stale_bars and best_r >= 0.18 and profit_r >= 0.02:
                 self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                 return True
@@ -1474,7 +1732,7 @@ class SimExchange:
             and bars_without_progress >= stale_bars
             and trade.remaining_size > 0.35
         ):
-            self._realize_partial(trade, candle.close, extra_partial_fraction)
+            self._realize_partial(trade, candle.close, extra_partial_fraction, reason="SCALP")
             self._update_stop_loss(trade, self._protective_stop(trade, protect_r))
 
         if (
@@ -1487,7 +1745,7 @@ class SimExchange:
         ):
             trim_size = max(0.0, trade.remaining_size - 0.18)
             if trim_size > 0.02:
-                self._realize_partial(trade, candle.close, trim_size)
+                self._realize_partial(trade, candle.close, trim_size, reason="SCALP")
             trade.protective_runner_kept = True
             self._update_stop_loss(trade, self._protective_stop(trade, max(protect_r, 0.18)))
             structure_stop = self._structure_stop_from_market(
@@ -1560,6 +1818,7 @@ class SimExchange:
         loss_cap_override: float | None = None,
     ) -> None:
         """把原本的 swing / reversal 降级成保护性 scalp，而不是直接一刀切。"""
+        already_protective = trade.management_state == "protective_scalp"
         # P0: 按家族自动补 detail，确保 _manage_protective_scalp 不会因 detail 为空而跳过。
         if not detail:
             family = self._family_key(trade)
@@ -1571,8 +1830,8 @@ class SimExchange:
                 detail = "tr_scalp_protect"
             else:
                 detail = "generic_protect"
-        if trade.management_state != "protective_scalp" and partial_fraction > 0 and trade.remaining_size > 0.34:
-            self._realize_partial(trade, candle.close, partial_fraction)
+        if not already_protective and partial_fraction > 0 and trade.remaining_size > 0.34:
+            self._realize_partial(trade, candle.close, partial_fraction, reason="REDUCE")
         profit_r = self._profit_in_r(trade, candle.close)
         protect_r = self._protective_lock_r(trade)
         if target_r <= 0:
@@ -1588,10 +1847,19 @@ class SimExchange:
             loss_cap_r = loss_cap_override if loss_cap_override is not None else self._protective_loss_cap_r(trade, reason)
             self._update_stop_loss(trade, self._protective_stop(trade, loss_cap_r))
         trade.management_state = "protective_scalp"
-        trade.management_reason = reason
-        trade.management_reason_detail = detail
-        trade.management_state_bar = trade.bars_held
-        trade.protective_runner_kept = False
+        if not already_protective:
+            trade.management_state_bar = trade.bars_held
+        elif int(trade.management_state_bar or 0) <= 0:
+            trade.management_state_bar = trade.bars_held
+
+        current_detail = str(trade.management_reason_detail or "")
+        if not current_detail or current_detail == "generic_protect" or detail != "generic_protect":
+            trade.management_reason_detail = detail
+        current_reason = str(trade.management_reason or "")
+        if not current_reason or current_reason == "ZOMBIE" or reason in {"FAILED_FT", "PREMISE"}:
+            trade.management_reason = reason
+        if not already_protective:
+            trade.protective_runner_kept = False
 
     @staticmethod
     def _zombie_best_r_threshold(style_key: str) -> tuple[float, float]:
@@ -1659,20 +1927,27 @@ class SimExchange:
             return major_lh
         return 0.0
 
-    def _realize_partial(self, trade: Trade, exit_price: float, size_fraction: float) -> None:
+    def _realize_partial(self, trade: Trade, exit_price: float, size_fraction: float, *, reason: str = "PARTIAL") -> None:
         """按固定比例做部分止盈。"""
         size = min(max(size_fraction, 0.0), trade.remaining_size)
         if size <= 0:
             return
         trade.partial_close_count += 1
-        trade.realized_pnl_pct += self._calc_pnl(trade.entry_price, exit_price, trade.direction) * size
+        pnl_pct, entry_cost_pct, exit_cost_pct = self._calc_trade_leg_pnl(trade, exit_price, reason)
+        trade.realized_pnl_pct += pnl_pct * size
+        trade.entry_cost_pct += entry_cost_pct * size
+        trade.exit_cost_pct += exit_cost_pct * size
+        trade.total_cost_pct += (entry_cost_pct + exit_cost_pct) * size
         trade.remaining_size = max(0.0, trade.remaining_size - size)
 
     def _close_trade(self, trade: Trade, exit_price: float, reason: str, exit_time) -> None:
         """把剩余仓位全部平掉并结算净收益。"""
         if trade.remaining_size > 0:
-            remaining_pnl = self._calc_pnl(trade.entry_price, exit_price, trade.direction)
+            remaining_pnl, entry_cost_pct, exit_cost_pct = self._calc_trade_leg_pnl(trade, exit_price, reason)
             trade.realized_pnl_pct += remaining_pnl * trade.remaining_size
+            trade.entry_cost_pct += entry_cost_pct * trade.remaining_size
+            trade.exit_cost_pct += exit_cost_pct * trade.remaining_size
+            trade.total_cost_pct += (entry_cost_pct + exit_cost_pct) * trade.remaining_size
             trade.remaining_size = 0.0
         trade.exit_price = exit_price
         trade.pnl_pct = trade.realized_pnl_pct
