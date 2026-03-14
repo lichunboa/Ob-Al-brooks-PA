@@ -312,6 +312,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="精选样本管理链报告")
     parser.add_argument("--management-profile", default="brooks_pdf", help="回测管理模板")
     parser.add_argument("--cache-dir", default=str(ROOT / "data" / "history" / "hf_parquet"), help="历史数据目录")
+    parser.add_argument("--fee-rate", type=float, default=0.0004, help="单边手续费率")
     parser.add_argument("--output", required=True, help="输出 JSON 路径")
     parser.add_argument("--scenarios", default="", help="场景 JSON，留空则使用默认场景")
     parser.add_argument("--baseline-quality", default="/tmp/ab_strategy_quality_premise_probe_20260314.json", help="历史质量基线 JSON")
@@ -358,6 +359,7 @@ def main() -> None:
             threshold=0,
             cache_dir=args.cache_dir,
             management_profile=args.management_profile,
+            fee_rate=args.fee_rate,
         )
         result = BacktestRunner(cfg).run()
 
@@ -447,6 +449,7 @@ def main() -> None:
 
     payload = {
         "scenarios": [asdict(item) for item in scenarios],
+        "fee_rate": args.fee_rate,
         "scenario_results": scenario_rows,
         "baseline_compare": baseline_compare_rows,
         "overall_management": {

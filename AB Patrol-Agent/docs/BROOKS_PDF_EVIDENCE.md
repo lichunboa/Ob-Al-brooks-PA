@@ -463,3 +463,52 @@
   - 应切到 `tight channel -> TR` 管理
 
 ![双方都有好理由时更可能是 TR](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_both_sides_good_reasons_tr-49c-07.png)
+
+## 26. Endless Pullback 里的 H1/H2 不能自动当成高质量恢复
+
+来源：
+
+- `09C Endless PB; different timeframes; countertrend`
+
+结论：
+
+- 这一页最关键的不是图上有 `H1/H2/H3`
+- 而是最后明确写了 `Bear breakout and follow-through`
+- 这说明：
+  - Endless PB 里的连续 H1/H2，不是“看到就做”
+  - 更合理的是等真正的 `BO + follow-through`
+
+![Endless PB 里要等 BO + follow-through](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Obsidian/Categories 分类/Al brooks/价格行为学/assets/09C Endless PB; different timeframes; countertrend/image 1.png)
+
+## 27. Small Pullback Trend 退化后，原来的 buy setup 会一起失效
+
+来源：
+
+- `14E Tight Channel (strong trend); Small pullback trend`
+
+结论：
+
+- 图里先是强多，再出现：
+  - `Close below MA`
+  - `MAG`
+  - `All buy setups failed`
+- 这说明 Brooks 的 small pullback trend 并不是“所有回调都算趋势恢复”
+- 一旦结构开始变宽、跟进变弱、回到 MA 下方，原先的趋势恢复语义就已经变了
+
+![Small Pullback Trend 退化后 buy setup 一起失效](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Obsidian/Categories 分类/Al brooks/价格行为学/assets/14E Tight Channel (strong trend); Small pullback t/image 12.png)
+
+## 28. 最差的 follow-through 往往意味着 TR，而不是继续期待单边恢复
+
+来源：
+
+- `49C Day trading examples (Trade Management focus)`
+
+结论：
+
+- 这页直接写了：
+  - `Worst Follow-Through`
+  - `Early TR increases chances for more TR`
+- 所以很多看起来像趋势恢复的 setup，真正的问题并不是 trailing 不会做
+- 而是从信号刚出现那一刻起，它就更像 `TR`，不该继续按高质量恢复单去放行
+
+![Worst Follow-Through 更像 TR](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Obsidian/Categories 分类/Al brooks/价格行为学/assets/49C Day trading examples (Trade Management focus)/image 12.png)

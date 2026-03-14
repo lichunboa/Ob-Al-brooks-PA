@@ -530,3 +530,73 @@
   - `breakeven_stop_exit`
   - `tp_after_scaleout_exit`
   这三类里挪
+
+## 12. 第五阶段结果：先把 Endless Pullback 从趋势恢复主链里剥出去
+
+第四阶段把管理链的“成熟赚钱路径”和“坏保护止损路径”拆清了，但真正的系统性突破并没有立刻出现。第五阶段回到更前面，直接处理趋势恢复信号质量：
+
+- 对前一腿更像 `tr_leg / tr_second_leg` 且重叠过高的情形，明确视为 `endless pullback`
+- `高1/低1/高2/低2/突破回调/均线缺口` 在这类背景下，必须先等：
+  - `BO + follow-through`
+  - 或 `reclaimed prior close`
+  - 或更清晰的 `acceptance`
+
+也就是说，这一步不是继续调 exit，而是把本来就不该进场的“假趋势恢复”先剥出去。
+
+### 12.1 直接依据
+
+- `09C Endless PB; different timeframes; countertrend`
+- `14E Tight Channel (strong trend); Small pullback trend`
+- `49C Day trading examples (Trade Management focus)`
+
+完整图例和解释见：
+
+- [Brooks 突破性分析报告](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/BROOKS_BREAKTHROUGH_REPORT_20260314.md)
+
+### 12.2 数值结果
+
+精选 9 窗口：
+
+- 总交易数：`3285 -> 2064`
+- 加权胜率：`26.39% -> 29.70%`
+- 平均 PF：`0.605 -> 0.680`
+- `趋势恢复族 PF`：`0.595 -> 0.714`
+
+扩展 8 窗口：
+
+- 总交易数：`3094 -> 1805`
+- 加权胜率：`24.98% -> 28.03%`
+- 平均 PF：`0.521 -> 0.597`
+- `趋势恢复族 PF`：`0.508 -> 0.608`
+
+### 12.3 这一步真正证明了什么
+
+第五阶段最大的意义，不只是把 PF 又抬了一截，而是证明了趋势恢复族最深层的问题确实有一部分在信号质量前端：
+
+1. 之前并不只是“exit 不会做”
+2. 很多普通 PB 在入场时就已经带着 `TR vibes`
+3. 一旦把这些 Endless PB 剥掉，`protective_stop` 数量和整体损耗会同步收缩
+
+### 12.4 新的阶段性判断
+
+现在趋势恢复族的根因已经可以收敛成两层：
+
+1. **信号前端**  
+   仍然要继续分清：
+   - `small pullback trend`
+   - `endless pullback`
+   - `channel -> TR`
+
+2. **管理后端**  
+   对已经开始退化的 PB，仍要继续把：
+   - `protective_stop`
+   往
+   - `breakeven`
+   - `protective_scalp`
+   - `tp_after_scaleout`
+   这三类挪
+
+也就是说，趋势恢复族现在终于不是“只有一个黑盒 PF 很差”，而是：
+
+- 前端：已经知道该砍哪类低质量恢复
+- 后端：已经知道该继续压哪个亏损大桶

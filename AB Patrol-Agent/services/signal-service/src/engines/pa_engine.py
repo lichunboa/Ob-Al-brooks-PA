@@ -2095,6 +2095,46 @@ class PASignalEngine(BaseEngine):
         }
 
     @staticmethod
+    def _prior_leg_context(
+        candles: list[Candle],
+        direction: str,
+        market_key: str,
+    ) -> tuple[str, int, float]:
+        """估算前一腿更像趋势恢复还是 Endless PB / TR second leg。"""
+        if len(candles) < 7:
+            return "", 0, 0.0
+        leg = candles[-7:-1]
+        overlap_ratio = CycleIdentifier._overlap_ratio(leg)
+        range_like = "range" in str(market_key or "").lower()
+        if direction == "BUY":
+            directional_bars = sum(1 for candle in leg if float(candle.close) < float(candle.open))
+            progressive_bars = sum(1 for i in range(1, len(leg)) if float(leg[i].low) <= float(leg[i - 1].low))
+        else:
+            directional_bars = sum(1 for candle in leg if float(candle.close) > float(candle.open))
+            progressive_bars = sum(1 for i in range(1, len(leg)) if float(leg[i].high) >= float(leg[i - 1].high))
+
+        if directional_bars >= 4 and progressive_bars >= 4 and overlap_ratio <= 0.32:
+            return "trend_leg", len(leg), overlap_ratio
+        if range_like and overlap_ratio >= 0.42:
+            return "tr_second_leg", len(leg), overlap_ratio
+        if overlap_ratio >= 0.35:
+            return "tr_leg", len(leg), overlap_ratio
+        return "mixed", len(leg), overlap_ratio
+
+    @staticmethod
+    def _is_endless_pullback_context(
+        prior_leg_context: str,
+        prior_leg_bars: int,
+        prior_leg_overlap_ratio: float,
+    ) -> bool:
+        """把过长、重叠过多的回调腿视为 Endless PB / 弱恢复环境。"""
+        return (
+            prior_leg_context in {"tr_leg", "tr_second_leg"}
+            and prior_leg_bars >= 5
+            and prior_leg_overlap_ratio >= 0.38
+        )
+
+    @staticmethod
     def _range_edge_matches_direction(range_edge: str, direction: str) -> bool:
         """判断当前方向是否位于 Brooks 有利边缘。"""
         if direction == "BUY":
@@ -2504,6 +2544,14 @@ class PASignalEngine(BaseEngine):
         extra["range_zone"] = snapshot["range_zone"]
         extra["range_low"] = snapshot["range_low"]
         extra["range_high"] = snapshot["range_high"]
+        prior_leg_context, prior_leg_bars, prior_leg_overlap_ratio = self._prior_leg_context(
+            candles,
+            str(getattr(signal, "direction", "") or ""),
+            market_key,
+        )
+        extra["prior_leg_context"] = prior_leg_context
+        extra["prior_leg_bars"] = prior_leg_bars
+        extra["prior_leg_overlap_ratio"] = prior_leg_overlap_ratio
         extra["playbook_id"] = self._resolve_playbook_id(signal, market_key, extra)
         signal.extra = extra
         return snapshot
@@ -2530,6 +2578,9 @@ class PASignalEngine(BaseEngine):
         follow_through = bool(getattr(market_state, "follow_through", False))
         pullback_ratio = float(getattr(market_state, "pullback_ratio", 0.0) or 0.0)
         reclaimed_prior_close = bool(signal_extra.get("reclaimed_prior_close", False))
+        prior_leg_context = str(signal_extra.get("prior_leg_context", "") or "")
+        prior_leg_bars = int(signal_extra.get("prior_leg_bars", 0) or 0)
+        prior_leg_overlap_ratio = float(signal_extra.get("prior_leg_overlap_ratio", 0.0) or 0.0)
         gap_context = signal_extra.get("gap_context") if isinstance(signal_extra.get("gap_context"), dict) else {}
         stairs_pattern = bool(gap_context.get("stairs_pattern", False))
         exhaustion_detected = bool(gap_context.get("exhaustion_detected", False))
@@ -2549,6 +2600,17 @@ class PASignalEngine(BaseEngine):
         strong_first_entry = first_entry_signal and (signal_strength >= 80 or signal_bar_quality >= 0.58)
         strong_second_entry = second_entry_signal and (signal_strength >= 82 or signal_bar_quality >= 0.54)
         continuation_context_ready = reclaimed_prior_close or stairs_pattern or exhaustion_detected
+        endless_pullback_context = self._is_endless_pullback_context(
+            prior_leg_context,
+            prior_leg_bars,
+            prior_leg_overlap_ratio,
+        )
+        endless_pullback_ready = (
+            (follow_through and reclaimed_prior_close)
+            or (follow_through and signal_bar_quality >= 0.58)
+            or (reclaimed_prior_close and signal_bar_quality >= 0.56)
+            or (continuation_context_ready and signal_bar_quality >= 0.58)
+        )
         breakout_mode_pattern = signal_type in {"ii突破", "ioi突破", "iii突破"} and (
             follow_through
             or bool(signal_extra.get("near_ema", False))
@@ -2579,6 +2641,12 @@ class PASignalEngine(BaseEngine):
                 return False, "宽区间里弱突破不预生成"
             if (
                 is_trend_pullback
+                and endless_pullback_context
+                and not endless_pullback_ready
+            ):
+                return False, "endless pullback 先等 BO+FT 或收回前收盘"
+            if (
+                is_trend_pullback
                 and entry_type == "STOP"
                 and pullback_ratio > 0.72
                 and not (
@@ -2602,6 +2670,13 @@ class PASignalEngine(BaseEngine):
                 breakout_mode_pattern or hoy_loy_breakout_ready
             ):
                 return False, "弱趋势里弱突破不预生成"
+            if (
+                aligned
+                and is_trend_pullback
+                and endless_pullback_context
+                and not endless_pullback_ready
+            ):
+                return False, "endless pullback 里的趋势恢复先等 BO+FT"
             if (
                 aligned
                 and signal_type in {"高1", "低1"}

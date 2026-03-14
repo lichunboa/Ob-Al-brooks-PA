@@ -1071,6 +1071,19 @@ class BacktestRunner:
         return "mixed", len(leg), overlap_ratio
 
     @staticmethod
+    def _is_endless_pullback_context(
+        prior_leg_context: str,
+        prior_leg_bars: int,
+        prior_leg_overlap_ratio: float,
+    ) -> bool:
+        """把过长、重叠过多的回调腿视为 Endless PB / 弱恢复环境。"""
+        return (
+            prior_leg_context in {"tr_leg", "tr_second_leg"}
+            and prior_leg_bars >= 5
+            and prior_leg_overlap_ratio >= 0.38
+        )
+
+    @staticmethod
     def _estimate_atr(candles_q, period: int = 14) -> float:
         """轻量估算 ATR，供回测结构止损模板共用。"""
         if len(candles_q) < 2:
@@ -1872,6 +1885,8 @@ class BacktestRunner:
         failed_breakout_evidence = bool(extra.get("failed_breakout_evidence", False))
         trapped_side = str(extra.get("trapped_side", "") or "")
         prior_leg_context = str(extra.get("prior_leg_context", "") or "")
+        prior_leg_bars = int(extra.get("prior_leg_bars", 0) or 0)
+        prior_leg_overlap_ratio = float(extra.get("prior_leg_overlap_ratio", 0.0) or 0.0)
         trendline_break_confirmed = bool(extra.get("trendline_break_confirmed", False))
         signal_bar_quality = float(extra.get("signal_bar_quality", 0.0) or 0.0)
         near_ema = bool(extra.get("near_ema", False))
@@ -1919,6 +1934,11 @@ class BacktestRunner:
         }
         reversal_evidence = failed_breakout_evidence or trendline_break_confirmed or bool(trapped_side)
         second_leg_pressure = prior_leg_context == "tr_second_leg"
+        endless_pullback_context = BacktestRunner._is_endless_pullback_context(
+            prior_leg_context,
+            prior_leg_bars,
+            prior_leg_overlap_ratio,
+        )
         brooks_reversal_ready = reversal_evidence or (
             (
                 tradeable_edge_zone
@@ -1984,6 +2004,16 @@ class BacktestRunner:
             or reclaimed_prior_close
             or stairs_pattern
             or exhaustion_detected
+        )
+        endless_pullback_ready = (
+            trendline_break_confirmed
+            or breakout_mode_ready
+            or (follow_through and reclaimed_prior_close)
+            or (follow_through and strong_signal_bar)
+            or (higher_follow_through and acceptance_ready and executable_signal_ready)
+            or (tradeable_zone and reclaimed_prior_close and good_signal_bar)
+            or (acceptance_ready and executable_signal_ready and good_signal_bar)
+            or (stairs_pattern and tradeable_zone and good_signal_bar)
         )
 
         if market_key == "strong_trend_bull":
@@ -2085,6 +2115,8 @@ class BacktestRunner:
                     or breakout_mode_ready
                     or continuation_context_ready
                 )
+                if endless_pullback_context and not endless_pullback_ready:
+                    return False, "endless PB 里先等 BO+FT 或收回前收盘"
                 if (
                     range_zone == "middle"
                     and not continuation_ready
@@ -2103,6 +2135,13 @@ class BacktestRunner:
             aligned_bear = market_key == "weak_trend_bear" and direction == "SELL"
             if is_breakout and not follow_through and not breakout_mode_ready:
                 return False, "弱趋势里缺少 follow-through 不追突破"
+            if (
+                (aligned_bull or aligned_bear)
+                and is_trend
+                and endless_pullback_context
+                and not endless_pullback_ready
+            ):
+                return False, "endless PB 里的趋势恢复先等 BO+FT"
             if (
                 (aligned_bull or aligned_bear)
                 and is_trend
@@ -2222,6 +2261,8 @@ class BacktestRunner:
         broke_micro_extreme = bool(extra.get("broke_micro_extreme", False))
         trapped_side = str(extra.get("trapped_side") or "")
         prior_leg_context = str(extra.get("prior_leg_context") or "")
+        prior_leg_bars = int(extra.get("prior_leg_bars", 0) or 0)
+        prior_leg_overlap_ratio = float(extra.get("prior_leg_overlap_ratio", 0.0) or 0.0)
         playbook_id = str(extra.get("playbook_id") or "")
         gap_context = extra.get("gap_context") if isinstance(extra.get("gap_context"), dict) else {}
         stairs_pattern = bool(gap_context.get("stairs_pattern", False))
@@ -2247,6 +2288,11 @@ class BacktestRunner:
         strong_signal_bar = signal_bar_quality >= 0.58
         good_signal_bar = signal_bar_quality >= 0.54
         reversal_evidence = failed_breakout_evidence or trendline_break_confirmed or bool(trapped_side)
+        endless_pullback_context = BacktestRunner._is_endless_pullback_context(
+            prior_leg_context,
+            prior_leg_bars,
+            prior_leg_overlap_ratio,
+        )
         first_signal_context_ready = (
             tradeable_zone
             or prior_leg_context == "trend_leg"
@@ -2270,6 +2316,16 @@ class BacktestRunner:
             reversal_evidence
             or h2_l2_context_ready
         )
+        endless_pullback_ready = (
+            trendline_break_confirmed
+            or reversal_evidence
+            or (follow_through and reclaimed_prior_close)
+            or (follow_through and strong_signal_bar)
+            or (higher_follow_through and acceptance_ready and executable_signal_ready)
+            or (tradeable_zone and reclaimed_prior_close and good_signal_bar)
+            or (acceptance_ready and executable_signal_ready and good_signal_bar)
+            or (stairs_pattern and tradeable_zone and good_signal_bar)
+        )
 
         def block(stage: str, reason: str) -> tuple[bool, str]:
             extra["signal_stage"] = stage
@@ -2278,6 +2334,8 @@ class BacktestRunner:
             return False, reason
 
         if signal_rank == 1:
+            if endless_pullback_context and not endless_pullback_ready:
+                return block("watch", "endless PB 里的 H1/L1 先等 BO+FT 或收回前收盘")
             if not (
                 follow_through
                 or higher_follow_through
@@ -2391,6 +2449,8 @@ class BacktestRunner:
                 return block("candidate", "宽通道反转更像 second-leg trap，先等失败突破或趋势线破坏")
 
         if signal_type in {"高2", "低2"} and entry_type == "STOP":
+            if endless_pullback_context and not endless_pullback_ready:
+                return block("candidate", "endless PB 里的 H2/L2 先等 BO+FT 或更强接受")
             range_or_weak_context = (
                 market_state in {"tight_range", "broad_range", "weak_trend_bull", "weak_trend_bear"}
                 or higher_market_state in {"tight_range", "broad_range", "weak_trend_bull", "weak_trend_bear"}
@@ -2444,6 +2504,12 @@ class BacktestRunner:
             "HOY突破",
             "LOY突破",
         }
+        if (
+            signal_type in {"高1", "低1", "高2", "低2", "20均线缺口", "第一均线缺口", "突破回调"}
+            and endless_pullback_context
+            and not endless_pullback_ready
+        ):
+            return block("candidate", "endless PB 里的趋势恢复单先等 BO+FT 或收回前收盘")
         if signal_type in trend_breakout_setups and not target_path_clear:
             if blocking_magnet_structural and (magnet_cluster_count >= 1 or magnet_cluster_strength >= 3.0):
                 return block("candidate", f"目标路径在结构磁体受阻 ({blocking_magnet_kind or 'cluster'})")
