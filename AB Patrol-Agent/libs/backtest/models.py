@@ -160,6 +160,7 @@ class Trade:
     premise_reduce_count: int = 0
     management_state: str = "normal"
     management_reason: str = ""
+    management_reason_detail: str = ""
     best_price: float = 0.0
     best_price_bar: int = 0
     worst_price: float = 0.0

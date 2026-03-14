@@ -298,6 +298,7 @@ class BacktestResult:
                 "premise_reduce_count": t.premise_reduce_count,
                 "management_state": t.management_state,
                 "management_reason": t.management_reason,
+                "management_reason_detail": t.management_reason_detail,
                 "account_pnl_pct": round(t.account_pnl_pct, 4),
                 "account_pnl_amount": round(t.account_pnl_amount, 4),
                 "equity_before": round(t.equity_before, 4),

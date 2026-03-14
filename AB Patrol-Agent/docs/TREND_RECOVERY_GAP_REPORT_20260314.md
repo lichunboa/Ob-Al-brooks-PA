@@ -106,6 +106,7 @@
 原始结果文件：
 
 - [/tmp/trend_recovery_probe_full_20260314.json](/tmp/trend_recovery_probe_full_20260314.json)
+- [/tmp/trend_recovery_probe_full_v2_20260314.json](/tmp/trend_recovery_probe_full_v2_20260314.json)
 
 ---
 
@@ -242,3 +243,129 @@
 3. 把 `partial close` 的留仓比例和余仓退出理由继续贴近 `1x/2x + significant resistance`
 
 这三步做完，才更接近 Brooks 在百科和课件里真正展示的趋势恢复交易链。
+
+---
+
+## 9. 第二阶段细化结果：`protective_scalp -> first/second/channel`
+
+第一阶段解决的是“趋势恢复族管理太迟钝、太 swing 化”。第二阶段不是再放更多信号，而是把 `protective_scalp` 继续拆成更贴近 Brooks 的三种管理情景：
+
+- `first_entry_be`
+- `second_entry_profit`
+- `channel_to_tr`
+
+同时把：
+
+- `partial close`
+- `tight channel -> TR`
+- `prior high / prior low`
+- `Major HL / LH`
+
+继续往教材与百科案例收。
+
+### 9.1 第二阶段依据
+
+新增用到的百科证据：
+
+- `49C Day trading examples (Trade Management focus)`
+
+关键截图：
+
+![趋势减弱后更可能演化成 TR，而不是直接反转成新趋势](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/assets/brooks_refs/advanced_trend_to_tr_manage-49c-03.png)
+
+![弱跟进更像 TR，不能再按单边趋势持有](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/assets/brooks_refs/advanced_bad_ft_tr_likely-49c-06.png)
+
+![多空双方都有好理由时，更该按 TR 管理而不是死抱旧 thesis](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/assets/brooks_refs/advanced_both_sides_good_reasons_tr-49c-07.png)
+
+这三页共同支持两点：
+
+1. 趋势恢复单一旦动能减弱、远离磁体、开始侧向，就要优先按 `TR` 或保护性 `scalp` 处理。
+2. `protective scalp` 不该是单一桶，而应区分：
+   - 第一买更容易只做到保本
+   - 第二买更有资格要求利润
+   - 紧密通道退化成 `TR` 时，重点是保护已有利润，而不是继续等原来的 swing 目标
+
+### 9.2 第二阶段前后对比
+
+这里对比的是：
+
+- 第一阶段结果：[/tmp/trend_recovery_probe_full_20260314.json](/tmp/trend_recovery_probe_full_20260314.json)
+- 第二阶段结果：[/tmp/trend_recovery_probe_full_v2_20260314.json](/tmp/trend_recovery_probe_full_v2_20260314.json)
+
+汇总：
+
+- 6 个窗口总交易数：`2315 -> 2305`
+- 6 个窗口加权胜率：`26.57% -> 26.55%`
+- 6 个窗口平均 PF：`0.623 -> 0.624`
+
+结论：
+
+- 第二阶段不是“大幅跳变”，而是细化后继续保持正方向
+- 频率几乎没变，说明没有靠压缩交易来换指标
+- PF 继续小幅改善，说明这轮更像是把管理语义收得更贴近 Brooks，而不是做工程化拟合
+
+单窗口：
+
+| 窗口 | 交易数 | 胜率 | PF |
+| --- | --- | --- | --- |
+| `BTC 15m 2022` | `250 -> 247` | `30.00% -> 30.36%` | `0.784 -> 0.775` |
+| `ETH 5m 2022` | `644 -> 646` | `28.11% -> 27.86%` | `0.600 -> 0.611` |
+| `BTC 5m 2025` | `655 -> 654` | `18.32% -> 18.50%` | `0.362 -> 0.363` |
+| `ETH 15m 2023Q1` | `241 -> 235` | `28.63% -> 28.51%` | `0.694 -> 0.707` |
+| `BNB 15m 2022Q1` | `274 -> 273` | `29.93% -> 29.67%` | `0.550 -> 0.561` |
+| `SOL 15m 2025Q2` | `251 -> 250` | `35.06% -> 35.20%` | `0.746 -> 0.727` |
+
+### 9.3 第二阶段对趋势恢复族真正产生了什么影响
+
+家族汇总：
+
+- `趋势恢复族`：`1596 -> 1587`
+- 胜率：`24.75% -> 24.76%`
+- PF：`0.587 -> 0.595`
+- 平均 R：`-0.121 -> -0.121`
+
+这说明：
+
+- 趋势恢复族仍然是高频主力
+- 第二阶段没有继续靠放宽信号“灌交易”
+- 改善主要来自退出结构更细化，而不是信号端放松
+
+动作变化：
+
+| 动作 | 交易数 | PF | 平均 R |
+| --- | --- | --- | --- |
+| `partial_close_involved` | `1177 -> 1181` | `0.583 -> 0.590` | `-0.055 -> -0.055` |
+| `trailing_stop_exit` | `1205 -> 1203` | `0.556 -> 0.513` | `-0.099 -> -0.106` |
+| `breakeven_stop_exit` | `757 -> 760` | `2.495 -> 2.264` | `0.004 -> -0.009` |
+| `take_profit_exit` | `712 -> 721` | `13.523 -> 15.110` | `0.074 -> 0.083` |
+| `premise_failure_exit` | `291 -> 274` | `0.112 -> 0.104` | `-0.133 -> -0.138` |
+| `plain_stop_loss_exit` | `104 -> 104` | `0.000 -> 0.000` | `-1.256 -> -1.255` |
+| `protective_scalp_involved` | `1405 -> 1395` | `0.233 -> 0.238` | `-0.175 -> -0.175` |
+
+真正重要的信号是：
+
+1. `take_profit_exit` 继续增加，而且质量更好
+2. `premise_failure_exit` 数量继续下降
+3. `protective_scalp` 质量仍然偏弱，但已经不是纯兜底黑洞
+4. `trailing / breakeven` 这轮略有回落，说明下一步该拆的已经不是“是否保护”，而是“保护后的余仓节奏”
+
+### 9.4 第二阶段后的判断
+
+如果只问“这一步有没有偏离 Brooks”，答案是没有。
+
+更准确的判断是：
+
+- 第一阶段解决的是“方向错了”
+- 第二阶段解决的是“保护性管理还不够分型”
+- 但第二阶段还没有把趋势恢复族从 `PF 0.5x` 拉到可用水平
+
+所以趋势恢复族现在的核心矛盾已经非常清楚：
+
+1. `first buy / second buy / channel to TR` 已经开始分开管理，但还不够彻底
+2. `protective scalp` 质量虽然略升，但仍然明显弱于 `TP / BE`
+3. `trailing` 里还混着太多保护性止损，真正优质的余仓 trailing 还没有完全独立出来
+
+换句话说，第二阶段已经把问题收敛出来了：
+
+- **不是不知道要保护**
+- **而是还不够会把“已经开始变弱但还没彻底坏掉”的趋势恢复单，转成更好的 BE / 小赢 / 分段退出**

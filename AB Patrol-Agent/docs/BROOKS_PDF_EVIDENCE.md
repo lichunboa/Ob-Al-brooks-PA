@@ -412,3 +412,54 @@
   - 避免把已经证明过的 PB 再吐回成满损
 
 ![H1/H2 出现新 Major HL 后要移动止损](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_h1_move_stop_major_hl-09a-17.png)
+
+## 23. 动能开始走弱、离磁体还远时，趋势恢复单经常会先演化成 TR
+
+来源：
+
+- `49C Day trading examples (Trade Management focus)`
+
+结论：
+
+- Brooks 在这组案例里直接写了：
+  - `Losing momentum`
+  - `Possible TR and sideways to MA`
+  - `Many bulls will exit below bottom of bull BO`
+- 这说明：
+  - 趋势恢复单在动能衰退时，不该还按“继续趋势恢复”死拿
+  - 更合理的做法是把它转成 `tight channel -> TR` 子状态，再按 BE / 小利润 / 重入观察处理
+
+![动能走弱时趋势恢复单可能先演化成 TR](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_trend_to_tr_manage-49c-03.png)
+
+## 24. 弱跟进往往意味着 TR，而不是继续期待单边
+
+来源：
+
+- `49C Day trading examples (Trade Management focus)`
+
+结论：
+
+- Brooks 在案例图里直接标了 `Bad Follow-Through Selling: TR Likely`
+- 这对趋势恢复族尤其重要：
+  - 如果 follow-through 不好，许多宽止损多头会转成 `TR 假设`
+  - 这正是我们把 `WEAK_SCALP` 继续细拆成 `channel_to_tr` 的依据
+
+![弱跟进时更可能是 TR](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_bad_ft_tr_likely-49c-06.png)
+
+## 25. 当多空双方都有好理由时，大概率就是 TR
+
+来源：
+
+- `49C Day trading examples (Trade Management focus)`
+
+结论：
+
+- Brooks 在案例说明里直接写了：
+  - `当双方都有很好的理由的时候，大概率是 TR`
+- 这说明管理链里不应继续只有“趋势继续”或“认错平仓”两档
+- 在趋势恢复族里，必须允许第三种状态：
+  - 交易还没彻底错
+  - 但已经不再适合按单边 swing 持有
+  - 应切到 `tight channel -> TR` 管理
+
+![双方都有好理由时更可能是 TR](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_both_sides_good_reasons_tr-49c-07.png)

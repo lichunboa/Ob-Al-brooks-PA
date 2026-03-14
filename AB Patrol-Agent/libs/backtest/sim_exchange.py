@@ -111,6 +111,76 @@ class SimExchange:
             return "tr_scalp"
         return "other"
 
+    @staticmethod
+    def _market_state_key(trade: Trade, market_data: dict | None) -> str:
+        """优先读取当前运行态市场状态，否则退回信号生成时记录的状态。"""
+        if isinstance(market_data, dict):
+            ab_state = market_data.get("ab_state", {}) if isinstance(market_data.get("ab_state"), dict) else {}
+            state = str(ab_state.get("state", "") or "").strip().lower()
+            if state:
+                return state
+        return str(trade.market_state or "").strip().lower()
+
+    def _trend_recovery_detail(self, trade: Trade, market_data: dict | None) -> str:
+        """把趋势恢复族进一步细分成更贴近 Brooks 的管理情景。"""
+        market_state = self._market_state_key(trade, market_data)
+        route_style = str(trade.route_style or "").strip().lower()
+        prior_leg = str(trade.prior_leg_context or "").strip().lower()
+        if (
+            market_state in {"tr", "tight_range", "broad_range"}
+            or "tr_" in route_style
+            or prior_leg in {"tr_second_leg", "tr_recovery"}
+        ):
+            return "channel_to_tr"
+        if trade.strategy in {"高1", "低1"}:
+            return "first_entry_be"
+        return "second_entry_profit"
+
+    def _trend_recovery_protective_profile(
+        self,
+        trade: Trade,
+        market_data: dict | None,
+        *,
+        reason: str,
+        profit_r: float,
+    ) -> dict[str, float | str]:
+        """根据趋势恢复单所处阶段，决定保护性 scalp 的节奏。"""
+        detail = self._trend_recovery_detail(trade, market_data)
+        if detail == "channel_to_tr":
+            return {
+                "detail": detail,
+                "target_r": self._protective_target_r(trade, default_r=0.65),
+                "partial_fraction": 0.33 if profit_r > 0.05 and trade.remaining_size > 0.5 else 0.0,
+                "protect_r": 0.0,
+                "loss_cap_r": -0.12,
+            }
+        if detail == "first_entry_be":
+            return {
+                "detail": detail,
+                "target_r": self._protective_target_r(trade, default_r=0.55),
+                "partial_fraction": 0.20 if profit_r > 0.12 and trade.remaining_size > 0.55 else 0.0,
+                "protect_r": 0.0,
+                "loss_cap_r": -0.15 if reason == "WEAK_SCALP" else -0.18,
+            }
+        return {
+            "detail": detail,
+            "target_r": self._protective_target_r(trade, default_r=0.95),
+            "partial_fraction": 0.25 if profit_r > 0.15 and trade.remaining_size > 0.5 else 0.0,
+            "protect_r": 0.15,
+            "loss_cap_r": -0.20 if reason == "WEAK_SCALP" else -0.22,
+        }
+
+    @staticmethod
+    def _protective_release_threshold(detail: str) -> tuple[int, float]:
+        """不同保护性 scalp 子状态允许的观察时长与最低收益。"""
+        if detail == "channel_to_tr":
+            return 5, 0.12
+        if detail == "first_entry_be":
+            return 6, 0.05
+        if detail == "second_entry_profit":
+            return 8, 0.12
+        return 6, 0.10
+
     def place_order(self, signal, score: int, background: str):
         """
         接收信号并开仓
@@ -250,12 +320,30 @@ class SimExchange:
                         self._close_trade(trade, candle.close, "ZOMBIE", candle.timestamp)
                         closed = True
                     else:
+                        detail = ""
+                        target_r = self._protective_target_r(trade, default_r=0.7)
+                        protect_r_override = None
+                        loss_cap_override = None
+                        if self._family_key(trade) == "trend_recovery":
+                            profile = self._trend_recovery_protective_profile(
+                                trade,
+                                market_data,
+                                reason="ZOMBIE",
+                                profit_r=current_r,
+                            )
+                            detail = str(profile["detail"])
+                            target_r = float(profile["target_r"])
+                            protect_r_override = float(profile["protect_r"])
+                            loss_cap_override = float(profile["loss_cap_r"])
                         self._activate_protective_scalp(
                             trade,
                             candle,
                             reason="ZOMBIE",
-                            target_r=self._protective_target_r(trade, default_r=0.7),
+                            target_r=target_r,
                             partial_fraction=0.0,
+                            detail=detail,
+                            protect_r_override=protect_r_override,
+                            loss_cap_override=loss_cap_override,
                         )
 
             # 显式 scalp 风格只按结构化 scalp 目标出场，不再用工程化时间衰减阈值。
@@ -652,17 +740,29 @@ class SimExchange:
             if (
                 trade.management_state == "protective_scalp"
                 and trade.management_reason == "PREMISE"
-                and trade.bars_held >= max(5, int(5 * scale))
-                and profit_r < max(0.10, self._protective_lock_r(trade))
             ):
-                self._close_trade(trade, candle.close, "PREMISE", candle.timestamp)
-                return True
+                wait_bars, min_profit = self._protective_release_threshold(str(trade.management_reason_detail or ""))
+                if trade.bars_held >= max(wait_bars, int(wait_bars * scale)) and profit_r < min_profit:
+                    self._close_trade(trade, candle.close, "PREMISE", candle.timestamp)
+                    return True
             if trade.management_reason != "PREMISE":
                 partial_fraction = 0.0
                 protective_target_r = self._protective_target_r(trade)
+                protect_r_override = None
+                loss_cap_override = None
+                detail = ""
                 if family_key == "trend_recovery" and profit_r > 0.10 and trade.remaining_size > 0.6:
-                    partial_fraction = 0.25
-                    protective_target_r = self._protective_target_r(trade, default_r=0.85)
+                    profile = self._trend_recovery_protective_profile(
+                        trade,
+                        market_data,
+                        reason="PREMISE",
+                        profit_r=profit_r,
+                    )
+                    detail = str(profile["detail"])
+                    partial_fraction = float(profile["partial_fraction"])
+                    protective_target_r = float(profile["target_r"])
+                    protect_r_override = float(profile["protect_r"])
+                    loss_cap_override = float(profile["loss_cap_r"])
                 elif family_key == "mtr_reversal" and profit_r > 0.20 and trade.remaining_size > 0.66:
                     partial_fraction = 0.33
                 trade.premise_reduce_count += 1
@@ -672,6 +772,9 @@ class SimExchange:
                     reason="PREMISE",
                     target_r=protective_target_r,
                     partial_fraction=partial_fraction,
+                    detail=detail,
+                    protect_r_override=protect_r_override,
+                    loss_cap_override=loss_cap_override,
                 )
             return False
 
@@ -711,17 +814,26 @@ class SimExchange:
             if (
                 trade.management_state == "protective_scalp"
                 and trade.management_reason == "WEAK_SCALP"
-                and trade.bars_held >= max(8, int(8 * scale))
-                and profit_r < 0.05
             ):
-                self._close_trade(trade, candle.close, "WEAK_SCALP", candle.timestamp)
-                return True
+                wait_bars, min_profit = self._protective_release_threshold(str(trade.management_reason_detail or ""))
+                if trade.bars_held >= max(wait_bars, int(wait_bars * scale)) and profit_r < min_profit:
+                    self._close_trade(trade, candle.close, "WEAK_SCALP", candle.timestamp)
+                    return True
+            profile = self._trend_recovery_protective_profile(
+                trade,
+                market_data,
+                reason="WEAK_SCALP",
+                profit_r=profit_r,
+            )
             self._activate_protective_scalp(
                 trade,
                 candle,
                 reason="WEAK_SCALP",
-                target_r=self._protective_target_r(trade, default_r=0.8),
-                partial_fraction=0.25 if profit_r > 0.12 and trade.remaining_size > 0.5 else 0.0,
+                target_r=float(profile["target_r"]),
+                partial_fraction=float(profile["partial_fraction"]),
+                detail=str(profile["detail"]),
+                protect_r_override=float(profile["protect_r"]),
+                loss_cap_override=float(profile["loss_cap_r"]),
             )
             return False
 
@@ -970,9 +1082,13 @@ class SimExchange:
         tp2_r = plan["tp2_r"]
         magnet_take_r = self._magnet_take_r(trade)
         first_entry_signal = trade.strategy in {"高1", "低1"}
+        tp1_fraction = 0.50
+        tp2_fraction = 0.25
         if self._family_key(trade) == "trend_recovery" and first_entry_signal:
             tp1_r = min(tp1_r, 0.8)
             tp2_r = min(tp2_r, 1.6)
+            tp1_fraction = 0.60
+            tp2_fraction = 0.15
         if magnet_take_r > 0 and self._family_key(trade) == "trend_recovery":
             if magnet_take_r < tp1_r:
                 tp1_r = max(0.8, magnet_take_r)
@@ -1014,12 +1130,27 @@ class SimExchange:
             self._update_stop_loss(trade, self._protective_stop(trade, 0.15))
 
         if not trade.tp1_done and profit_r >= tp1_r:
-            self._realize_partial(trade, self._price_at_r(trade, tp1_r), 0.50)
+            self._realize_partial(trade, self._price_at_r(trade, tp1_r), tp1_fraction)
             trade.tp1_done = True
             self._update_stop_loss(trade, self._protective_stop(trade, plan["protect1_r"]))
 
+        trend_detail = ""
+        if self._family_key(trade) == "trend_recovery":
+            trend_detail = self._trend_recovery_detail(trade, market_data)
+            if (
+                trend_detail == "channel_to_tr"
+                and trade.tp1_done
+                and not trade.tp2_done
+                and profit_r >= max(0.9, tp1_r)
+                and bars_without_progress >= max(2, int(2 * TF_SCALE.get(trade.timeframe, 1)))
+                and trade.remaining_size > 0.3
+            ):
+                self._realize_partial(trade, candle.close, 0.20)
+                trade.tp2_done = True
+                self._update_stop_loss(trade, self._protective_stop(trade, 0.05))
+
         if not trade.tp2_done and profit_r >= tp2_r:
-            self._realize_partial(trade, self._price_at_r(trade, tp2_r), 0.25)
+            self._realize_partial(trade, self._price_at_r(trade, tp2_r), tp2_fraction)
             trade.tp2_done = True
             self._update_stop_loss(trade, self._protective_stop(trade, plan["protect2_r"]))
 
@@ -1140,6 +1271,9 @@ class SimExchange:
         reason: str,
         target_r: float = 0.0,
         partial_fraction: float = 0.0,
+        detail: str = "",
+        protect_r_override: float | None = None,
+        loss_cap_override: float | None = None,
     ) -> None:
         """把原本的 swing / reversal 降级成保护性 scalp，而不是直接一刀切。"""
         if trade.management_state != "protective_scalp" and partial_fraction > 0 and trade.remaining_size > 0.34:
@@ -1149,14 +1283,18 @@ class SimExchange:
         if target_r <= 0:
             target_r = self._protective_target_r(trade)
         self._update_take_profit_tighter(trade, self._price_at_r(trade, target_r))
-        if profit_r >= max(protect_r, 0.15):
+        if protect_r_override is not None and profit_r >= protect_r_override:
+            self._update_stop_loss(trade, self._protective_stop(trade, protect_r_override))
+        elif profit_r >= max(protect_r, 0.15):
             self._update_stop_loss(trade, self._protective_stop(trade, protect_r))
         elif profit_r >= 0:
             self._update_stop_loss(trade, self._protective_stop(trade, 0.0))
         else:
-            self._update_stop_loss(trade, self._protective_stop(trade, self._protective_loss_cap_r(trade, reason)))
+            loss_cap_r = loss_cap_override if loss_cap_override is not None else self._protective_loss_cap_r(trade, reason)
+            self._update_stop_loss(trade, self._protective_stop(trade, loss_cap_r))
         trade.management_state = "protective_scalp"
         trade.management_reason = reason
+        trade.management_reason_detail = detail
 
     @staticmethod
     def _zombie_best_r_threshold(style_key: str) -> tuple[float, float]:
