@@ -179,6 +179,17 @@ class SimExchange:
             return 6, 0.05
         if detail == "second_entry_profit":
             return 8, 0.12
+        # P0: BO 失败后快速观察，不拖
+        if detail == "breakout_protect":
+            return 4, 0.08
+        # P0: 反转失败给稍多时间，但要求最低收益
+        if detail == "reversal_protect":
+            return 5, 0.10
+        # P0: TR scalp 本来就短，退化后更快判断
+        if detail == "tr_scalp_protect":
+            return 3, 0.06
+        if detail == "generic_protect":
+            return 5, 0.08
         return 6, 0.10
 
     @staticmethod
@@ -214,6 +225,40 @@ class SimExchange:
                 "extra_partial_fraction": 0.15,
                 "protect_r": 0.12,
             }
+        # P0: BO 失败 → 60% 变 TR，快速保护，小利或保本离场
+        if detail == "breakout_protect":
+            return {
+                "stale_bars": 2.0,
+                "force_exit_bars": 5.0,
+                "profit_exit_r": 0.10,
+                "loss_exit_r": 0.01,
+                "extra_partial_r": 0.30,
+                "extra_partial_fraction": 0.20,
+                "protect_r": 0.0,
+            }
+        # P0: MTR/Climax 反转失败 → 前 2-3 根没 FT 就该走，给稍多观察但亏损上限紧
+        if detail == "reversal_protect":
+            return {
+                "stale_bars": 2.0,
+                "force_exit_bars": 6.0,
+                "profit_exit_r": 0.12,
+                "loss_exit_r": 0.02,
+                "extra_partial_r": 0.40,
+                "extra_partial_fraction": 0.20,
+                "protect_r": 0.05,
+            }
+        # P0: TR scalp 本来就是短线，退化后更快离场
+        if detail == "tr_scalp_protect":
+            return {
+                "stale_bars": 1.0,
+                "force_exit_bars": 4.0,
+                "profit_exit_r": 0.08,
+                "loss_exit_r": 0.01,
+                "extra_partial_r": 0.20,
+                "extra_partial_fraction": 0.25,
+                "protect_r": 0.0,
+            }
+        # generic fallback
         return {
             "stale_bars": 3.0,
             "force_exit_bars": 6.0,
@@ -844,7 +889,7 @@ class SimExchange:
                 )
             return False
 
-        strength = module.strength_check(position, runtime_market)
+        strength = module.strength_check(position, runtime_market, management_style=trade.management_style)
         strength_score = int(strength.get("strength_score", 0) or 0)
 
         if (
@@ -1154,11 +1199,24 @@ class SimExchange:
         first_entry_signal = trade.strategy in {"高1", "低1"}
         tp1_fraction = 0.50
         tp2_fraction = 0.25
+        # P3: H1/L1 按入场时上下文分级管理
+        # Brooks S6-channel: Spike 后 H1 = 最强入场，不该压低
+        # BC/TR 中 H1 才该保守
         if self._family_key(trade) == "trend_recovery" and first_entry_signal:
-            tp1_r = min(tp1_r, 0.8)
-            tp2_r = min(tp2_r, 1.6)
-            tp1_fraction = 0.60
-            tp2_fraction = 0.15
+            entry_state = str(trade.market_state or "").strip().lower()
+            if entry_state in ("spike", "bo", "strong_bo"):
+                # Spike/BO 后的 H1 = 最高概率趋势入场，按正常 swing 管理
+                pass  # 保留 plan 原始 tp1_r/tp2_r
+            elif entry_state in ("tc", "tight_channel"):
+                # 强 TC 中 H1 有效性中高，稍微收紧
+                tp1_r = min(tp1_r, 1.0)
+                tp2_r = min(tp2_r, 2.0)
+            else:
+                # BC/TR/弱趋势中的 H1 才保守管理
+                tp1_r = min(tp1_r, 0.8)
+                tp2_r = min(tp2_r, 1.6)
+                tp1_fraction = 0.60
+                tp2_fraction = 0.15
         if magnet_take_r > 0 and self._family_key(trade) == "trend_recovery":
             if magnet_take_r < tp1_r:
                 tp1_r = max(0.8, magnet_take_r)
@@ -1176,10 +1234,18 @@ class SimExchange:
 
         # 趋势恢复族一旦已经走出接近 1R，又长时间无推进，就先保护到保本，
         # 避免把原本接近成功的 PB 重新吐回成满损。
+        # P3: Spike/BO 后的 H1 不该过早移保本 — Brooks: "过早移到保本 → 正常 PB 把你扫出去"
+        entry_state_for_be = str(trade.market_state or "").strip().lower()
+        if first_entry_signal and entry_state_for_be in ("spike", "bo", "strong_bo"):
+            be_threshold = 0.85  # Spike 后 H1 给更多空间
+        elif first_entry_signal:
+            be_threshold = 0.55
+        else:
+            be_threshold = 0.75
         if (
             style_key in {"brooks_swing", "brooks_t4_wedge_pullback"}
             and not trade.tp1_done
-            and profit_r >= (0.55 if first_entry_signal else 0.75)
+            and profit_r >= be_threshold
             and bars_without_progress >= max(2, int(2 * TF_SCALE.get(trade.timeframe, 1)))
         ):
             self._update_stop_loss(trade, self._protective_stop(trade, 0.0))
@@ -1459,6 +1525,17 @@ class SimExchange:
         loss_cap_override: float | None = None,
     ) -> None:
         """把原本的 swing / reversal 降级成保护性 scalp，而不是直接一刀切。"""
+        # P0: 按家族自动补 detail，确保 _manage_protective_scalp 不会因 detail 为空而跳过。
+        if not detail:
+            family = self._family_key(trade)
+            if family == "breakout_follow":
+                detail = "breakout_protect"
+            elif family in ("mtr_reversal", "climax_reversal"):
+                detail = "reversal_protect"
+            elif family == "tr_scalp":
+                detail = "tr_scalp_protect"
+            else:
+                detail = "generic_protect"
         if trade.management_state != "protective_scalp" and partial_fraction > 0 and trade.remaining_size > 0.34:
             self._realize_partial(trade, candle.close, partial_fraction)
         profit_r = self._profit_in_r(trade, candle.close)

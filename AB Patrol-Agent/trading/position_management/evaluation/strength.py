@@ -8,10 +8,60 @@ from trading.utils.parsing import safe_float
 
 from ..common import get_attr, get_position_attr
 
+# P2: 按家族加权 — Brooks 对不同家族的关键信号权重不同
+# 趋势恢复族: gap_open 最重要（"Gap stay open = counterparty trapped"）
+# MTR 反转族: new_hl_lh 最重要（确认反转方向的新结构点）
+# 突破追随族: multi_tf_align + micro_gap 最重要
+# TR scalp: ema_bounce 最重要（TR 中 EMA 是天然磁体）
+_FAMILY_WEIGHTS: dict[str, dict[str, float]] = {
+    "trend_recovery": {
+        "gap_open": 2.5, "shallow_pb": 2.0, "micro_gap": 1.5,
+        "ema_bounce": 1.5, "new_hl_lh": 1.0, "wedge_exhaustion": 0.5, "multi_tf_align": 1.0,
+    },
+    "mtr_reversal": {
+        "new_hl_lh": 2.5, "multi_tf_align": 2.0, "ema_bounce": 1.5,
+        "gap_open": 1.0, "shallow_pb": 1.0, "micro_gap": 1.0, "wedge_exhaustion": 1.0,
+    },
+    "climax_reversal": {
+        "new_hl_lh": 2.5, "multi_tf_align": 2.0, "ema_bounce": 1.5,
+        "gap_open": 1.0, "shallow_pb": 0.5, "micro_gap": 1.0, "wedge_exhaustion": 1.5,
+    },
+    "breakout_follow": {
+        "multi_tf_align": 2.0, "micro_gap": 2.0, "gap_open": 1.5,
+        "shallow_pb": 1.5, "new_hl_lh": 1.0, "ema_bounce": 1.0, "wedge_exhaustion": 0.5,
+    },
+    "tr_scalp": {
+        "ema_bounce": 2.0, "new_hl_lh": 1.5, "multi_tf_align": 1.5,
+        "gap_open": 1.0, "shallow_pb": 1.0, "micro_gap": 1.0, "wedge_exhaustion": 1.0,
+    },
+}
+_DEFAULT_WEIGHT = 1.0
 
-def strength_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict[str, Any]:
+
+def _resolve_family(management_style: str) -> str:
+    """从 management_style 推断 Brooks 管理家族。"""
+    s = str(management_style or "").strip().lower()
+    if s in ("brooks_swing", "brooks_t4_wedge_pullback"):
+        return "trend_recovery"
+    if s in ("brooks_mtr_reversal", "brooks_r3_channel_line_fade",
+             "brooks_s1_htf_sr_reversal", "brooks_s2_micro_channel"):
+        return "mtr_reversal"
+    if s == "brooks_climax_reversal":
+        return "climax_reversal"
+    if s == "brooks_breakout":
+        return "breakout_follow"
+    if s in ("brooks_scalp", "brooks_tr_blshs", "brooks_tr4_daily_tr_fade"):
+        return "tr_scalp"
+    return ""
+
+
+def strength_check(
+    position: dict[str, Any],
+    market_data: dict[str, Any],
+    management_style: str = "",
+) -> dict[str, Any]:
     """
-    Strength Check - 7 项增强信号
+    Strength Check - 7 项增强信号（P2: 按家族加权）
 
     数据来源：
     - gap_open: 从 ab_sr 读取
@@ -128,7 +178,25 @@ def strength_check(position: dict[str, Any], market_data: dict[str, Any]) -> dic
             multi_tf_align = "bear" in current_trend and "bear" in higher_trend
     signals["multi_tf_align"] = multi_tf_align
 
-    strength_score = sum(1 for value in signals.values() if value)
+    # P2: 按家族加权计算 strength_score
+    if not management_style:
+        management_style = str(get_position_attr(position, "management_style", "") or "")
+    family = _resolve_family(management_style)
+    weights = _FAMILY_WEIGHTS.get(family, {})
+
+    weighted_score = 0.0
+    max_possible = 0.0
+    for key, active in signals.items():
+        w = weights.get(key, _DEFAULT_WEIGHT)
+        max_possible += w
+        if active:
+            weighted_score += w
+
+    # 归一化到 0-7 范围以保持向后兼容（调用方用 score <= 1 判断弱化）
+    if max_possible > 0:
+        strength_score = round(weighted_score / max_possible * 7)
+    else:
+        strength_score = sum(1 for value in signals.values() if value)
 
     if strength_score >= 4:
         confidence = "高"
@@ -142,7 +210,9 @@ def strength_check(position: dict[str, Any], market_data: dict[str, Any]) -> dic
 
     return {
         "strength_score": strength_score,
+        "weighted_score": round(weighted_score, 2),
         "signals": signals,
         "confidence": confidence,
         "recommendation": recommendation,
+        "family": family,
     }

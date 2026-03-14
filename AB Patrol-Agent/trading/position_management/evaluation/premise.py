@@ -112,15 +112,48 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
         ),
     }
 
+    # P1: 多维度 FT 评估 — 不只看方向，还看实体大小和收盘位置
+    # Brooks: "Strong BO + FT → Premise 加强"，FT 需要看 bar 质量而非简单计数
     ft_quality = "good"
     if len(recent_bars) >= 3:
         last_3 = recent_bars[-3:]
-        bull_count = sum(1 for b in last_3 if safe_float(get_attr(b, "C"), 0) > safe_float(get_attr(b, "O"), 0))
-        bear_count = sum(1 for b in last_3 if safe_float(get_attr(b, "C"), 0) < safe_float(get_attr(b, "O"), 0))
+        ft_score = 0.0
+        # 计算平均实体大小作为基准
+        all_bodies = [
+            abs(safe_float(get_attr(b, "C"), 0) - safe_float(get_attr(b, "O"), 0))
+            for b in recent_bars
+        ]
+        avg_body = sum(all_bodies) / len(all_bodies) if all_bodies else 1e-9
 
-        if side == "BUY" and bear_count >= 3:
-            ft_quality = "poor"
-        elif side == "SELL" and bull_count >= 3:
+        for b in last_3:
+            c = safe_float(get_attr(b, "C"), 0)
+            o = safe_float(get_attr(b, "O"), 0)
+            h = safe_float(get_attr(b, "H"), 0)
+            l = safe_float(get_attr(b, "L"), 0)
+            body = abs(c - o)
+            mid = (h + l) / 2 if (h + l) > 0 else c
+
+            if side == "BUY":
+                if c > o:
+                    ft_score += 1.0  # 阳线
+                if c > mid:
+                    ft_score += 0.5  # 收盘在上半部
+                if body > avg_body * 0.8:
+                    ft_score += 0.5  # 实体够大
+            else:
+                if c < o:
+                    ft_score += 1.0  # 阴线
+                if c < mid:
+                    ft_score += 0.5  # 收盘在下半部
+                if body > avg_body * 0.8:
+                    ft_score += 0.5  # 实体够大
+
+        # good >= 3.0, fair >= 1.5, poor < 1.5
+        if ft_score >= 3.0:
+            ft_quality = "good"
+        elif ft_score >= 1.5:
+            ft_quality = "fair"
+        else:
             ft_quality = "poor"
 
     ft_valid = ft_quality != "poor" or bars_since_entry < 3
