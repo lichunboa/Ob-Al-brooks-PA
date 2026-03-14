@@ -374,7 +374,7 @@ class AdvancedStrategyDetectorMixin:
 
                     if head_high > left_shoulder and head_high > right_shoulder:
                         head_range = head_high - min(lows[head_idx - 2 : head_idx + 3])
-                        if right_shoulder > head_high - head_range * 0.7:
+                        if right_shoulder > head_high - head_range * 0.55:
                             bars_after_head = lookback[head_idx:]
 
                             # Brooks TBTL: 必须有两段式下跌结构
@@ -406,8 +406,8 @@ class AdvancedStrategyDetectorMixin:
                                     if float(bar.close) < float(ema)
                                 )
                                 major_channel_break = (
-                                    bear_ema_closes >= 2
-                                    or min(float(bar.low) for bar in post_head_bars) <= neckline + neckline_tolerance
+                                    bear_ema_closes >= 3
+                                    or float(curr.close) <= neckline - neckline_tolerance * 0.10
                                 )
                                 if not (neckline_test or right_shoulder_reversal):
                                     pass  # 价格离 neckline 太远，还没到突破位
@@ -415,7 +415,8 @@ class AdvancedStrategyDetectorMixin:
                                     pass  # 大多数头肩只是 minor reversal，等真正 break major channel
                                 else:
                                     reversal = CandlePatterns.is_reversal_bar(curr, prev)
-                                    if reversal == "空头反转":
+                                    sig_quality = CandlePatterns.signal_bar_quality(curr, lookback[-6:-1], "SELL")
+                                    if reversal == "空头反转" and sig_quality >= 0.45:
                                         stop = build_reversal_structure_stop(
                                             "SELL",
                                             candles,
@@ -474,7 +475,7 @@ class AdvancedStrategyDetectorMixin:
         head_low = lows[head_low_idx]
         if head_low < left_shoulder_low and head_low < right_shoulder_low:
             head_range = max(highs[head_low_idx - 2 : head_low_idx + 3]) - head_low
-            if right_shoulder_low < head_low + head_range * 0.7:
+            if right_shoulder_low < head_low + head_range * 0.55:
                 bars_after_head = lookback[head_low_idx:]
 
                 # Brooks TBTL: 必须有两段式上涨结构
@@ -506,8 +507,8 @@ class AdvancedStrategyDetectorMixin:
                     if float(bar.close) > float(ema)
                 )
                 major_channel_break = (
-                    bull_ema_closes >= 2
-                    or max(float(bar.high) for bar in post_head_bars) >= neckline - neckline_tolerance
+                    bull_ema_closes >= 3
+                    or float(curr.close) >= neckline + neckline_tolerance * 0.10
                 )
                 if not (neckline_test or right_shoulder_reversal):
                     return None
@@ -515,7 +516,8 @@ class AdvancedStrategyDetectorMixin:
                     return None
 
                 reversal = CandlePatterns.is_reversal_bar(curr, prev)
-                if reversal == "多头反转":
+                sig_quality = CandlePatterns.signal_bar_quality(curr, lookback[-6:-1], "BUY")
+                if reversal == "多头反转" and sig_quality >= 0.45:
                     stop = build_reversal_structure_stop(
                         "BUY",
                         candles,
