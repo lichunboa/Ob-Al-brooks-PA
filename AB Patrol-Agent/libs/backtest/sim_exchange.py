@@ -1989,9 +1989,12 @@ class SimExchange:
             trade.profit_exit_type = self._classify_tp_exit_type(trade)
         elif reason == "SL" and not trade.trailing_exit_type:
             trade.trailing_exit_type = self._classify_stop_exit_type(trade)
-        if trade.pnl_pct > 0.05:
+        # 结果分类按净收益正负决定，避免把已经净盈利/净亏损的小单误记成 SCRATCH，
+        # 否则会系统性压低胜率和 PF。
+        epsilon = 1e-6
+        if trade.pnl_pct > epsilon:
             trade.result = "WIN"
-        elif trade.pnl_pct < -0.05:
+        elif trade.pnl_pct < -epsilon:
             trade.result = "LOSS"
         else:
             trade.result = "SCRATCH"

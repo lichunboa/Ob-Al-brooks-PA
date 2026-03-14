@@ -289,6 +289,43 @@
 - **结论**
   - 成本层不再是“完全错”，但仍会放大系统误差，尤其是高频策略。
 
+### 4.10 统计口径与结果分类
+
+代码：
+
+- [sim_exchange.py:1970](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/libs/backtest/sim_exchange.py#L1970)
+- [report.py:34](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/libs/backtest/report.py#L34)
+- [report.py:136](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/libs/backtest/report.py#L136)
+
+现状判断：
+
+- **发现的问题**
+  - 之前 `_close_trade()` 用固定阈值把 `|pnl_pct| <= 0.05` 的交易统一记成 `SCRATCH`。
+  - 这会把已经净盈利的小单误记成 `SCRATCH`，也会把已经净亏损的小单误记成 `SCRATCH`。
+  - 而 [report.py:136](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/libs/backtest/report.py#L136) 的 `wins/losses/win_rate/profit_factor` 又直接依赖 `trade.result`，所以会系统性低估胜率，并且扭曲 PF。
+
+- **固定窗口验证**
+  - `BTCUSDT 15m 2022-01-24 ~ 2022-02-23`
+  - 修正前：
+    - `wins=45`
+    - `losses=83`
+    - `scratches=12`
+    - `positive_not_win=6`
+    - `negative_not_loss=6`
+    - `win_rate=32.14%`
+  - 修正后：
+    - `wins=51`
+    - `losses=89`
+    - `scratches=0`
+    - `positive_not_win=0`
+    - `negative_not_loss=0`
+    - `win_rate=36.43%`
+
+- **结论**
+  - 这不是策略本体问题，而是回测统计口径 bug。
+  - 它解释了“胜率为什么长期被压得异常低”的一部分原因。
+  - 但它**不能**解释系统整体 PF 仍未稳定转正，因为修正口径后，真正的大问题仍然在 `protective_stop_exit`、`zombie / stale / timeout` 和部分弱 detector。
+
 ---
 
 ## 5. 现在真正的根因排名
@@ -309,16 +346,20 @@
    - `看衰突破`
    - `头肩顶/底MTR`
 
+4. **回测统计口径曾经系统性低估胜率**
+   - 这个问题已经定位并修正
+   - 它会影响“怎么看系统”，但不是当前唯一的收益根因
+
 ### P1：重要，但不是当前最主要矛盾
 
-4. 背景识别仍偏“EMA slope veto”
-5. route / risk 里仍残留按周期组织的工程模板
-6. 成本模型仍偏粗
+5. 背景识别仍偏“EMA slope veto”
+6. route / risk 里仍残留按周期组织的工程模板
+7. 成本模型仍偏粗
 
 ### P2：目前不是主战场
 
-7. `partial / TP`
-8. `re-entry / add-on`
+8. `partial / TP`
+9. `re-entry / add-on`
 
 ---
 
@@ -349,16 +390,19 @@
 1. **先清 `sim_exchange.py` 里的 `zombie / stale / timeout`**
    - 目标：让它们更多由结构变化触发，而不是固定 bar 数触发
 
-2. **再继续压 `protective_stop_exit`**
+2. **先确认所有回测统计都使用修正后的 `WIN/LOSS/SCRATCH` 口径**
+   - 目标：把“统计误差”与“真实策略缺陷”彻底分开
+
+3. **再继续压 `protective_stop_exit`**
    - 目标：把更多交易转到：
      - `protective_scalp_exit`
      - `breakeven_stop_exit`
      - `tp_after_scaleout_exit`
 
-3. **再对 `高潮/陷阱反转族` 做样本回归**
+4. **再对 `高潮/陷阱反转族` 做样本回归**
    - 不是靠拍脑袋阈值，而是按 Brooks 原文 + 百科案例逐个证伪
 
-4. **最后再细化成本模型**
+5. **最后再细化成本模型**
    - 把“系统本身没边”和“边不够厚被成本吃掉”彻底分开
 
 ---
