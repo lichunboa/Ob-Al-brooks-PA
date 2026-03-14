@@ -891,15 +891,18 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     leg2_strength = prev.high - valley_low
                     edge_tests = self._count_edge_tests(lookback[:-2], range_high, "SELL", tolerance)
                     breakout_excess = max(float(prev.high) - range_high, 0.0)
-                    back_in_range = float(curr.close) <= range_high - tolerance * 0.15
+                    back_in_range = float(curr.close) <= range_high - tolerance * 0.20
                     sig_quality = CandlePatterns.signal_bar_quality(curr, lookback[-6:-1], "SELL")
+                    breakout_range = max(float(prev.high) - float(prev.low), 1e-9)
+                    weak_breakout_close = float(prev.close) <= float(prev.high) - breakout_range * 0.30
                     if (
                         edge_tests >= 2
-                        and leg2_bars <= 6
+                        and leg2_bars <= 5
                         and leg2_strength >= range_size * 0.28
                         and breakout_excess <= range_size * 0.12
                         and back_in_range
-                        and sig_quality >= 0.45
+                        and weak_breakout_close
+                        and sig_quality >= 0.50
                     ):
                         stop = build_tr_second_leg_trap_stop("SELL", lookback, prev.high, prev.high, prev.low, atr)
                         target = range_low + range_size * 0.5
@@ -926,6 +929,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                                 "valley_low": valley_low,
                                 "edge_tests": edge_tests,
                                 "back_in_range": back_in_range,
+                                "weak_breakout_close": weak_breakout_close,
                             },
                         )
 
@@ -940,15 +944,18 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     leg2_strength = peak_high - prev.low
                     edge_tests = self._count_edge_tests(lookback[:-2], range_low, "BUY", tolerance)
                     breakout_excess = max(range_low - float(prev.low), 0.0)
-                    back_in_range = float(curr.close) >= range_low + tolerance * 0.15
+                    back_in_range = float(curr.close) >= range_low + tolerance * 0.20
                     sig_quality = CandlePatterns.signal_bar_quality(curr, lookback[-6:-1], "BUY")
+                    breakout_range = max(float(prev.high) - float(prev.low), 1e-9)
+                    weak_breakout_close = float(prev.close) >= float(prev.low) + breakout_range * 0.30
                     if (
                         edge_tests >= 2
-                        and leg2_bars <= 6
+                        and leg2_bars <= 5
                         and leg2_strength >= range_size * 0.28
                         and breakout_excess <= range_size * 0.12
                         and back_in_range
-                        and sig_quality >= 0.45
+                        and weak_breakout_close
+                        and sig_quality >= 0.50
                     ):
                         stop = build_tr_second_leg_trap_stop("BUY", lookback, prev.low, prev.high, prev.low, atr)
                         target = range_high - range_size * 0.5
@@ -975,6 +982,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                                 "peak_high": peak_high,
                                 "edge_tests": edge_tests,
                                 "back_in_range": back_in_range,
+                                "weak_breakout_close": weak_breakout_close,
                             },
                         )
 
@@ -1055,7 +1063,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     float(breakout_bar.close),
                     float(breakout_bar.high) - range_height * 0.20,
                 )
-                back_in_range = float(current.close) < range_high - tolerance * 0.10 or (
+                back_in_range = float(current.close) < range_high - tolerance * 0.18 or (
                     float(current.close) < range_high and CandlePatterns.is_bear(current)
                 )
                 if strong_ft_bars >= 2 and not gap_filled and not no_new_extreme:
@@ -1063,12 +1071,16 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 test_count = self._count_edge_tests(base_window[-10:], range_high, "SELL", tolerance) + 1
                 if test_count < 2:
                     continue
-                if test_count >= 3 and strong_ft_bars >= 1 and not (gap_filled or rejection_bar or no_new_extreme):
+                if test_count >= 3 and strong_ft_bars >= 1 and not (gap_filled and rejection_bar):
                     continue
                 sig_quality = CandlePatterns.signal_bar_quality(current, recent_window[max(0, breakout_idx - 2):breakout_idx + 1], "SELL")
-                if not back_in_range or sig_quality < 0.45:
+                if not back_in_range or sig_quality < 0.50:
+                    continue
+                if bars_waited >= 3 and not rejection_bar:
                     continue
                 if not (gap_filled or rejection_bar or (no_new_extreme and strong_ft_bars == 0)):
+                    continue
+                if strong_ft_bars >= 1 and not (gap_filled and rejection_bar):
                     continue
 
                 breakout_extreme = max(float(bar.high) for bar in recent_window[breakout_idx:])
@@ -1148,7 +1160,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     float(breakout_bar.close),
                     float(breakout_bar.low) + range_height * 0.20,
                 )
-                back_in_range = float(current.close) > range_low + tolerance * 0.10 or (
+                back_in_range = float(current.close) > range_low + tolerance * 0.18 or (
                     float(current.close) > range_low and CandlePatterns.is_bull(current)
                 )
                 if strong_ft_bars >= 2 and not gap_filled and not no_new_extreme:
@@ -1156,12 +1168,16 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 test_count = self._count_edge_tests(base_window[-10:], range_low, "BUY", tolerance) + 1
                 if test_count < 2:
                     continue
-                if test_count >= 3 and strong_ft_bars >= 1 and not (gap_filled or rejection_bar or no_new_extreme):
+                if test_count >= 3 and strong_ft_bars >= 1 and not (gap_filled and rejection_bar):
                     continue
                 sig_quality = CandlePatterns.signal_bar_quality(current, recent_window[max(0, breakout_idx - 2):breakout_idx + 1], "BUY")
-                if not back_in_range or sig_quality < 0.45:
+                if not back_in_range or sig_quality < 0.50:
+                    continue
+                if bars_waited >= 3 and not rejection_bar:
                     continue
                 if not (gap_filled or rejection_bar or (no_new_extreme and strong_ft_bars == 0)):
+                    continue
+                if strong_ft_bars >= 1 and not (gap_filled and rejection_bar):
                     continue
 
                 breakout_extreme = min(float(bar.low) for bar in recent_window[breakout_idx:])
@@ -1585,11 +1601,28 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         channel_candles = candles[start_idx + 5:]
         if len(channel_candles) < 5:
             return None
+        overlap_count = 0
+        for idx in range(1, len(channel_candles)):
+            prev_bar = channel_candles[idx - 1]
+            bar = channel_candles[idx]
+            if float(bar.high) >= float(prev_bar.low) and float(bar.low) <= float(prev_bar.high):
+                overlap_count += 1
+        if overlap_count < len(channel_candles) - 3:
+            return None
 
         if direction == "多":
             # 上升急速后的通道：高点创新高但失败回落
             channel_high = max(c.high for c in channel_candles[:-2])
-            if prev.high > channel_high and curr.close < prev.low:
+            breakout_excess = max(float(prev.high) - channel_high, 0.0)
+            sig_quality = CandlePatterns.signal_bar_quality(curr, candles[-6:-1], "SELL")
+            failed_back = float(curr.close) <= channel_high - (channel_high - min(c.low for c in channel_candles)) * 0.15
+            if (
+                prev.high > channel_high
+                and breakout_excess <= max((channel_high - min(c.low for c in channel_candles)) * 0.25, self._structure_buffer(channel_candles, float(channel_high)))
+                and curr.close < prev.low
+                and failed_back
+                and sig_quality >= 0.50
+            ):
                 stop = prev.high * 1.002
                 target = spike_origin  # 回到急速起点
 
@@ -1609,7 +1642,16 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         else:  # 空头急速
             channel_low = min(c.low for c in channel_candles[:-2])
-            if prev.low < channel_low and curr.close > prev.high:
+            breakout_excess = max(channel_low - float(prev.low), 0.0)
+            sig_quality = CandlePatterns.signal_bar_quality(curr, candles[-6:-1], "BUY")
+            failed_back = float(curr.close) >= channel_low + (max(c.high for c in channel_candles) - channel_low) * 0.15
+            if (
+                prev.low < channel_low
+                and breakout_excess <= max((max(c.high for c in channel_candles) - channel_low) * 0.25, self._structure_buffer(channel_candles, float(channel_low)))
+                and curr.close > prev.high
+                and failed_back
+                and sig_quality >= 0.50
+            ):
                 stop = prev.low * 0.998
                 target = spike_origin
 

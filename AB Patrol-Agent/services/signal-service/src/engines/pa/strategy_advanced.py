@@ -409,14 +409,15 @@ class AdvancedStrategyDetectorMixin:
                                     bear_ema_closes >= 3
                                     or float(curr.close) <= neckline - neckline_tolerance * 0.10
                                 )
+                                shoulder_balance = abs(right_shoulder - left_shoulder) <= head_range * 0.35
                                 if not (neckline_test or right_shoulder_reversal):
                                     pass  # 价格离 neckline 太远，还没到突破位
-                                elif not major_channel_break:
+                                elif not major_channel_break or not shoulder_balance:
                                     pass  # 大多数头肩只是 minor reversal，等真正 break major channel
                                 else:
                                     reversal = CandlePatterns.is_reversal_bar(curr, prev)
                                     sig_quality = CandlePatterns.signal_bar_quality(curr, lookback[-6:-1], "SELL")
-                                    if reversal == "空头反转" and sig_quality >= 0.45:
+                                    if reversal == "空头反转" and sig_quality >= 0.50:
                                         stop = build_reversal_structure_stop(
                                             "SELL",
                                             candles,
@@ -453,6 +454,7 @@ class AdvancedStrategyDetectorMixin:
                                                 "neckline": neckline,
                                                 "bear_ema_closes": bear_ema_closes,
                                                 "major_channel_break": major_channel_break,
+                                                "shoulder_balance": shoulder_balance,
                                             },
                                         )
 
@@ -510,14 +512,15 @@ class AdvancedStrategyDetectorMixin:
                     bull_ema_closes >= 3
                     or float(curr.close) >= neckline + neckline_tolerance * 0.10
                 )
+                shoulder_balance = abs(right_shoulder_low - left_shoulder_low) <= head_range * 0.35
                 if not (neckline_test or right_shoulder_reversal):
                     return None
-                if not major_channel_break:
+                if not major_channel_break or not shoulder_balance:
                     return None
 
                 reversal = CandlePatterns.is_reversal_bar(curr, prev)
                 sig_quality = CandlePatterns.signal_bar_quality(curr, lookback[-6:-1], "BUY")
-                if reversal == "多头反转" and sig_quality >= 0.45:
+                if reversal == "多头反转" and sig_quality >= 0.50:
                     stop = build_reversal_structure_stop(
                         "BUY",
                         candles,
@@ -554,6 +557,7 @@ class AdvancedStrategyDetectorMixin:
                             "neckline": neckline,
                             "bull_ema_closes": bull_ema_closes,
                             "major_channel_break": major_channel_break,
+                            "shoulder_balance": shoulder_balance,
                         },
                     )
 

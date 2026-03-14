@@ -248,13 +248,13 @@ class SimExchange:
                 "detail": "reversal_protect",
                 "target_r": self._protective_target_r(
                     trade,
-                    default_r=0.70 if cautious_context else 0.95,
+                    default_r=0.55 if cautious_context else 0.80,
                 ),
-                "partial_fraction": 0.30
-                if profit_r > (0.08 if cautious_context else 0.16) and trade.remaining_size > 0.55
+                "partial_fraction": 0.35
+                if profit_r > (0.03 if cautious_context else 0.10) and trade.remaining_size > 0.52
                 else 0.0,
-                "protect_r": 0.05 if profit_r > 0.12 else 0.0,
-                "loss_cap_r": -0.10 if cautious_context else -0.16,
+                "protect_r": 0.03 if profit_r > 0.06 else 0.0,
+                "loss_cap_r": -0.05 if cautious_context else -0.10,
             }
         if family_key == "climax_reversal":
             cautious_context = tr_context or not reversal_confirmed
@@ -262,13 +262,13 @@ class SimExchange:
                 "detail": "reversal_protect",
                 "target_r": self._protective_target_r(
                     trade,
-                    default_r=0.60 if cautious_context else 0.85,
+                    default_r=0.45 if cautious_context else 0.65,
                 ),
-                "partial_fraction": 0.35
-                if profit_r > (0.06 if cautious_context else 0.12) and trade.remaining_size > 0.52
+                "partial_fraction": 0.40
+                if profit_r > (0.02 if cautious_context else 0.08) and trade.remaining_size > 0.50
                 else 0.0,
-                "protect_r": 0.03 if profit_r > 0.08 else 0.0,
-                "loss_cap_r": -0.08 if cautious_context else -0.12,
+                "protect_r": 0.02 if profit_r > 0.05 else 0.0,
+                "loss_cap_r": -0.04 if cautious_context else -0.08,
             }
         if family_key == "breakout_follow":
             weak_breakout = (not strong_follow) or (not target_path_clear)
@@ -276,21 +276,21 @@ class SimExchange:
                 "detail": "breakout_protect",
                 "target_r": self._protective_target_r(
                     trade,
-                    default_r=0.60 if weak_breakout else 0.95,
+                    default_r=0.45 if weak_breakout else 0.80,
                 ),
-                "partial_fraction": 0.25
-                if profit_r > (0.06 if weak_breakout else 0.12) and trade.remaining_size > 0.55
+                "partial_fraction": 0.30
+                if profit_r > (0.02 if weak_breakout else 0.08) and trade.remaining_size > 0.55
                 else 0.0,
-                "protect_r": 0.04 if profit_r > 0.10 else 0.0,
-                "loss_cap_r": -0.08 if reason == "FAILED_FT" else -0.12,
+                "protect_r": 0.02 if profit_r > 0.05 else 0.0,
+                "loss_cap_r": -0.04 if reason == "FAILED_FT" else -0.08,
             }
         if family_key == "tr_scalp":
             return {
                 "detail": "tr_scalp_protect",
-                "target_r": self._protective_target_r(trade, default_r=0.40),
-                "partial_fraction": 0.25 if profit_r > 0.04 and trade.remaining_size > 0.50 else 0.0,
+                "target_r": self._protective_target_r(trade, default_r=0.30),
+                "partial_fraction": 0.30 if profit_r > 0.02 and trade.remaining_size > 0.50 else 0.0,
                 "protect_r": 0.0,
-                "loss_cap_r": -0.04 if reason == "WEAK_SCALP" else -0.06,
+                "loss_cap_r": 0.0 if reason == "WEAK_SCALP" else -0.03,
             }
         return {
             "detail": "generic_protect",
@@ -364,10 +364,10 @@ class SimExchange:
         # P0: BO 失败后，大多数会回到 TR。Brooks 更像 scratch/scalp，而不是继续等保护性止损。
         if detail == "breakout_protect":
             return {
-                "stale_bars": 2.0,
-                "force_exit_bars": 5.0,
-                "profit_exit_r": 0.03,
-                "loss_exit_r": -0.03,
+                "stale_bars": 1.5,
+                "force_exit_bars": 4.0,
+                "profit_exit_r": 0.01,
+                "loss_exit_r": -0.01,
                 "extra_partial_r": 0.18,
                 "extra_partial_fraction": 0.25,
                 "protect_r": 0.0,
@@ -375,10 +375,10 @@ class SimExchange:
         # P0: 大多数 MTR 只是 minor reversal；一旦没跟进，更像快速降级成 scalp/scratch。
         if detail == "reversal_protect":
             return {
-                "stale_bars": 2.0,
-                "force_exit_bars": 5.0,
-                "profit_exit_r": 0.04,
-                "loss_exit_r": -0.02,
+                "stale_bars": 1.5,
+                "force_exit_bars": 4.0,
+                "profit_exit_r": 0.02,
+                "loss_exit_r": -0.01,
                 "extra_partial_r": 0.18,
                 "extra_partial_fraction": 0.25,
                 "protect_r": 0.0,
@@ -386,9 +386,9 @@ class SimExchange:
         # P0: TR scalp 退化后更不该留到保护性止损，优先按 scratch/scalp 处理。
         if detail == "tr_scalp_protect":
             return {
-                "stale_bars": 1.5,
-                "force_exit_bars": 4.0,
-                "profit_exit_r": 0.02,
+                "stale_bars": 1.0,
+                "force_exit_bars": 3.0,
+                "profit_exit_r": 0.01,
                 "loss_exit_r": 0.0,
                 "extra_partial_r": 0.12,
                 "extra_partial_fraction": 0.33,
@@ -1641,6 +1641,9 @@ class SimExchange:
                 self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                 return True
         elif detail == "tr_scalp_protect":
+            if bars_in_state >= 1 and best_r >= 0.02 and profit_r >= -0.02:
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
             if (
                 current_reason in {"PREMISE", "WEAK_SCALP"}
                 and bars_in_state >= stale_bars
@@ -1662,6 +1665,14 @@ class SimExchange:
                 self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                 return True
         elif detail == "reversal_protect":
+            if (
+                bars_in_state >= 1
+                and not reversal_confirmed
+                and best_r >= 0.03
+                and profit_r >= -0.03
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
             if (
                 current_reason in {"PREMISE", "WEAK_SCALP"}
                 and not reversal_confirmed
@@ -1685,6 +1696,14 @@ class SimExchange:
                 return True
         elif detail == "breakout_protect":
             if (
+                bars_in_state >= 1
+                and (not strong_follow or not bool(trade.target_path_clear))
+                and best_r >= 0.02
+                and profit_r >= -0.03
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
+            if (
                 current_reason == "FAILED_FT"
                 and bars_in_state >= stale_bars
                 and bars_without_progress >= stale_bars
@@ -1705,6 +1724,14 @@ class SimExchange:
                 self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                 return True
         elif detail == "second_entry_profit":
+            if (
+                bars_in_state >= 1
+                and (tr_context or not strong_follow)
+                and best_r >= 0.04
+                and profit_r >= -0.02
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
             if (
                 current_reason in {"PREMISE", "WEAK_SCALP"}
                 and (tr_context or not strong_follow)
