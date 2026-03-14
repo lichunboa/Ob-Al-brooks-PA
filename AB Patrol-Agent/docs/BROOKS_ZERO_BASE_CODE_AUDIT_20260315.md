@@ -37,6 +37,21 @@
 
 ## 2. 审计依据
 
+### 2.0 资料优先级（本次之后的统一口径）
+
+这次先明确一条后续必须持续遵守的规则：
+
+1. **第一优先级：Al Brooks 课程 PDF 原文**
+2. **第二优先级：图表百科全书里的实战案例**
+3. **第三优先级：课程大纲**
+4. **最低优先级：Patrol 自己的 `skill / S` 文件**
+
+也就是说：
+
+- `skill / S` 文件以后只保留**流程参考价值**
+- 不能再把它们当成“权威交易规则源”
+- 一旦 `skill / S` 与 PDF / 百科冲突，**一律以 PDF / 百科为准**
+
 ### 2.1 Patrol 知识文件
 
 - [S4-strategy-match.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/knowledge/patrol-l1/references/S4-strategy-match.md)
