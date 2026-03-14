@@ -173,7 +173,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
     @staticmethod
     def _swing_tolerance(candles: list[Candle], reference_price: float) -> float:
-        """双顶双底允许“不完全相等”，但容差只取结构波动。"""
+        """双顶双底允许"不完全相等"，但容差只取结构波动。"""
         if not candles:
             return max(abs(reference_price) * 0.001, 1e-9)
         recent = candles[-10:] if len(candles) >= 10 else candles
@@ -901,7 +901,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                             price=curr.close,
                             stop_loss=stop,
                             take_profit=target,
-                            probability=0.62,
+                            probability=0.50,
                             cycle="区间",
                             timeframe=curr.timeframe,
                             signal_bar_high=prev.high,
@@ -937,7 +937,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                             price=curr.close,
                             stop_loss=stop,
                             take_profit=target,
-                            probability=0.62,
+                            probability=0.50,
                             cycle="区间",
                             timeframe=curr.timeframe,
                             signal_bar_high=prev.high,
@@ -1301,38 +1301,43 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
     def detect_double_top_bottom(self, candles: list[Candle], ema20: list[float], atr: float = 0.0) -> Optional[PASignal]:
         """
-        双重顶底 (Double Top/Bottom)
-        条件：
-        - 两个相近高点/低点形成 M/W 形态
-        - 第二个顶/底出现反转棒
-        - 符合 Al Brooks 40% 规则：回撤至少 40%
+        双重顶底 (Double Top/Bottom) — Brooks 25A 对齐版
+
+        Brooks 核心规则：
+        - "所有双底都是H2买入形态" → DT=L2, DB=H2，本检测器只在
+          H2/L2 未触发时作为补充（避免重复信号）
+        - 容差收紧：0.2%（原 0.5% 在 crypto 5m 上太宽）
+        - 两顶/底之间必须有明显回撤（≥40% of range）
+        - 概率 40%：Brooks "60% 的反转会失败"
         """
         if len(candles) < 20:
             return None
 
-        # 寻找近期高低点
         lookback = candles[-20:]
         highs = [(i, c.high) for i, c in enumerate(lookback)]
         lows = [(i, c.low) for i, c in enumerate(lookback)]
 
-        # 找最高点
         max_idx, max_high = max(highs, key=lambda x: x[1])
-        # 找最低点
         min_idx, min_low = min(lows, key=lambda x: x[1])
 
         curr = candles[-1]
         prev = candles[-2]
 
-        # 双重顶检测：当前接近之前高点且出现空头反转
-        if max_idx < len(lookback) - 3:  # 高点不在最近3根
-            # 检查当前是否接近之前高点（0.5% 以内）
-            if abs(curr.high - max_high) / max_high < 0.005:
+        # --- 双重顶检测 ---
+        if max_idx < len(lookback) - 3:
+            # 容差收紧到 0.2%（原 0.5%）
+            if abs(curr.high - max_high) / max_high < 0.002:
                 reversal = CandlePatterns.is_reversal_bar(curr, prev)
                 if reversal == "空头反转":
-                    # 检查回撤是否至少 40%
                     range_size = max_high - min_low
-                    pullback = max_high - lookback[max_idx + 1].low if max_idx + 1 < len(lookback) else 0
+                    # 两顶之间必须有 ≥40% 回撤（Brooks 40% 规则）
+                    pullback = max_high - min(c.low for c in lookback[max_idx + 1:]) if max_idx + 1 < len(lookback) else 0
                     if range_size > 0 and pullback / range_size >= 0.4:
+                        # 两顶间距至少 5 根（太近 = 噪音，不是真正的双重测试）
+                        bar_gap = len(lookback) - 1 - max_idx
+                        if bar_gap < 5:
+                            return None
+
                         stop = build_reversal_structure_stop(
                             "SELL",
                             candles,
@@ -1342,31 +1347,36 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                             reference_levels=[max_high],
                         )
                         risk = stop - curr.close
-                        # Al Brooks: 双重顶是趋势末端反转，目标3R（成功则大利润）
+                        if risk <= 0:
+                            return None
                         target = curr.close - risk * 3.0
 
                         return PASignal(
                             symbol=curr.symbol,
                             signal_type="双重顶",
                             direction="SELL",
-                            strength=82,  # V2: 78→82，双顶是M40反转策略，强度提升
-                            message="双重顶形态，第二顶出现反转棒",
+                            strength=78,
+                            message=f"双重顶(L2变体)，间距{bar_gap}bar，回撤{pullback/range_size:.0%}",
                             price=curr.close,
                             stop_loss=stop,
                             take_profit=target,
-                            probability=0.6,
+                            probability=0.40,
                             cycle="反转空",
                             timeframe=curr.timeframe,
                         )
 
-        # 双重底检测
+        # --- 双重底检测 ---
         if min_idx < len(lookback) - 3:
-            if abs(curr.low - min_low) / min_low < 0.005:
+            if abs(curr.low - min_low) / min_low < 0.002:
                 reversal = CandlePatterns.is_reversal_bar(curr, prev)
                 if reversal == "多头反转":
                     range_size = max_high - min_low
-                    pullback = lookback[min_idx + 1].high - min_low if min_idx + 1 < len(lookback) else 0
+                    pullback = max(c.high for c in lookback[min_idx + 1:]) - min_low if min_idx + 1 < len(lookback) else 0
                     if range_size > 0 and pullback / range_size >= 0.4:
+                        bar_gap = len(lookback) - 1 - min_idx
+                        if bar_gap < 5:
+                            return None
+
                         stop = build_reversal_structure_stop(
                             "BUY",
                             candles,
@@ -1376,19 +1386,20 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                             reference_levels=[min_low],
                         )
                         risk = curr.close - stop
-                        # Al Brooks: 双重底是趋势末端反转，目标3R
+                        if risk <= 0:
+                            return None
                         target = curr.close + risk * 3.0
 
                         return PASignal(
                             symbol=curr.symbol,
                             signal_type="双重底",
                             direction="BUY",
-                            strength=82,  # V2: 78→82，双底是M40反转策略，强度提升
-                            message="双重底形态，第二底出现反转棒",
+                            strength=78,
+                            message=f"双重底(H2变体)，间距{bar_gap}bar，回撤{pullback/range_size:.0%}",
                             price=curr.close,
                             stop_loss=stop,
                             take_profit=target,
-                            probability=0.6,
+                            probability=0.40,
                             cycle="反转多",
                             timeframe=curr.timeframe,
                         )
@@ -1555,7 +1566,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     price=curr.close,
                     stop_loss=stop,
                     take_profit=target,
-                    probability=0.7,
+                    probability=0.45,
                     cycle="反转空",
                     timeframe=curr.timeframe,
                 )
@@ -1575,7 +1586,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     price=curr.close,
                     stop_loss=stop,
                     take_profit=target,
-                    probability=0.7,
+                    probability=0.45,
                     cycle="反转多",
                     timeframe=curr.timeframe,
                 )
@@ -1697,11 +1708,14 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
     def detect_final_flag(self, candles: list[Candle], ema20: list[float], cycle: str, atr: float = 0.0) -> Optional[PASignal]:
         """
-        末端旗形 (Final Flag)
-        条件：
-        - 趋势末期出现小幅回调（旗形）
-        - 旗形突破失败
-        - 通常是趋势终结信号
+        末端旗形 (Final Flag) — Brooks 对齐版
+
+        Brooks 核心规则：
+        - 趋势末期出现小幅回调（旗形），旗形突破失败
+        - 关键条件：趋势必须接近磁力位（S/R）
+        - 旗形范围 < 趋势腿范围（压缩）
+        - K线实体缩小（动能衰竭）
+        - 概率 ~45%：比普通反转高一点（因为有趋势衰竭确认）
         """
         if not cycle.startswith("趋势") or len(candles) < 25:
             return None
@@ -1709,7 +1723,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         curr = candles[-1]
         prev = candles[-2]
 
-        # 末端旗形的核心是“已有趋势腿 -> 小旗形压缩 -> 一次失败突破”。
+        # 末端旗形的核心是"已有趋势腿 -> 小旗形压缩 -> 一次失败突破"。
         # 因此 prev 是突破尝试棒，不能再被算进旗形本身，否则突破条件永远不成立。
         flag_candles = candles[-10:-2]
         if len(flag_candles) < 4:
@@ -1731,7 +1745,29 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         if avg_body > trend_avg_body * 0.8:
             return None
 
+        # === Brooks 磁力位检查 ===
+        # 趋势必须接近支撑/阻力（用更长 lookback 的 swing high/low 作为磁力位）
+        extended = candles[-60:] if len(candles) >= 60 else candles
+        ext_highs = [c.high for c in extended]
+        ext_lows = [c.low for c in extended]
+
         if cycle == "趋势多":
+            # 上升趋势：检查是否接近历史阻力位（之前的 swing high）
+            # 排除最近 10 根（旗形本身），找之前的高点
+            prior_highs = ext_highs[:-10] if len(ext_highs) > 15 else ext_highs
+            if prior_highs:
+                resistance = max(prior_highs)
+                flag_high = max(c.high for c in flag_candles)
+                # 旗形高点必须在阻力位附近（1 ATR 以内）或已超过
+                magnet_distance = resistance - flag_high
+                atr_ref = atr if atr > 0 else trend_range / 15
+                near_magnet = magnet_distance < atr_ref * 1.5
+                past_magnet = flag_high >= resistance
+                if not (near_magnet or past_magnet):
+                    return None
+            else:
+                return None
+
             # 上升趋势末端旗形：突破失败 = 做空
             flag_high = max(c.high for c in flag_candles)
             if prev.high > flag_high and curr.close < prev.low:
@@ -1743,17 +1779,31 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     symbol=curr.symbol,
                     signal_type="末端旗形",
                     direction="SELL",
-                    strength=82,
-                    message="上升趋势末端旗形突破失败",
+                    strength=80,
+                    message="上升趋势末端旗形突破失败，接近阻力位",
                     price=curr.close,
                     stop_loss=stop,
                     take_profit=target,
-                    probability=0.7,
+                    probability=0.45,
                     cycle="反转空",
                     timeframe=curr.timeframe,
                 )
 
         elif cycle == "趋势空":
+            # 下降趋势：检查是否接近历史支撑位
+            prior_lows = ext_lows[:-10] if len(ext_lows) > 15 else ext_lows
+            if prior_lows:
+                support = min(prior_lows)
+                flag_low = min(c.low for c in flag_candles)
+                magnet_distance = flag_low - support
+                atr_ref = atr if atr > 0 else trend_range / 15
+                near_magnet = magnet_distance < atr_ref * 1.5
+                past_magnet = flag_low <= support
+                if not (near_magnet or past_magnet):
+                    return None
+            else:
+                return None
+
             flag_low = min(c.low for c in flag_candles)
             if prev.low < flag_low and curr.close > prev.high:
                 stop_buffer = max(max(c.high - c.low for c in flag_candles) * 0.08, abs(prev.low) * 0.0001)
@@ -1764,12 +1814,12 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     symbol=curr.symbol,
                     signal_type="末端旗形",
                     direction="BUY",
-                    strength=82,
-                    message="下降趋势末端旗形突破失败",
+                    strength=80,
+                    message="下降趋势末端旗形突破失败，接近支撑位",
                     price=curr.close,
                     stop_loss=stop,
                     take_profit=target,
-                    probability=0.7,
+                    probability=0.45,
                     cycle="反转多",
                     timeframe=curr.timeframe,
                     signal_bar_high=prev.high,
@@ -1922,7 +1972,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     price=curr.close,
                     stop_loss=stop,
                     take_profit=target,
-                    probability=0.6,
+                    probability=0.40,
                     cycle="区间",
                     timeframe=curr.timeframe,
                     signal_bar_high=curr.high,
@@ -1951,7 +2001,7 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     price=curr.close,
                     stop_loss=stop,
                     take_profit=target,
-                    probability=0.6,
+                    probability=0.40,
                     cycle="区间",
                     timeframe=curr.timeframe,
                     signal_bar_high=curr.high,
@@ -1981,7 +2031,7 @@ class PASignalEngine(BaseEngine):
         self.cooldown_seconds = COOLDOWN_SECONDS
         self._cooldown_storage = get_cooldown_storage()
 
-        # 时间周期只承担节奏与冷却换算，不在生成层硬性限定“哪些策略只属于哪个周期”。
+        # 时间周期只承担节奏与冷却换算，不在生成层硬性限定"哪些策略只属于哪个周期"。
         self.timeframe_config = {
             "1m": {
                 "allowed_strategies": "all",

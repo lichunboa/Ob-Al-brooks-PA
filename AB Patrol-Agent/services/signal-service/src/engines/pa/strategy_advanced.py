@@ -79,7 +79,7 @@ class AdvancedStrategyDetectorMixin:
                     price=curr.close,
                     stop_loss=stop,
                     take_profit=target,
-                    probability=0.7,
+                    probability=0.65,
                     cycle=cycle,
                     timeframe=curr.timeframe,
                     signal_bar_high=curr.high,
@@ -104,7 +104,7 @@ class AdvancedStrategyDetectorMixin:
                     price=curr.close,
                     stop_loss=stop,
                     take_profit=target,
-                    probability=0.7,
+                    probability=0.65,
                     cycle=cycle,
                     timeframe=curr.timeframe,
                     signal_bar_high=curr.high,
@@ -290,6 +290,49 @@ class AdvancedStrategyDetectorMixin:
 
         return result if (result["micro_gaps_open"] > 0 or result["exhaustion_detected"] or result["stairs_pattern"]) else None
 
+    def _has_two_legs(self, candles: list, direction: str) -> bool:
+        """
+        Brooks TBTL: 检测 head 之后是否有两段式结构（Two Legs）。
+        direction="down" → 找两段下跌 leg（头肩顶）
+        direction="up"   → 找两段上涨 leg（头肩底）
+
+        一个 leg = 连续向同一方向移动的 bars，中间被一个反向 pause/pullback 分隔。
+        """
+        if len(candles) < 6:
+            return False
+
+        legs = 0
+        in_leg = False
+        pullback_seen = False
+
+        for i in range(1, len(candles)):
+            curr_bar = candles[i]
+            prev_bar = candles[i - 1]
+
+            if direction == "down":
+                moving = curr_bar.close < prev_bar.close
+                pausing = curr_bar.close > prev_bar.close
+            else:
+                moving = curr_bar.close > prev_bar.close
+                pausing = curr_bar.close < prev_bar.close
+
+            if moving:
+                if not in_leg:
+                    if pullback_seen or legs == 0:
+                        in_leg = True
+                        pullback_seen = False
+            elif pausing:
+                if in_leg:
+                    legs += 1
+                    in_leg = False
+                pullback_seen = True
+
+        # 如果最后还在 leg 中，算一个
+        if in_leg:
+            legs += 1
+
+        return legs >= 2
+
     def detect_head_and_shoulders(
         self,
         candles: list[Candle],
@@ -297,7 +340,14 @@ class AdvancedStrategyDetectorMixin:
         atr: float = 0.0,
     ) -> Optional[PASignal]:
         """
-        头肩形态检测 (Al Brooks 27A: H&S = MTR 变体)。
+        头肩形态检测 — Brooks 27A 对齐版
+
+        Brooks 核心规则：
+        - H&S = MTR 变体，80% 会失败
+        - TBTL: head 之后必须有 Two Legs 结构（不是简单 bar 计数）
+        - Neckline: 必须被突破或正在被测试
+        - MTR 三步曲：破线 → 回望1/3 → 破发
+        - 概率 40%（Brooks: 60% 的 MTR 会失败）
         """
         if len(candles) < 30 or len(ema20) < 30:
             return None
@@ -308,6 +358,7 @@ class AdvancedStrategyDetectorMixin:
         curr = candles[-1]
         prev = candles[-2]
 
+        # === 头肩顶 ===
         head_idx = highs.index(max(highs))
 
         if head_idx >= 5 and head_idx <= len(lookback) - 5:
@@ -323,51 +374,61 @@ class AdvancedStrategyDetectorMixin:
                     if head_high > left_shoulder and head_high > right_shoulder:
                         head_range = head_high - min(lows[head_idx - 2 : head_idx + 3])
                         if right_shoulder > head_high - head_range * 0.7:
-                            bars_since_head = lookback[head_idx:]
-                            avg_body = sum(abs(candle.close - candle.open) for candle in lookback) / len(lookback)
-                            big_bars = sum(
-                                1 for candle in bars_since_head if abs(candle.close - candle.open) > avg_body * 1.5
-                            )
-                            small_bars = len(bars_since_head)
+                            bars_after_head = lookback[head_idx:]
 
-                            if big_bars >= 5 or small_bars >= 10:
-                                reversal = CandlePatterns.is_reversal_bar(curr, prev)
-                                if reversal == "空头反转":
-                                    stop = build_reversal_structure_stop(
-                                        "SELL",
-                                        candles,
-                                        curr.high,
-                                        curr.low,
-                                        atr,
-                                        reference_levels=[head_high, left_shoulder, right_shoulder],
-                                    )
-                                    risk = stop - curr.close
-                                    target = curr.close - risk * 2.5
+                            # Brooks TBTL: 必须有两段式下跌结构
+                            if not self._has_two_legs(bars_after_head, "down"):
+                                pass  # fall through to 头肩底
+                            else:
+                                # Neckline 确认：左肩低点和右肩低点连线
+                                left_neckline = min(lows[left_shoulder_idx:head_idx])
+                                right_neckline = min(lows[head_idx:])
+                                neckline = max(left_neckline, right_neckline)
 
-                                    return PASignal(
-                                        symbol=curr.symbol,
-                                        signal_type="头肩顶MTR",
-                                        direction="SELL",
-                                        strength=83,
-                                        message=f"头肩顶形态（MTR），右肩确认，TBTL通过（{big_bars}大bar/{small_bars}总bar）",
-                                        price=curr.close,
-                                        stop_loss=stop,
-                                        take_profit=target,
-                                        probability=0.55,
-                                        cycle="反转空",
-                                        timeframe=curr.timeframe,
-                                        signal_bar_high=curr.high,
-                                        signal_bar_low=curr.low,
-                                        entry_trigger=curr.low,
-                                        entry_type="STOP",
-                                        extra={
-                                            "head": head_high,
-                                            "left_shoulder": left_shoulder,
-                                            "right_shoulder": right_shoulder,
-                                            "tbtl_big": big_bars,
-                                        },
-                                    )
+                                # 当前价格必须接近或已突破 neckline
+                                if curr.close > neckline + head_range * 0.15:
+                                    pass  # 价格离 neckline 太远，还没到突破位
+                                else:
+                                    reversal = CandlePatterns.is_reversal_bar(curr, prev)
+                                    if reversal == "空头反转":
+                                        stop = build_reversal_structure_stop(
+                                            "SELL",
+                                            candles,
+                                            curr.high,
+                                            curr.low,
+                                            atr,
+                                            reference_levels=[head_high, left_shoulder, right_shoulder],
+                                        )
+                                        risk = stop - curr.close
+                                        if risk <= 0:
+                                            return None
+                                        target = curr.close - risk * 2.5
 
+                                        return PASignal(
+                                            symbol=curr.symbol,
+                                            signal_type="头肩顶MTR",
+                                            direction="SELL",
+                                            strength=80,
+                                            message=f"头肩顶MTR，两段下跌确认，neckline={neckline:.1f}",
+                                            price=curr.close,
+                                            stop_loss=stop,
+                                            take_profit=target,
+                                            probability=0.40,
+                                            cycle="反转空",
+                                            timeframe=curr.timeframe,
+                                            signal_bar_high=curr.high,
+                                            signal_bar_low=curr.low,
+                                            entry_trigger=curr.low,
+                                            entry_type="STOP",
+                                            extra={
+                                                "head": head_high,
+                                                "left_shoulder": left_shoulder,
+                                                "right_shoulder": right_shoulder,
+                                                "neckline": neckline,
+                                            },
+                                        )
+
+        # === 头肩底 ===
         head_low_idx = lows.index(min(lows))
         if head_low_idx < 5 or head_low_idx > len(lookback) - 5:
             return None
@@ -387,47 +448,58 @@ class AdvancedStrategyDetectorMixin:
         if head_low < left_shoulder_low and head_low < right_shoulder_low:
             head_range = max(highs[head_low_idx - 2 : head_low_idx + 3]) - head_low
             if right_shoulder_low < head_low + head_range * 0.7:
-                bars_since_head = lookback[head_low_idx:]
-                avg_body = sum(abs(candle.close - candle.open) for candle in lookback) / len(lookback)
-                big_bars = sum(1 for candle in bars_since_head if abs(candle.close - candle.open) > avg_body * 1.5)
-                small_bars = len(bars_since_head)
+                bars_after_head = lookback[head_low_idx:]
 
-                if big_bars >= 5 or small_bars >= 10:
-                    reversal = CandlePatterns.is_reversal_bar(curr, prev)
-                    if reversal == "多头反转":
-                        stop = build_reversal_structure_stop(
-                            "BUY",
-                            candles,
-                            curr.high,
-                            curr.low,
-                            atr,
-                            reference_levels=[head_low, left_shoulder_low, right_shoulder_low],
-                        )
-                        risk = curr.close - stop
-                        target = curr.close + risk * 2.5
+                # Brooks TBTL: 必须有两段式上涨结构
+                if not self._has_two_legs(bars_after_head, "up"):
+                    return None
 
-                        return PASignal(
-                            symbol=curr.symbol,
-                            signal_type="头肩底MTR",
-                            direction="BUY",
-                            strength=83,
-                            message=f"头肩底形态（MTR），右肩确认，TBTL通过（{big_bars}大bar/{small_bars}总bar）",
-                            price=curr.close,
-                            stop_loss=stop,
-                            take_profit=target,
-                            probability=0.55,
-                            cycle="反转多",
-                            timeframe=curr.timeframe,
-                            signal_bar_high=curr.high,
-                            signal_bar_low=curr.low,
-                            entry_trigger=curr.high,
-                            entry_type="STOP",
-                            extra={
-                                "head": head_low,
-                                "left_shoulder": left_shoulder_low,
-                                "right_shoulder": right_shoulder_low,
-                                "tbtl_big": big_bars,
-                            },
-                        )
+                # Neckline 确认
+                left_neckline = max(highs[left_shoulder_idx:head_low_idx])
+                right_neckline = max(highs[head_low_idx:])
+                neckline = min(left_neckline, right_neckline)
+
+                # 当前价格必须接近或已突破 neckline
+                if curr.close < neckline - head_range * 0.15:
+                    return None
+
+                reversal = CandlePatterns.is_reversal_bar(curr, prev)
+                if reversal == "多头反转":
+                    stop = build_reversal_structure_stop(
+                        "BUY",
+                        candles,
+                        curr.high,
+                        curr.low,
+                        atr,
+                        reference_levels=[head_low, left_shoulder_low, right_shoulder_low],
+                    )
+                    risk = curr.close - stop
+                    if risk <= 0:
+                        return None
+                    target = curr.close + risk * 2.5
+
+                    return PASignal(
+                        symbol=curr.symbol,
+                        signal_type="头肩底MTR",
+                        direction="BUY",
+                        strength=80,
+                        message=f"头肩底MTR，两段上涨确认，neckline={neckline:.1f}",
+                        price=curr.close,
+                        stop_loss=stop,
+                        take_profit=target,
+                        probability=0.40,
+                        cycle="反转多",
+                        timeframe=curr.timeframe,
+                        signal_bar_high=curr.high,
+                        signal_bar_low=curr.low,
+                        entry_trigger=curr.high,
+                        entry_type="STOP",
+                        extra={
+                            "head": head_low,
+                            "left_shoulder": left_shoulder_low,
+                            "right_shoulder": right_shoulder_low,
+                            "neckline": neckline,
+                        },
+                    )
 
         return None
