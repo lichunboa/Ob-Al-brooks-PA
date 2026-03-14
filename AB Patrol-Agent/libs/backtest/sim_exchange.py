@@ -191,7 +191,7 @@ class SimExchange:
                 closed = True
 
             if not closed:
-                self._apply_brooks_management(trade, candle)
+                self._apply_brooks_management(trade, candle, market_data)
 
             if not closed and market_data:
                 closed = self._apply_runtime_management(trade, candle, market_data)
@@ -659,8 +659,10 @@ class SimExchange:
                 return True
             if trade.management_reason != "PREMISE":
                 partial_fraction = 0.0
+                protective_target_r = self._protective_target_r(trade)
                 if family_key == "trend_recovery" and profit_r > 0.10 and trade.remaining_size > 0.6:
                     partial_fraction = 0.25
+                    protective_target_r = self._protective_target_r(trade, default_r=0.85)
                 elif family_key == "mtr_reversal" and profit_r > 0.20 and trade.remaining_size > 0.66:
                     partial_fraction = 0.33
                 trade.premise_reduce_count += 1
@@ -668,7 +670,7 @@ class SimExchange:
                     trade,
                     candle,
                     reason="PREMISE",
-                    target_r=self._protective_target_r(trade),
+                    target_r=protective_target_r,
                     partial_fraction=partial_fraction,
                 )
             return False
@@ -701,15 +703,16 @@ class SimExchange:
 
         if (
             family_key == "trend_recovery"
-            and trade.bars_held >= max(3, int(3 * scale))
+            and trade.bars_held >= max(4, int(4 * scale))
             and strength_score <= 1
-            and profit_r < 0.45
+            and profit_r < 0.35
+            and max(0, trade.bars_held - int(trade.best_price_bar or 0)) >= max(2, int(2 * scale))
         ):
             if (
                 trade.management_state == "protective_scalp"
                 and trade.management_reason == "WEAK_SCALP"
-                and trade.bars_held >= max(6, int(6 * scale))
-                and profit_r < 0.10
+                and trade.bars_held >= max(8, int(8 * scale))
+                and profit_r < 0.05
             ):
                 self._close_trade(trade, candle.close, "WEAK_SCALP", candle.timestamp)
                 return True
@@ -717,7 +720,7 @@ class SimExchange:
                 trade,
                 candle,
                 reason="WEAK_SCALP",
-                target_r=self._protective_target_r(trade, default_r=0.9),
+                target_r=self._protective_target_r(trade, default_r=0.8),
                 partial_fraction=0.25 if profit_r > 0.12 and trade.remaining_size > 0.5 else 0.0,
             )
             return False
@@ -952,7 +955,7 @@ class SimExchange:
             return trade.take_profit, "TP"
         return 0.0, ""
 
-    def _apply_brooks_management(self, trade: Trade, candle) -> None:
+    def _apply_brooks_management(self, trade: Trade, candle, market_data: dict | None = None) -> None:
         """Brooks 风格持仓管理：2R/3R 分批、保护性移损与余仓 trailing。"""
         plan = self._management_plan(trade.management_style)
         if (
@@ -966,7 +969,16 @@ class SimExchange:
         tp1_r = plan["tp1_r"]
         tp2_r = plan["tp2_r"]
         magnet_take_r = self._magnet_take_r(trade)
-        if magnet_take_r > 0 and trade.magnet_cluster_count >= 2:
+        first_entry_signal = trade.strategy in {"高1", "低1"}
+        if self._family_key(trade) == "trend_recovery" and first_entry_signal:
+            tp1_r = min(tp1_r, 0.8)
+            tp2_r = min(tp2_r, 1.6)
+        if magnet_take_r > 0 and self._family_key(trade) == "trend_recovery":
+            if magnet_take_r < tp1_r:
+                tp1_r = max(0.8, magnet_take_r)
+            elif magnet_take_r < tp2_r:
+                tp2_r = max(tp1_r + 0.15, magnet_take_r)
+        elif magnet_take_r > 0 and trade.magnet_cluster_count >= 2:
             if magnet_take_r < tp1_r:
                 tp1_r = max(0.8, magnet_take_r)
             elif magnet_take_r < tp2_r:
@@ -981,10 +993,21 @@ class SimExchange:
         if (
             style_key in {"brooks_swing", "brooks_t4_wedge_pullback"}
             and not trade.tp1_done
-            and profit_r >= 0.9
+            and profit_r >= (0.55 if first_entry_signal else 0.75)
             and bars_without_progress >= max(2, int(2 * TF_SCALE.get(trade.timeframe, 1)))
         ):
             self._update_stop_loss(trade, self._protective_stop(trade, 0.0))
+
+        # Brooks 在 PB/通道里更强调把止损抬到 Major HL/LH，而不是死等固定 2R/3R。
+        # 一旦已经有足够利润，优先让结构位接管保护。
+        structure_stop = self._structure_stop_from_market(
+            trade,
+            candle,
+            market_data,
+            min_profit_r=0.50 if first_entry_signal else 0.65,
+        )
+        if structure_stop > 0:
+            self._update_stop_loss(trade, structure_stop)
 
         # MTR 家族更符合“2R 兑现一半，余仓转保护”的语义。
         if style_key == "brooks_mtr_reversal" and not trade.tp1_done and profit_r >= 1.1:
@@ -1010,7 +1033,7 @@ class SimExchange:
         if style_key == "brooks_mtr_reversal":
             return {"tp1_r": 2.0, "tp2_r": 3.0, "protect1_r": 0.75, "protect2_r": 1.60, "trail_r": 1.05}
         if style_key == "brooks_t4_wedge_pullback":
-            return {"tp1_r": 1.6, "tp2_r": 2.8, "protect1_r": 0.6, "protect2_r": 1.6, "trail_r": 1.0}
+            return {"tp1_r": 1.2, "tp2_r": 2.4, "protect1_r": 0.25, "protect2_r": 1.15, "trail_r": 0.95}
         if style_key == "brooks_r3_channel_line_fade":
             return {"tp1_r": 1.4, "tp2_r": 2.6, "protect1_r": 0.4, "protect2_r": 1.4, "trail_r": 0.95}
         if style_key == "brooks_tr4_daily_tr_fade":
@@ -1022,7 +1045,7 @@ class SimExchange:
         if style_key == "brooks_climax_reversal":
             return {"tp1_r": 1.0, "tp2_r": 1.8, "protect1_r": 0.2, "protect2_r": 0.9, "trail_r": 0.75}
         if style_key == "brooks_swing":
-            return {"tp1_r": 2.0, "tp2_r": 3.0, "protect1_r": 1.0, "protect2_r": 2.0, "trail_r": 1.25}
+            return {"tp1_r": 1.0, "tp2_r": 2.0, "protect1_r": 0.15, "protect2_r": 1.0, "trail_r": 1.0}
         if style_key == "brooks_breakout":
             return {"tp1_r": 2.0, "tp2_r": 3.5, "protect1_r": 0.8, "protect2_r": 2.0, "trail_r": 1.4}
         return None
@@ -1178,6 +1201,28 @@ class SimExchange:
             return max(trade.stop_loss, candidate)
         candidate = min(floor_price, trade.best_price + risk * trail_multiple)
         return min(trade.stop_loss, candidate)
+
+    def _structure_stop_from_market(
+        self,
+        trade: Trade,
+        candle,
+        market_data: dict | None,
+        *,
+        min_profit_r: float,
+    ) -> float:
+        """趋势恢复优先用 Major HL/LH 保护利润。"""
+        if not market_data or self._profit_in_r(trade, candle.close) < min_profit_r:
+            return 0.0
+        ab_sr = market_data.get("ab_sr", {}) if isinstance(market_data, dict) else {}
+        major_hl = float((ab_sr or {}).get("major_hl") or 0.0)
+        major_lh = float((ab_sr or {}).get("major_lh") or 0.0)
+        if trade.direction == "BUY":
+            if major_hl > trade.stop_loss and major_hl < candle.close:
+                return major_hl
+            return 0.0
+        if major_lh < trade.stop_loss and major_lh > candle.close:
+            return major_lh
+        return 0.0
 
     def _realize_partial(self, trade: Trade, exit_price: float, size_fraction: float) -> None:
         """按固定比例做部分止盈。"""

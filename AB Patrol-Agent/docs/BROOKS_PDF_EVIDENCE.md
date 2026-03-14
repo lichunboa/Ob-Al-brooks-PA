@@ -340,3 +340,75 @@
   - 环境真变坏：再退出
 
 ![趋势尊重主要回调，但前提变化时退出](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_premise_exit-2621.png)
+
+## 19. 紧密通道里可以随时买，但更好的位置通常是 PB，而不是硬追 BO
+
+来源：
+
+- `Categories 分类/Al brooks/价格行为学/43D How to buy a Tight Bull Channel...md`
+
+结论：
+
+- Brooks 在页图里直接写了：
+  - `OK to Buy Any Time`
+  - `But Better to Buy PB Than BO`
+  - `Must be able to manage during PB`
+- 这几句对趋势恢复族非常关键：
+  - `高1 / 高2 / 突破回调` 不能统一按“追突破成功后一直拿 swing”来管
+  - 如果买的是通道里的 PB，就必须准备在 PB 延长时把交易降级、保本或重组
+
+![紧密通道里更好的位置通常是 PB](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_tbc_buy_pb_manage-043d-05.png)
+
+## 20. 趋势恢复族至少要预先计划 1x Actual Risk 的利润兑现
+
+来源：
+
+- `Categories 分类/Al brooks/价格行为学/43D How to buy a Tight Bull Channel...md`
+
+结论：
+
+- Brooks 在页图里直接写了：
+  - `minimum profit target is 1x Actual Risk`
+  - `many traders take 1st profit at 1x Initial Risk`
+- 这说明趋势恢复族默认的第一目标不应一律拖到 `2R`
+- 更符合 Brooks 的做法是：
+  - 第一部分先在 `1x actual/initial risk` 附近兑现
+  - 再看是否保留余仓去冲更远目标
+
+![趋势恢复族的最小利润目标是 1x actual risk](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_tbc_first_profit_1x-043d-09.png)
+
+## 21. 最小利润并不总是最佳，但可以先 scalp 一部分，再 swing 余仓
+
+来源：
+
+- `Categories 分类/Al brooks/价格行为学/43D How to buy a Tight Bull Channel...md`
+
+结论：
+
+- Brooks 在页图里直接写了：
+  - `Good math to scalp part at 1x or 2x`
+  - `and swing the rest`
+- 这恰好对应趋势恢复族应该采用的组合动作：
+  - 先部分止盈
+  - 再把余仓交给结构 trailing / significant resistance
+- 它不是“只拿 scalp”，也不是“全仓死拿 swing”
+
+![趋势恢复族可以先 scalp 一部分，再 swing 余仓](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/advanced_tbc_partial_1x2x-043d-10.png)
+
+## 22. H1/H2 的止损会随着新的 Major HL 形成而上移
+
+来源：
+
+- `Categories 分类/Al brooks/价格行为学/09A What is Pullbacks and bar counting...md`
+
+结论：
+
+- Brooks 在这组图和旁注里明确强调：
+  - `High 1 might be 1st of 2-3 legs down`
+  - 第二个 PB 的 H1/H2 出现后，`stop loss` 要移到前一个更重要的 HL
+- 这说明趋势恢复族不能只靠“固定 R 倍数 trailing”
+- 更符合 Brooks 的做法是：
+  - 一旦新的 `Major HL / LH` 形成，就优先让结构位接管保护
+  - 避免把已经证明过的 PB 再吐回成满损
+
+![H1/H2 出现新 Major HL 后要移动止损](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/assets/brooks_refs/basic_h1_move_stop_major_hl-09a-17.png)

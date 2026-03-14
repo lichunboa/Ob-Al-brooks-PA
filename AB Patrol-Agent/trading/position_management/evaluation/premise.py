@@ -80,9 +80,21 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
         "brooks_s1_htf_sr_reversal",
         "brooks_s2_micro_channel",
     }
+    trend_recovery_styles = {
+        "brooks_swing",
+        "brooks_t4_wedge_pullback",
+    }
     is_reversal_style = management_style in reversal_styles
-    # 反转/区间 setup 本来就允许更深的回踩，不能用统一固定百分比过早否定。
-    signal_buffer = max(initial_risk * (0.50 if is_reversal_style else 0.25), signal_price * 0.001)
+    is_trend_recovery_style = management_style in trend_recovery_styles
+    # 趋势恢复 setup 经常会经历更深的测试，尤其 H1 可能只是更大 PB 的第一腿。
+    # 因此不能把“跌破信号棒极值一点点”直接当成彻底无效。
+    if is_reversal_style:
+        buffer_ratio = 0.50
+    elif is_trend_recovery_style:
+        buffer_ratio = 0.40
+    else:
+        buffer_ratio = 0.25
+    signal_buffer = max(initial_risk * buffer_ratio, signal_price * 0.001)
 
     signal_valid = True
     if side == "BUY":
@@ -199,8 +211,14 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
         return {
             "valid": False,
             "checks": checks,
-            "action": "REDUCE" if is_reversal_style else "CLOSE",
-            "reason": "信号 K 线被深度测试，先转保护性管理" if is_reversal_style else "信号 K 线被否定",
+            "action": "REDUCE" if (is_reversal_style or is_trend_recovery_style) else "CLOSE",
+            "reason": (
+                "信号 K 线被深度测试，先转保护性管理"
+                if is_reversal_style
+                else "趋势恢复单被深测，先降级为保护性 scalp"
+                if is_trend_recovery_style
+                else "信号 K 线被否定"
+            ),
         }
 
     if not checks["target_path"]["pass"]:
