@@ -181,6 +181,49 @@ class SimExchange:
             return 8, 0.12
         return 6, 0.10
 
+    @staticmethod
+    def _protective_detail_plan(detail: str) -> dict[str, float]:
+        """把 Brooks 的保护性 scalp 细分成更明确的动作计划。"""
+        if detail == "channel_to_tr":
+            return {
+                "stale_bars": 2.0,
+                "force_exit_bars": 5.0,
+                "profit_exit_r": 0.12,
+                "loss_exit_r": 0.02,
+                "extra_partial_r": 0.25,
+                "extra_partial_fraction": 0.25,
+                "protect_r": 0.05,
+            }
+        if detail == "first_entry_be":
+            return {
+                "stale_bars": 2.0,
+                "force_exit_bars": 6.0,
+                "profit_exit_r": 0.08,
+                "loss_exit_r": 0.01,
+                "extra_partial_r": 0.35,
+                "extra_partial_fraction": 0.15,
+                "protect_r": 0.0,
+            }
+        if detail == "second_entry_profit":
+            return {
+                "stale_bars": 3.0,
+                "force_exit_bars": 8.0,
+                "profit_exit_r": 0.18,
+                "loss_exit_r": 0.05,
+                "extra_partial_r": 0.60,
+                "extra_partial_fraction": 0.15,
+                "protect_r": 0.12,
+            }
+        return {
+            "stale_bars": 3.0,
+            "force_exit_bars": 6.0,
+            "profit_exit_r": 0.10,
+            "loss_exit_r": 0.02,
+            "extra_partial_r": 0.40,
+            "extra_partial_fraction": 0.15,
+            "protect_r": 0.0,
+        }
+
     def place_order(self, signal, score: int, background: str):
         """
         接收信号并开仓
@@ -265,6 +308,9 @@ class SimExchange:
 
             if not closed and market_data:
                 closed = self._apply_runtime_management(trade, candle, market_data)
+
+            if not closed and trade.management_state == "protective_scalp":
+                closed = self._manage_protective_scalp(trade, candle, market_data)
 
             # 僵尸单: 只抓“长时间没有推进、回到保本附近”的死钱交易。
             # 先降级成保护性 scalp；如果仍然毫无推进，再真正退出。
@@ -1157,6 +1203,20 @@ class SimExchange:
         if trade.tp2_done and trade.remaining_size > 0:
             self._update_stop_loss(trade, self._trail_stop(trade, plan["trail_r"], plan["protect2_r"]))
 
+        if style_key == "brooks_mtr_reversal" and trade.tp1_done and trade.remaining_size > 0:
+            # MTR 本来就允许 2R 兑现；一旦兑现后没有继续形成顺畅延续，
+            # 余仓应更快转成保护利润，而不是重新把优势吐回去。
+            if bars_without_progress >= max(2, int(2 * TF_SCALE.get(trade.timeframe, 1))):
+                self._update_stop_loss(trade, self._protective_stop(trade, 0.35))
+                if (
+                    profit_r >= 2.2
+                    and not trade.tp2_done
+                    and trade.remaining_size > 0.30
+                ):
+                    self._realize_partial(trade, candle.close, 0.15)
+                    trade.tp2_done = True
+                    self._update_stop_loss(trade, self._protective_stop(trade, 0.60))
+
     @staticmethod
     def _management_plan(management_style: str) -> dict[str, float] | None:
         """不同 Brooks 管理模板的分批参数。"""
@@ -1263,6 +1323,62 @@ class SimExchange:
         if current <= 0 or candidate > current:
             self._update_take_profit(trade, candidate)
 
+    def _manage_protective_scalp(self, trade: Trade, candle, market_data: dict | None) -> bool:
+        """对保护性 scalp 进行更细的 Brooks 式管理。"""
+        detail = str(trade.management_reason_detail or "")
+        if not detail:
+            return False
+        scale = TF_SCALE.get(trade.timeframe, 1)
+        profit_r = self._profit_in_r(trade, candle.close)
+        best_r = self._profit_in_r(trade, trade.best_price or trade.entry_price)
+        bars_without_progress = max(0, trade.bars_held - int(trade.best_price_bar or 0))
+        bars_in_state = max(0, trade.bars_held - int(trade.management_state_bar or 0))
+        plan = self._protective_detail_plan(detail)
+
+        stale_bars = max(int(plan["stale_bars"] * scale), 1)
+        force_exit_bars = max(int(plan["force_exit_bars"] * scale), stale_bars + 1)
+        profit_exit_r = float(plan["profit_exit_r"])
+        loss_exit_r = float(plan["loss_exit_r"])
+        extra_partial_r = float(plan["extra_partial_r"])
+        extra_partial_fraction = float(plan["extra_partial_fraction"])
+        protect_r = float(plan["protect_r"])
+
+        if (
+            profit_r >= extra_partial_r
+            and bars_without_progress >= stale_bars
+            and trade.remaining_size > 0.35
+        ):
+            self._realize_partial(trade, candle.close, extra_partial_fraction)
+            self._update_stop_loss(trade, self._protective_stop(trade, protect_r))
+
+        if (
+            bars_without_progress >= stale_bars
+            and profit_r >= profit_exit_r
+            and best_r >= max(profit_exit_r, extra_partial_r)
+        ):
+            self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+            return True
+
+        if (
+            bars_in_state >= force_exit_bars
+            and bars_without_progress >= stale_bars
+            and profit_r < loss_exit_r
+        ):
+            exit_reason = str(trade.management_reason or "PREMISE")
+            self._close_trade(trade, candle.close, exit_reason, candle.timestamp)
+            return True
+
+        if detail == "channel_to_tr":
+            structure_stop = self._structure_stop_from_market(
+                trade,
+                candle,
+                market_data,
+                min_profit_r=0.20,
+            )
+            if structure_stop > 0:
+                self._update_stop_loss(trade, structure_stop)
+        return False
+
     def _activate_protective_scalp(
         self,
         trade: Trade,
@@ -1295,6 +1411,7 @@ class SimExchange:
         trade.management_state = "protective_scalp"
         trade.management_reason = reason
         trade.management_reason_detail = detail
+        trade.management_state_bar = trade.bars_held
 
     @staticmethod
     def _zombie_best_r_threshold(style_key: str) -> tuple[float, float]:

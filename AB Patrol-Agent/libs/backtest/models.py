@@ -161,6 +161,7 @@ class Trade:
     management_state: str = "normal"
     management_reason: str = ""
     management_reason_detail: str = ""
+    management_state_bar: int = 0
     best_price: float = 0.0
     best_price_bar: int = 0
     worst_price: float = 0.0
