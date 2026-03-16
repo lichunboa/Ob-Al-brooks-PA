@@ -1481,6 +1481,59 @@ class BacktestRunner:
             return "bear"
         return "neutral"
 
+    @staticmethod
+    def _market_cost_profile(symbol: str) -> str:
+        """按品种粗分回测成本模型。"""
+        key = str(symbol or "").strip().upper()
+        if key.endswith("USDT") or key.endswith("-USDT-SWAP") or key.endswith("USDTPERP"):
+            return "crypto_futures"
+        if key in {"XAUUSD", "XAGUSD"}:
+            return "metals_cfd"
+        if key.startswith("US ") or "TECH" in key or "NAS" in key or "SPX" in key:
+            return "index_cfd"
+        return "forex_cfd"
+
+    @staticmethod
+    def _estimated_round_trip_cost_rate(symbol: str, *, entry_type: str = "STOP") -> float:
+        """估算从入场到第一目标兑现的往返成本率。"""
+        profile = BacktestRunner._market_cost_profile(symbol)
+        order_type = str(entry_type or "STOP").upper()
+        if profile == "crypto_futures":
+            maker_rate = 0.00022
+            taker_rate = 0.00048
+        elif profile == "forex_cfd":
+            maker_rate = 0.00003
+            taker_rate = 0.00007
+        elif profile == "metals_cfd":
+            maker_rate = 0.00006
+            taker_rate = 0.00012
+        else:
+            maker_rate = 0.00007
+            taker_rate = 0.00013
+        entry_rate = maker_rate if order_type == "LIMIT" else taker_rate
+        exit_rate = maker_rate
+        return entry_rate + exit_rate
+
+    @staticmethod
+    def _minimum_net_target_distance_r(
+        symbol: str,
+        entry_price: float,
+        actual_risk: float,
+        *,
+        entry_type: str = "STOP",
+        target_buffer: float = 0.0,
+    ) -> float:
+        """把往返成本换算成最小净目标距离（R）。"""
+        if entry_price <= 0 or actual_risk <= 0:
+            return 0.0
+        round_trip_cost = entry_price * BacktestRunner._estimated_round_trip_cost_rate(
+            symbol,
+            entry_type=entry_type,
+        )
+        cost_r = round_trip_cost / actual_risk
+        buffer_r = abs(float(target_buffer or 0.0)) / actual_risk
+        return cost_r + max(buffer_r, cost_r * 0.15)
+
     def _build_management_snapshot(self, replay, symbol: str, candle) -> dict:
         """给持仓管理构造当前 symbol 的轻量级结构快照。"""
         candles_5m = replay.get_candles(symbol, "5m", limit=80)
@@ -2267,6 +2320,17 @@ class BacktestRunner:
         gap_context = extra.get("gap_context") if isinstance(extra.get("gap_context"), dict) else {}
         stairs_pattern = bool(gap_context.get("stairs_pattern", False))
         exhaustion_detected = bool(gap_context.get("exhaustion_detected", False))
+        setup_valid = bool(extra.get("setup_valid", True))
+        setup_clear_trend_leg = bool(extra.get("setup_clear_trend_leg", True))
+        setup_first_pullback_shape = bool(extra.get("setup_first_pullback_shape", True))
+        setup_still_trend_side = bool(extra.get("setup_still_trend_side", False))
+        setup_pullback_depth_ratio = float(extra.get("setup_pullback_depth_ratio", 0.0) or 0.0)
+        setup_pullback_overlap_ratio = float(extra.get("setup_pullback_overlap_ratio", 0.0) or 0.0)
+        first_target_distance_r = float(extra.get("first_target_distance_r", 0.0) or 0.0)
+        target_buffer = float(extra.get("target_buffer", 0.0) or 0.0)
+        actual_risk = float(extra.get("actual_risk", 0.0) or 0.0)
+        symbol = str(getattr(event, "symbol", "") or "")
+        entry_price = float(getattr(event, "entry_trigger", 0.0) or getattr(event, "price", 0.0) or 0.0)
         signal_rank = 0
         if signal_type in {"高1", "低1"}:
             signal_rank = 1
@@ -2316,6 +2380,47 @@ class BacktestRunner:
             reversal_evidence
             or h2_l2_context_ready
         )
+        weak_h1_l1_setup = (
+            signal_type in {"高1", "低1"}
+            and (
+                not setup_valid
+                or not setup_clear_trend_leg
+                or not setup_first_pullback_shape
+                or setup_pullback_depth_ratio >= 0.75
+                or setup_pullback_overlap_ratio >= 0.60
+            )
+        )
+        weak_h1_l1_tr_context = (
+            market_state in {"tight_range", "broad_range", "bc", "weak_trend_bull", "weak_trend_bear"}
+            or higher_market_state in {"tight_range", "broad_range", "weak_trend_bull", "weak_trend_bear"}
+            or prior_leg_context in {"tr_second_leg", "tr_recovery"}
+        )
+        weak_h1_l1_style = normalize_management_style(
+            classify_management_style(
+                signal_type,
+                "brooks_pdf",
+                market_state=market_state,
+                higher_market_state=higher_market_state,
+                timeframe=str(getattr(event, "timeframe", "") or ""),
+                entry_type=entry_type,
+                route_style=str(extra.get("route_style", "") or ""),
+                playbook_id=playbook_id,
+                setup_valid=setup_valid,
+                setup_clear_trend_leg=setup_clear_trend_leg,
+                setup_first_pullback_shape=setup_first_pullback_shape,
+                setup_pullback_depth_ratio=setup_pullback_depth_ratio,
+                setup_pullback_overlap_ratio=setup_pullback_overlap_ratio,
+            )
+        )
+        weak_h1_l1_tlb_only = (
+            weak_h1_l1_setup
+            and weak_h1_l1_tr_context
+            and trendline_break_confirmed
+            and not follow_through
+            and not higher_follow_through
+            and not acceptance_ready
+            and not reclaimed_prior_close
+        )
         endless_pullback_ready = (
             trendline_break_confirmed
             or reversal_evidence
@@ -2356,6 +2461,52 @@ class BacktestRunner:
                 and not (tradeable_zone and signal_bar_quality >= 0.56)
             ):
                 return block("candidate", "第一次信号尚未完成接受，继续等 H2/L2 或二次确认")
+            if (
+                weak_h1_l1_setup
+                and weak_h1_l1_style in {"brooks_tr_blshs", "brooks_scalp"}
+                and weak_h1_l1_tr_context
+                and not follow_through
+                and not higher_follow_through
+            ):
+                min_target_r = BacktestRunner._minimum_net_target_distance_r(
+                    symbol,
+                    entry_price,
+                    actual_risk,
+                    entry_type=entry_type,
+                    target_buffer=target_buffer,
+                )
+                extra["weak_h1_l1_min_target_r"] = min_target_r
+
+                extreme_wrong_half = (
+                    not tradeable_zone
+                    and not setup_still_trend_side
+                    and setup_pullback_overlap_ratio >= 0.55
+                    and setup_pullback_depth_ratio >= 0.80
+                    and (not trendline_break_confirmed or weak_h1_l1_tlb_only)
+                )
+                too_close_after_cost = (
+                    first_target_distance_r > 0
+                    and min_target_r > 0
+                    and first_target_distance_r < min_target_r
+                    and (not trendline_break_confirmed or weak_h1_l1_tlb_only)
+                )
+
+                if extreme_wrong_half and too_close_after_cost:
+                    extra["weak_h1_l1_disposition"] = "fade_candidate"
+                    return block("candidate", "弱 H1/L1 处在 TR/弱趋势错误半区，且净目标不足，更像 fade/no-trade")
+
+                if too_close_after_cost:
+                    extra["weak_h1_l1_disposition"] = "no_trade_too_close"
+                    return block(
+                        "candidate",
+                        (
+                            f"弱 H1/L1 第一目标仅 {first_target_distance_r:.2f}R，"
+                            f"低于覆盖成本所需的 {min_target_r:.2f}R"
+                        ),
+                    )
+
+                extra["weak_h1_l1_disposition"] = "scalp_only"
+                extra["management_style_override"] = weak_h1_l1_style
 
         if signal_type == "第二腿陷阱":
             if prior_leg_context not in {"tr_second_leg", "tr_leg"}:
@@ -2527,22 +2678,26 @@ class BacktestRunner:
             return False
 
         extra = dict(getattr(event, "extra", {}) or {})
-        style = classify_management_style(
-            event.signal_type,
-            management_profile,
-            market_state=str(extra.get("market_state", "") or ""),
-            higher_market_state=str(extra.get("higher_market_state", "") or ""),
-            timeframe=str(getattr(event, "timeframe", "") or ""),
-            entry_type=str(getattr(event, "entry_type", "STOP") or "STOP"),
-            route_style=str(extra.get("route_style", "") or ""),
-            playbook_id=str(extra.get("playbook_id", "") or ""),
-            setup_valid=bool(extra.get("setup_valid", True)),
-            setup_clear_trend_leg=bool(extra.get("setup_clear_trend_leg", True)),
-            setup_first_pullback_shape=bool(extra.get("setup_first_pullback_shape", True)),
-            setup_pullback_depth_ratio=float(extra.get("setup_pullback_depth_ratio", 0.0) or 0.0),
-            setup_pullback_overlap_ratio=float(extra.get("setup_pullback_overlap_ratio", 0.0) or 0.0),
-        )
-        style = normalize_management_style(style)
+        override_style = str(extra.get("management_style_override", "") or "")
+        if override_style:
+            style = normalize_management_style(override_style)
+        else:
+            style = classify_management_style(
+                event.signal_type,
+                management_profile,
+                market_state=str(extra.get("market_state", "") or ""),
+                higher_market_state=str(extra.get("higher_market_state", "") or ""),
+                timeframe=str(getattr(event, "timeframe", "") or ""),
+                entry_type=str(getattr(event, "entry_type", "STOP") or "STOP"),
+                route_style=str(extra.get("route_style", "") or ""),
+                playbook_id=str(extra.get("playbook_id", "") or ""),
+                setup_valid=bool(extra.get("setup_valid", True)),
+                setup_clear_trend_leg=bool(extra.get("setup_clear_trend_leg", True)),
+                setup_first_pullback_shape=bool(extra.get("setup_first_pullback_shape", True)),
+                setup_pullback_depth_ratio=float(extra.get("setup_pullback_depth_ratio", 0.0) or 0.0),
+                setup_pullback_overlap_ratio=float(extra.get("setup_pullback_overlap_ratio", 0.0) or 0.0),
+            )
+            style = normalize_management_style(style)
         extra = dict(getattr(event, "extra", {}) or {})
         extra["management_style"] = style
         extra["management_profile"] = management_profile
