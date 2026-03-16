@@ -160,6 +160,9 @@ class Trade:
     magnet_cluster_strength: float = 0.0
     signal_stage: str = ""
     signal_stage_reason: str = ""
+    weak_h1_l1_disposition: str = ""
+    executed_as_fade: bool = False
+    fade_source_signal: str = ""
     intent: str = ""
     risk_percent: float = 0.0
     scale_legs: int = 1
@@ -297,6 +300,9 @@ class PendingOrder:
     magnet_cluster_strength: float = 0.0
     signal_stage: str = ""
     signal_stage_reason: str = ""
+    weak_h1_l1_disposition: str = ""
+    executed_as_fade: bool = False
+    fade_source_signal: str = ""
     intent: str = ""
     risk_percent: float = 0.0
     original_entry_price: float = 0.0

@@ -253,49 +253,49 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         if direction == "BUY":
             directional_bar = CandlePatterns.is_bull(signal_bar)
-            close_near_extreme_strong = close_position >= 0.56
-            close_near_extreme_soft = close_position >= 0.46
+            close_near_extreme_strong = close_position >= 0.54
+            close_near_extreme_soft = close_position >= 0.43
             good_tail_ratio = lower_tail_ratio
             bad_tail_ratio = upper_tail_ratio
-            trend_bar = directional_bar and body_ratio >= 0.34 and close_position >= 0.52 and bad_tail_ratio <= 0.40
-            reversal_bar = directional_bar and close_position >= 0.46 and good_tail_ratio >= 0.14 and bad_tail_ratio <= 0.42
-            inside_signal = inside_bar and directional_bar and close_position >= 0.48 and body_ratio >= 0.12 and bad_tail_ratio <= 0.42
+            trend_bar = directional_bar and body_ratio >= 0.30 and close_position >= 0.50 and bad_tail_ratio <= 0.44
+            reversal_bar = directional_bar and close_position >= 0.44 and good_tail_ratio >= 0.10 and bad_tail_ratio <= 0.44
+            inside_signal = inside_bar and directional_bar and close_position >= 0.46 and body_ratio >= 0.08 and bad_tail_ratio <= 0.44
             ema_recovery = (
                 directional_bar
                 and float(signal_bar.low) <= float(ema_value)
                 and float(signal_bar.close) >= float(ema_value)
-                and close_position >= 0.45
-                and bad_tail_ratio <= 0.42
+                and close_position >= 0.42
+                and bad_tail_ratio <= 0.45
             )
             outside_follow = (
                 outside_bar
                 and directional_bar
-                and close_position >= 0.50
-                and body_ratio >= 0.24
-                and bad_tail_ratio <= 0.30
+                and close_position >= 0.48
+                and body_ratio >= 0.20
+                and bad_tail_ratio <= 0.34
             )
         else:
             directional_bar = CandlePatterns.is_bear(signal_bar)
-            close_near_extreme_strong = close_position <= 0.44
-            close_near_extreme_soft = close_position <= 0.54
+            close_near_extreme_strong = close_position <= 0.46
+            close_near_extreme_soft = close_position <= 0.57
             good_tail_ratio = upper_tail_ratio
             bad_tail_ratio = lower_tail_ratio
-            trend_bar = directional_bar and body_ratio >= 0.34 and close_position <= 0.48 and bad_tail_ratio <= 0.40
-            reversal_bar = directional_bar and close_position <= 0.54 and good_tail_ratio >= 0.14 and bad_tail_ratio <= 0.42
-            inside_signal = inside_bar and directional_bar and close_position <= 0.52 and body_ratio >= 0.12 and bad_tail_ratio <= 0.42
+            trend_bar = directional_bar and body_ratio >= 0.30 and close_position <= 0.50 and bad_tail_ratio <= 0.44
+            reversal_bar = directional_bar and close_position <= 0.56 and good_tail_ratio >= 0.10 and bad_tail_ratio <= 0.44
+            inside_signal = inside_bar and directional_bar and close_position <= 0.54 and body_ratio >= 0.08 and bad_tail_ratio <= 0.44
             ema_recovery = (
                 directional_bar
                 and float(signal_bar.high) >= float(ema_value)
                 and float(signal_bar.close) <= float(ema_value)
-                and close_position <= 0.55
-                and bad_tail_ratio <= 0.42
+                and close_position <= 0.58
+                and bad_tail_ratio <= 0.45
             )
             outside_follow = (
                 outside_bar
                 and directional_bar
-                and close_position <= 0.50
-                and body_ratio >= 0.24
-                and bad_tail_ratio <= 0.30
+                and close_position <= 0.52
+                and body_ratio >= 0.20
+                and bad_tail_ratio <= 0.34
             )
 
         signal_type = "weak"
@@ -312,14 +312,15 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         valid_signal_bar = bool(
             directional_bar
-            and signal_type != "weak"
-            and bad_tail_ratio <= 0.45
+            and (signal_type != "weak" or (body_ratio >= 0.18 and bad_tail_ratio <= 0.32 and close_near_extreme_soft))
+            and bad_tail_ratio <= 0.48
             and (
                 close_near_extreme_soft
-                or good_tail_ratio >= 0.18
+                or good_tail_ratio >= 0.14
                 or ema_recovery
                 or outside_follow
                 or inside_signal
+                or body_ratio >= 0.28
             )
         )
 

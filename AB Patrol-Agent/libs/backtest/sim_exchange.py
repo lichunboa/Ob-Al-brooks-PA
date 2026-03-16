@@ -901,6 +901,9 @@ class SimExchange:
             magnet_cluster_strength=float(extra.get("magnet_cluster_strength", 0.0) or 0.0),
             signal_stage=str(extra.get("signal_stage", "") or ""),
             signal_stage_reason=str(extra.get("signal_stage_reason", "") or ""),
+            weak_h1_l1_disposition=str(extra.get("weak_h1_l1_disposition", "") or ""),
+            executed_as_fade=bool(extra.get("executed_as_fade", False)),
+            fade_source_signal=str(extra.get("fade_source_signal", "") or ""),
             intent=self._signal_intent(signal),
             risk_percent=self._signal_risk_percent(signal),
             original_entry_price=original_entry,
@@ -1038,6 +1041,9 @@ class SimExchange:
             magnet_cluster_strength=float(extra.get("magnet_cluster_strength", 0.0) or 0.0),
             signal_stage=str(extra.get("signal_stage", "") or ""),
             signal_stage_reason=str(extra.get("signal_stage_reason", "") or ""),
+            weak_h1_l1_disposition=str(extra.get("weak_h1_l1_disposition", "") or ""),
+            executed_as_fade=bool(extra.get("executed_as_fade", False)),
+            fade_source_signal=str(extra.get("fade_source_signal", "") or ""),
             intent=self._signal_intent(signal),
             risk_percent=self._signal_risk_percent(signal),
             original_entry_price=float(extra.get("original_entry_price", entry_price) or entry_price),
@@ -1433,6 +1439,9 @@ class SimExchange:
                     "runner_handoff_stop_type": order.runner_handoff_stop_type,
                     "signal_stage": order.signal_stage,
                     "signal_stage_reason": order.signal_stage_reason,
+                    "weak_h1_l1_disposition": order.weak_h1_l1_disposition,
+                    "executed_as_fade": order.executed_as_fade,
+                    "fade_source_signal": order.fade_source_signal,
                     "original_entry_price": order.original_entry_price,
                     "reentry_attempt": order.reentry_attempt,
                     "risk_percent": order.risk_percent,
@@ -1763,6 +1772,14 @@ class SimExchange:
             return (price - trade.entry_price) / risk
         return (trade.entry_price - price) / risk
 
+    def _adverse_excursion_r(self, trade: Trade) -> float:
+        """用最不利价格估算已经经历过的反向 excursion。"""
+        risk = max(trade.initial_risk, 1e-9)
+        worst_price = float(trade.worst_price or trade.entry_price)
+        if trade.direction == "BUY":
+            return max(0.0, (trade.entry_price - worst_price) / risk)
+        return max(0.0, (worst_price - trade.entry_price) / risk)
+
     def _protective_target_r(self, trade: Trade, default_r: float = 1.0) -> float:
         """前提转弱后，把余仓目标收回到更符合 Brooks 的保护性 scalp 目标。"""
         style_key = self._style_key(trade.management_style)
@@ -1860,6 +1877,24 @@ class SimExchange:
             and not tr_context
         )
         weak_first_entry = self._weak_first_entry_structure(trade)
+        adverse_r = self._adverse_excursion_r(trade)
+
+        if (
+            trade.first_entry_signal
+            and trade.prefer_lower_entry_be_rescue
+            and trade.disappointed_bull_bear_mode
+            and detail in {"first_entry_be", "channel_to_tr", "tr_scalp_protect"}
+        ):
+            rescue_context = tr_context or not strong_follow or weak_first_entry
+            recovered_to_entry = profit_r >= -0.03
+            if rescue_context and adverse_r >= 0.30 and recovered_to_entry:
+                self._update_stop_loss(trade, self._protective_stop(trade, 0.0))
+                if profit_r >= 0.08:
+                    self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                    return True
+                if bars_in_state >= max(1, stale_bars - 1) and profit_r >= -0.01:
+                    self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                    return True
 
         # Brooks: first entry 失败更像 scratch；通道退化成 TR 更像把 swing 降成小 scalp。
         # 这两类都不该继续拖到保护性止损去决定结果。

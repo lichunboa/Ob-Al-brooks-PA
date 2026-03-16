@@ -400,8 +400,28 @@ class BacktestRunner:
                 self._attach_daily_playbook_context(event, replay)
                 self._apply_entry_route_adjustments(event, market_state, higher_market_state, candles_q)
                 self._attach_structure_context(event, candles_q, replay)
+                pre_route_allowed, pre_route_rerouted = self._prepare_h1_l1_pre_route_disposition(
+                    event,
+                    candles_q,
+                    replay,
+                    market_state,
+                    higher_market_state,
+                    management_profile=management_profile,
+                )
+                if not pre_route_allowed:
+                    reason = str((getattr(event, "extra", {}) or {}).get("signal_stage_reason", "") or "弱 H1/L1 不可执行")
+                    self._signals_blocked_rr += 1
+                    self._entry_block_reasons[reason] += 1
+                    self._entry_block_by_strategy[str(event.signal_type or "UNKNOWN")][reason] += 1
+                    continue
                 self._attach_htf_sr_context(event)
                 self._attach_playbook_context(event, market_state, higher_market_state)
+                if pre_route_rerouted:
+                    extra = dict(getattr(event, "extra", {}) or {})
+                    extra["playbook_id"] = "TR2_FAILED_BO_FADE"
+                    extra["playbook_family"] = "tr_fade"
+                    extra["order_bias"] = "fade"
+                    event.extra = extra
                 extra = dict(getattr(event, "extra", {}) or {})
                 extra["background_label"] = self._compose_background_label(extra)
                 event.extra = extra
@@ -1767,6 +1787,258 @@ class BacktestRunner:
         event.extra = extra
 
     @staticmethod
+    def _weak_h1_l1_disposition_profile(event, management_profile: str) -> dict[str, object]:
+        """把弱 H1/L1 的分流条件前移，便于在路由前决定 no-trade / scalp / fade。"""
+        extra = dict(getattr(event, "extra", {}) or {})
+        signal_type = str(getattr(event, "signal_type", "") or "")
+        if signal_type not in {"高1", "低1"}:
+            return {"active": False}
+
+        entry_type = str(getattr(event, "entry_type", "STOP") or "STOP").upper()
+        market_state = str(extra.get("market_state", "") or "")
+        higher_market_state = str(extra.get("higher_market_state", "") or "")
+        follow_through = bool(extra.get("follow_through", False))
+        higher_follow_through = bool(extra.get("higher_follow_through", False))
+        acceptance_ready = bool(extra.get("acceptance_ready", False))
+        reclaimed_prior_close = bool(extra.get("reclaimed_prior_close", False))
+        trendline_break_confirmed = bool(extra.get("trendline_break_confirmed", False))
+        playbook_id = str(extra.get("playbook_id", "") or "")
+        target_buffer = float(extra.get("target_buffer", 0.0) or 0.0)
+        actual_risk = float(extra.get("actual_risk", 0.0) or 0.0)
+        first_target_distance_r = float(extra.get("first_target_distance_r", 0.0) or 0.0)
+        prior_leg_context = str(extra.get("prior_leg_context", "") or "")
+        setup_valid = bool(extra.get("setup_valid", True))
+        setup_clear_trend_leg = bool(extra.get("setup_clear_trend_leg", True))
+        setup_first_pullback_shape = bool(extra.get("setup_first_pullback_shape", True))
+        setup_still_trend_side = bool(extra.get("setup_still_trend_side", False))
+        setup_pullback_depth_ratio = float(extra.get("setup_pullback_depth_ratio", 0.0) or 0.0)
+        setup_pullback_overlap_ratio = float(extra.get("setup_pullback_overlap_ratio", 0.0) or 0.0)
+        range_position = float(extra.get("range_position", 0.5) or 0.5)
+        range_edge = str(extra.get("range_edge", "") or "")
+        range_zone = str(extra.get("range_zone", "") or "")
+        direction = str(getattr(event, "direction", "") or "")
+        symbol = str(getattr(event, "symbol", "") or "")
+        entry_price = float(getattr(event, "entry_trigger", 0.0) or getattr(event, "price", 0.0) or 0.0)
+
+        tradeable_edge = (
+            BacktestRunner._range_edge_matches_direction(range_edge, direction)
+            or BacktestRunner._is_edge_zone(range_position, direction)
+        )
+        tradeable_zone = (
+            tradeable_edge
+            or BacktestRunner._range_zone_matches_direction(range_zone, direction, allow_origin=True)
+            or BacktestRunner._is_advantage_zone(range_position, direction)
+        )
+        weak_h1_l1_setup = (
+            (not setup_valid)
+            or (not setup_clear_trend_leg)
+            or (not setup_first_pullback_shape)
+            or setup_pullback_depth_ratio >= 0.75
+            or setup_pullback_overlap_ratio >= 0.60
+        )
+        weak_h1_l1_tr_context = (
+            market_state in {"tight_range", "broad_range", "bc", "weak_trend_bull", "weak_trend_bear"}
+            or higher_market_state in {"tight_range", "broad_range", "weak_trend_bull", "weak_trend_bear"}
+            or prior_leg_context in {"tr_second_leg", "tr_recovery"}
+        )
+        weak_h1_l1_style = normalize_management_style(
+            classify_management_style(
+                signal_type,
+                management_profile,
+                market_state=market_state,
+                higher_market_state=higher_market_state,
+                timeframe=str(getattr(event, "timeframe", "") or ""),
+                entry_type=entry_type,
+                route_style=str(extra.get("route_style", "") or ""),
+                playbook_id=playbook_id,
+                setup_valid=setup_valid,
+                setup_clear_trend_leg=setup_clear_trend_leg,
+                setup_first_pullback_shape=setup_first_pullback_shape,
+                setup_pullback_depth_ratio=setup_pullback_depth_ratio,
+                setup_pullback_overlap_ratio=setup_pullback_overlap_ratio,
+            )
+        )
+        weak_h1_l1_tlb_only = (
+            weak_h1_l1_setup
+            and weak_h1_l1_tr_context
+            and trendline_break_confirmed
+            and not follow_through
+            and not higher_follow_through
+            and not acceptance_ready
+            and not reclaimed_prior_close
+        )
+        min_target_r = BacktestRunner._minimum_net_target_distance_r(
+            symbol,
+            entry_price,
+            actual_risk,
+            entry_type=entry_type,
+            target_buffer=target_buffer,
+        )
+        extreme_wrong_half = (
+            not tradeable_zone
+            and not setup_still_trend_side
+            and setup_pullback_overlap_ratio >= 0.55
+            and setup_pullback_depth_ratio >= 0.80
+            and (not trendline_break_confirmed or weak_h1_l1_tlb_only)
+        )
+        too_close_after_cost = (
+            first_target_distance_r > 0
+            and min_target_r > 0
+            and first_target_distance_r < min_target_r
+            and (not trendline_break_confirmed or weak_h1_l1_tlb_only)
+        )
+
+        active = bool(
+            weak_h1_l1_setup
+            and weak_h1_l1_style in {"brooks_tr_blshs", "brooks_scalp"}
+            and weak_h1_l1_tr_context
+            and not follow_through
+            and not higher_follow_through
+        )
+        disposition = ""
+        if active:
+            if extreme_wrong_half and too_close_after_cost:
+                disposition = "fade_candidate"
+            elif too_close_after_cost:
+                disposition = "no_trade_too_close"
+            else:
+                disposition = "scalp_only"
+
+        return {
+            "active": active,
+            "disposition": disposition,
+            "style": weak_h1_l1_style,
+            "min_target_r": min_target_r,
+            "extreme_wrong_half": extreme_wrong_half,
+            "too_close_after_cost": too_close_after_cost,
+        }
+
+    @staticmethod
+    def _weak_h1_l1_fade_target(event, candles_q) -> tuple[float, float]:
+        """给弱 H1/L1 反做生成保守的 scalp 目标和缓冲。"""
+        signal_bar = candles_q[-1]
+        signal_high = float(getattr(event, "signal_bar_high", 0.0) or float(signal_bar.high))
+        signal_low = float(getattr(event, "signal_bar_low", 0.0) or float(signal_bar.low))
+        bar_range = max(signal_high - signal_low, 1e-9)
+        reference_price = float(getattr(event, "price", 0.0) or float(signal_bar.close))
+        buffer = max(bar_range * 0.08, abs(reference_price) * 0.0001, 1e-9)
+        if str(getattr(event, "direction", "") or "") == "SELL":
+            target = max(signal_low + buffer, signal_low + bar_range * 0.18)
+            target = min(float(getattr(event, "price", reference_price) or reference_price) - buffer, target)
+        else:
+            target = min(signal_high - buffer, signal_high - bar_range * 0.18)
+            target = max(float(getattr(event, "price", reference_price) or reference_price) + buffer, target)
+        return float(target), float(buffer)
+
+    def _convert_weak_h1_l1_fade(self, event, candles_q) -> None:
+        """把弱 H1/L1 的错误半区 continuation 改成 Brooks 式 limit fade。"""
+        original_direction = str(getattr(event, "direction", "") or "")
+        if original_direction not in {"BUY", "SELL"} or not candles_q:
+            return
+        fade_direction = "SELL" if original_direction == "BUY" else "BUY"
+        extra = dict(getattr(event, "extra", {}) or {})
+        extra.update(
+            {
+                "weak_h1_l1_disposition": "fade_candidate",
+                "executed_as_fade": True,
+                "fade_source_signal": str(getattr(event, "signal_type", "") or ""),
+                "management_style_override": "brooks_scalp",
+                "management_template": "weak_h1_l1_fade",
+                "route_style": "weak_h1_l1_fade_limit",
+                "playbook_id": "TR2_FAILED_BO_FADE",
+                "playbook_family": "tr_fade",
+                "order_bias": "fade",
+                "first_entry_signal": False,
+                "first_profit_at_1x_actual_risk": False,
+                "allow_be_after_first_target": False,
+                "prefer_partial_over_full_swing": True,
+                "allow_small_runner": False,
+                "handoff_to_h2_l2_if_failed": False,
+                "prefer_lower_entry_be_rescue": False,
+                "first_target_is_close_test": False,
+                "disappointed_bull_bear_mode": False,
+                "exit_on_failed_follow_through": True,
+                "exit_on_return_to_range": True,
+                "exit_on_major_channel_break": False,
+            }
+        )
+        event.extra = extra
+        event.direction = fade_direction
+        self._convert_to_limit_order(
+            event,
+            candles_q,
+            route_style="weak_h1_l1_fade_limit",
+            inner_low=0.02,
+            inner_high=0.18,
+            stop_buffer=0.18,
+        )
+        fade_target, target_buffer = self._weak_h1_l1_fade_target(event, candles_q)
+        event.take_profit = fade_target
+        extra = dict(getattr(event, "extra", {}) or {})
+        extra.update(
+            {
+                "recommended_target": fade_target,
+                "first_target": fade_target,
+                "first_target_type": "fade_signal_bar_opposite",
+                "stretch_target": fade_target,
+                "stretch_target_type": "fade_signal_bar_opposite",
+                "target_buffer": target_buffer,
+                "signal_stage": "executable",
+                "signal_stage_reason": "弱 H1/L1 已降级成 limit fade 执行",
+            }
+        )
+        event.extra = extra
+
+    def _prepare_h1_l1_pre_route_disposition(
+        self,
+        event,
+        candles_q,
+        replay,
+        market_state,
+        higher_market_state,
+        *,
+        management_profile: str,
+    ) -> tuple[bool, bool]:
+        """在路由前先决定弱 H1/L1 是 no-trade、scalp 还是 fade。"""
+        profile = self._weak_h1_l1_disposition_profile(event, management_profile)
+        extra = dict(getattr(event, "extra", {}) or {})
+        if not bool(profile.get("active")):
+            extra["weak_h1_l1_disposition"] = ""
+            event.extra = extra
+            return True, False
+
+        extra["weak_h1_l1_min_target_r"] = float(profile.get("min_target_r", 0.0) or 0.0)
+        disposition = str(profile.get("disposition", "") or "")
+        extra["weak_h1_l1_disposition"] = disposition
+        event.extra = extra
+        if disposition == "no_trade_too_close":
+            extra["signal_stage"] = "candidate"
+            extra["signal_stage_reason"] = (
+                f"弱 H1/L1 第一目标仅 {float(extra.get('first_target_distance_r', 0.0) or 0.0):.2f}R，"
+                f"低于覆盖成本所需的 {float(profile.get('min_target_r', 0.0) or 0.0):.2f}R"
+            )
+            event.extra = extra
+            return False, False
+        if disposition == "scalp_only":
+            extra["management_style_override"] = str(profile.get("style", "") or "brooks_scalp")
+            extra["signal_stage"] = "executable"
+            extra["signal_stage_reason"] = "弱 H1/L1 降级为 scalp-only 管理"
+            event.extra = extra
+            return True, False
+        if disposition == "fade_candidate":
+            self._convert_weak_h1_l1_fade(event, candles_q)
+            self._attach_structure_context(event, candles_q, replay)
+            extra = dict(getattr(event, "extra", {}) or {})
+            extra["weak_h1_l1_disposition"] = "fade_candidate"
+            extra["executed_as_fade"] = True
+            extra["fade_source_signal"] = str(getattr(event, "signal_type", "") or "")
+            extra["signal_stage"] = "executable"
+            extra["signal_stage_reason"] = "弱 H1/L1 已降级成 limit fade 执行"
+            event.extra = extra
+            return True, True
+        return True, False
+
+    @staticmethod
     def _resolve_playbook_context(
         signal_type: str,
         market_key: str,
@@ -2438,6 +2710,13 @@ class BacktestRunner:
             event.extra = extra
             return False, reason
 
+        precomputed_weak_disposition = str(extra.get("weak_h1_l1_disposition", "") or "")
+        if signal_rank == 1 and precomputed_weak_disposition == "no_trade_too_close":
+            return block(
+                "candidate",
+                str(extra.get("signal_stage_reason", "") or "弱 H1/L1 第一目标不足以覆盖成本"),
+            )
+
         if signal_rank == 1:
             if endless_pullback_context and not endless_pullback_ready:
                 return block("watch", "endless PB 里的 H1/L1 先等 BO+FT 或收回前收盘")
@@ -2463,6 +2742,7 @@ class BacktestRunner:
                 return block("candidate", "第一次信号尚未完成接受，继续等 H2/L2 或二次确认")
             if (
                 weak_h1_l1_setup
+                and not precomputed_weak_disposition
                 and weak_h1_l1_style in {"brooks_tr_blshs", "brooks_scalp"}
                 and weak_h1_l1_tr_context
                 and not follow_through
