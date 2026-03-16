@@ -184,6 +184,50 @@ class SimExchange:
             return "first_entry_be"
         return "second_entry_profit"
 
+    @staticmethod
+    def _weak_first_entry_structure(trade: Trade) -> bool:
+        """识别 first-entry 在 Brooks 语义下已经偏弱的结构。"""
+        if trade.strategy not in {"高1", "低1"}:
+            return False
+        if not bool(trade.setup_clear_trend_leg):
+            return True
+        if not bool(trade.setup_first_pullback_shape):
+            return True
+        if float(trade.setup_pullback_depth_ratio or 0.0) >= 0.85:
+            return True
+        if float(trade.setup_pullback_overlap_ratio or 0.0) >= 0.75:
+            return True
+        return False
+
+    @staticmethod
+    def _weak_h1_l1_tr_scalp_structure(trade: Trade) -> bool:
+        """识别落在区间/弱趋势语境下、已经偏离 Brooks first-entry 语义的 H1/L1。"""
+        if trade.strategy not in {"高1", "低1"}:
+            return False
+        market_state = str(trade.market_state or "").strip().lower()
+        route_style = str(trade.route_style or "").strip().lower()
+        tr_like_context = market_state in {
+            "tr",
+            "tight_range",
+            "broad_range",
+            "bc",
+            "weak_trend_bull",
+            "weak_trend_bear",
+        } or "tr_" in route_style
+        if not tr_like_context:
+            return False
+        if not bool(trade.setup_valid):
+            return True
+        if not bool(trade.setup_clear_trend_leg):
+            return True
+        if not bool(trade.setup_first_pullback_shape):
+            return True
+        if float(trade.setup_pullback_depth_ratio or 0.0) >= 0.75:
+            return True
+        if float(trade.setup_pullback_overlap_ratio or 0.0) >= 0.60:
+            return True
+        return False
+
     def _trend_recovery_protective_profile(
         self,
         trade: Trade,
@@ -194,21 +238,22 @@ class SimExchange:
     ) -> dict[str, float | str]:
         """根据趋势恢复单所处阶段，决定保护性 scalp 的节奏。"""
         detail = self._trend_recovery_detail(trade, market_data)
+        weak_first_entry = self._weak_first_entry_structure(trade)
         if detail == "channel_to_tr":
             return {
                 "detail": detail,
-                "target_r": self._protective_target_r(trade, default_r=0.45),
-                "partial_fraction": 0.40 if profit_r > 0.02 and trade.remaining_size > 0.45 else 0.0,
+                "target_r": self._protective_target_r(trade, default_r=0.25 if weak_first_entry else 0.45),
+                "partial_fraction": 0.25 if profit_r > 0.02 and trade.remaining_size > 0.45 else 0.0,
                 "protect_r": 0.0,
-                "loss_cap_r": -0.06 if profit_r >= 0 else -0.10,
+                "loss_cap_r": -0.02 if weak_first_entry else (-0.06 if profit_r >= 0 else -0.10),
             }
         if detail == "first_entry_be":
             return {
                 "detail": detail,
-                "target_r": self._protective_target_r(trade, default_r=0.35),
-                "partial_fraction": 0.25 if profit_r > 0.05 and trade.remaining_size > 0.50 else 0.0,
+                "target_r": self._protective_target_r(trade, default_r=0.20 if weak_first_entry else 0.35),
+                "partial_fraction": 0.20 if profit_r > 0.04 and trade.remaining_size > 0.50 else 0.0,
                 "protect_r": 0.0,
-                "loss_cap_r": -0.05 if reason == "WEAK_SCALP" else -0.08,
+                "loss_cap_r": -0.02 if weak_first_entry else (-0.05 if reason == "WEAK_SCALP" else -0.08),
             }
         return {
             "detail": detail,
@@ -285,12 +330,17 @@ class SimExchange:
                 "loss_cap_r": -0.04 if reason == "FAILED_FT" else -0.08,
             }
         if family_key == "tr_scalp":
+            weak_h1_l1_tr = self._weak_h1_l1_tr_scalp_structure(trade)
             return {
                 "detail": "tr_scalp_protect",
-                "target_r": self._protective_target_r(trade, default_r=0.30),
-                "partial_fraction": 0.30 if profit_r > 0.02 and trade.remaining_size > 0.50 else 0.0,
+                "target_r": self._protective_target_r(trade, default_r=0.18 if weak_h1_l1_tr else 0.30),
+                "partial_fraction": (
+                    0.20 if weak_h1_l1_tr and profit_r > 0.01 and trade.remaining_size > 0.45
+                    else 0.30 if profit_r > 0.02 and trade.remaining_size > 0.50
+                    else 0.0
+                ),
                 "protect_r": 0.0,
-                "loss_cap_r": 0.0 if reason == "WEAK_SCALP" else -0.03,
+                "loss_cap_r": 0.0 if weak_h1_l1_tr or reason == "WEAK_SCALP" else -0.03,
             }
         return {
             "detail": "generic_protect",
@@ -483,8 +533,13 @@ class SimExchange:
             self._update_extremes(trade, candle)
             closed = False
 
+            # 保护性 scalp 属于主动管理状态，先给 Brooks 的 scratch/scalp/BE 规则一个机会，
+            # 再检查被动止损，避免本来应该主动降级退出的单子被一律记成 protective stop。
+            if trade.management_state == "protective_scalp":
+                closed = self._manage_protective_scalp(trade, candle, market_data)
+
             # 默认模板保留老逻辑；Brooks swing / reversal 交给 2R/3R 分批和结构保护。
-            if trade.management_style not in BROOKS_MANAGED_STYLES:
+            if not closed and trade.management_style not in BROOKS_MANAGED_STYLES:
                 be_trigger = self._breakeven_trigger(trade.management_style)
                 if trade.direction == "BUY":
                     unrealized = candle.high - trade.entry_price
@@ -501,19 +556,17 @@ class SimExchange:
 
             scale = TF_SCALE.get(trade.timeframe, 1)
 
-            exit_price, exit_reason = self._check_stop_target_hits(trade, candle)
-            if exit_reason:
-                self._close_trade(trade, exit_price, exit_reason, candle.timestamp)
-                closed = True
+            if not closed:
+                exit_price, exit_reason = self._check_stop_target_hits(trade, candle)
+                if exit_reason:
+                    self._close_trade(trade, exit_price, exit_reason, candle.timestamp)
+                    closed = True
 
             if not closed:
                 self._apply_brooks_management(trade, candle, market_data)
 
             if not closed and market_data:
                 closed = self._apply_runtime_management(trade, candle, market_data)
-
-            if not closed and trade.management_state == "protective_scalp":
-                closed = self._manage_protective_scalp(trade, candle, market_data)
 
             # 僵尸单: 只抓“长时间没有推进、回到保本附近”的死钱交易。
             # 先降级成保护性 scalp；如果仍然毫无推进，再真正退出。
@@ -666,6 +719,24 @@ class SimExchange:
             return 0.3
         return 0.3
 
+    @staticmethod
+    def _resolve_signal_bar_type(extra: dict) -> str:
+        """在 signal_bar_type 丢失时，按 Brooks 类型标记回推。"""
+        label = str(extra.get("signal_bar_type", "") or "").strip()
+        if label:
+            return label
+        if bool(extra.get("signal_bar_trend", False)):
+            return "trend_bar"
+        if bool(extra.get("signal_bar_reversal", False)):
+            return "reversal_bar"
+        if bool(extra.get("signal_bar_inside", False)):
+            return "inside_bar"
+        if bool(extra.get("signal_bar_ema_recovery", False)):
+            return "ema_recovery_bar"
+        if bool(extra.get("signal_bar_outside_follow", False)):
+            return "outside_follow_bar"
+        return ""
+
     def _trade_open_r(self, trade: Trade, mark_price: float) -> float:
         """按初始风险计算当前持仓已走出的有利 R。"""
         risk = max(float(trade.initial_risk or 0.0), 1e-9)
@@ -749,6 +820,7 @@ class SimExchange:
             else:
                 take_profit = entry_price - abs(entry_price - stop_loss) * reward_multiple
 
+        signal_bar_type = self._resolve_signal_bar_type(extra)
         trade = Trade(
             symbol=signal.symbol,
             direction=signal.direction,
@@ -775,18 +847,43 @@ class SimExchange:
             signal_bar_quality=float(extra.get("signal_bar_quality", 0.0) or 0.0),
             signal_bar_tail_ratio=float(extra.get("signal_bar_tail_ratio", 0.0) or 0.0),
             signal_bar_close_position=float(extra.get("signal_bar_close_position", 0.0) or 0.0),
+            signal_bar_type=str(getattr(signal, "signal_bar_type", signal_bar_type) or signal_bar_type),
+            signal_bar_body_ratio=float(extra.get("signal_bar_body_ratio", 0.0) or 0.0),
+            signal_bar_good_tail_ratio=float(extra.get("signal_bar_good_tail_ratio", 0.0) or 0.0),
+            signal_bar_inside=bool(extra.get("signal_bar_inside", False)),
+            signal_bar_ema_recovery=bool(extra.get("signal_bar_ema_recovery", False)),
             reclaimed_prior_close=bool(extra.get("reclaimed_prior_close", False)),
             broke_micro_extreme=bool(extra.get("broke_micro_extreme", False)),
             requires_second_entry=bool(extra.get("requires_second_entry", False)),
             acceptance_ready=bool(extra.get("acceptance_ready", False)),
             executable_signal_ready=bool(extra.get("executable_signal_ready", False)),
             candidate_stage=str(extra.get("candidate_stage", "") or ""),
+            setup_valid=bool(extra.get("setup_valid", False)),
+            setup_clear_trend_leg=bool(extra.get("setup_clear_trend_leg", False)),
+            setup_first_pullback_shape=bool(extra.get("setup_first_pullback_shape", False)),
+            setup_still_trend_side=bool(extra.get("setup_still_trend_side", False)),
+            setup_prior_leg_bars=int(extra.get("setup_prior_leg_bars", 0) or 0),
+            setup_pullback_bars=int(extra.get("setup_pullback_bars", 0) or 0),
+            setup_pullback_depth_ratio=float(extra.get("setup_pullback_depth_ratio", 0.0) or 0.0),
+            setup_pullback_overlap_ratio=float(extra.get("setup_pullback_overlap_ratio", 0.0) or 0.0),
             nearest_support=float(extra.get("nearest_support", 0.0) or 0.0),
             nearest_resistance=float(extra.get("nearest_resistance", 0.0) or 0.0),
             target_path_clear=bool(extra.get("target_path_clear", True)),
             stop_structure_ok=bool(extra.get("stop_structure_ok", True)),
             actual_to_perfect_risk_ratio=float(extra.get("actual_to_perfect_risk_ratio", 1.0) or 1.0),
+            nominal_risk=float(extra.get("nominal_risk", 0.0) or 0.0),
+            actual_risk=float(extra.get("actual_risk", 0.0) or 0.0),
+            stop_type=str(extra.get("stop_type", "") or ""),
+            signal_bar_stop=float(extra.get("signal_bar_stop", 0.0) or 0.0),
+            swing_stop=float(extra.get("swing_stop", 0.0) or 0.0),
+            major_hl_lh_stop=float(extra.get("major_hl_lh_stop", 0.0) or 0.0),
+            major_anchor=float(extra.get("major_anchor", 0.0) or 0.0),
             first_target_distance_r=float(extra.get("first_target_distance_r", 0.0) or 0.0),
+            first_target=float(getattr(signal, "first_target", extra.get("first_target", 0.0)) or 0.0),
+            first_target_type=str(getattr(signal, "first_target_type", extra.get("first_target_type", "")) or ""),
+            stretch_target=float(getattr(signal, "stretch_target", extra.get("stretch_target", 0.0)) or 0.0),
+            stretch_target_type=str(getattr(signal, "stretch_target_type", extra.get("stretch_target_type", "")) or ""),
+            target_buffer=float(getattr(signal, "target_buffer", extra.get("target_buffer", 0.0)) or 0.0),
             blocking_magnet_distance_r=float(extra.get("blocking_magnet_distance_r", 0.0) or 0.0),
             trapped_side=str(extra.get("trapped_side", "") or ""),
             prior_leg_context=str(extra.get("prior_leg_context", "") or ""),
@@ -809,6 +906,45 @@ class SimExchange:
             original_entry_price=original_entry,
             reentry_attempt=int(extra.get("reentry_attempt", 0) or 0),
             market_cost_profile=self._market_cost_profile(signal.symbol),
+            management_template=str(extra.get("management_template", "") or ""),
+            first_entry_signal=bool(getattr(signal, "first_entry_signal", extra.get("first_entry_signal", False))),
+            first_profit_at_1x_actual_risk=bool(
+                getattr(signal, "first_profit_at_1x_actual_risk", extra.get("first_profit_at_1x_actual_risk", False))
+            ),
+            allow_be_after_first_target=bool(
+                getattr(signal, "allow_be_after_first_target", extra.get("allow_be_after_first_target", False))
+            ),
+            prefer_partial_over_full_swing=bool(
+                getattr(signal, "prefer_partial_over_full_swing", extra.get("prefer_partial_over_full_swing", False))
+            ),
+            allow_small_runner=bool(getattr(signal, "allow_small_runner", extra.get("allow_small_runner", False))),
+            handoff_to_h2_l2_if_failed=bool(
+                getattr(signal, "handoff_to_h2_l2_if_failed", extra.get("handoff_to_h2_l2_if_failed", False))
+            ),
+            prefer_lower_entry_be_rescue=bool(
+                getattr(signal, "prefer_lower_entry_be_rescue", extra.get("prefer_lower_entry_be_rescue", False))
+            ),
+            first_target_is_close_test=bool(
+                getattr(signal, "first_target_is_close_test", extra.get("first_target_is_close_test", False))
+            ),
+            disappointed_bull_bear_mode=bool(
+                getattr(signal, "disappointed_bull_bear_mode", extra.get("disappointed_bull_bear_mode", False))
+            ),
+            exit_on_failed_follow_through=bool(
+                getattr(signal, "exit_on_failed_follow_through", extra.get("exit_on_failed_follow_through", False))
+            ),
+            exit_on_return_to_range=bool(
+                getattr(signal, "exit_on_return_to_range", extra.get("exit_on_return_to_range", False))
+            ),
+            exit_on_major_channel_break=bool(
+                getattr(signal, "exit_on_major_channel_break", extra.get("exit_on_major_channel_break", False))
+            ),
+            runner_handoff_stop=float(
+                getattr(signal, "runner_handoff_stop", extra.get("runner_handoff_stop", 0.0)) or 0.0
+            ),
+            runner_handoff_stop_type=str(
+                getattr(signal, "runner_handoff_stop_type", extra.get("runner_handoff_stop_type", "")) or ""
+            ),
         )
         trade.initial_stop_loss = stop_loss
         trade.initial_risk = abs(entry_price - stop_loss)
@@ -822,6 +958,7 @@ class SimExchange:
         entry_price = float(getattr(signal, "price", 0.0) or 0.0)
         trigger_price = float(getattr(signal, "entry_trigger", entry_price) or entry_price)
         entry_type = str(getattr(signal, "entry_type", "STOP") or "STOP").upper()
+        signal_bar_type = self._resolve_signal_bar_type(extra)
         return PendingOrder(
             symbol=signal.symbol,
             direction=signal.direction,
@@ -847,18 +984,43 @@ class SimExchange:
             signal_bar_quality=float(extra.get("signal_bar_quality", 0.0) or 0.0),
             signal_bar_tail_ratio=float(extra.get("signal_bar_tail_ratio", 0.0) or 0.0),
             signal_bar_close_position=float(extra.get("signal_bar_close_position", 0.0) or 0.0),
+            signal_bar_type=signal_bar_type,
+            signal_bar_body_ratio=float(extra.get("signal_bar_body_ratio", 0.0) or 0.0),
+            signal_bar_good_tail_ratio=float(extra.get("signal_bar_good_tail_ratio", 0.0) or 0.0),
+            signal_bar_inside=bool(extra.get("signal_bar_inside", False)),
+            signal_bar_ema_recovery=bool(extra.get("signal_bar_ema_recovery", False)),
             reclaimed_prior_close=bool(extra.get("reclaimed_prior_close", False)),
             broke_micro_extreme=bool(extra.get("broke_micro_extreme", False)),
             requires_second_entry=bool(extra.get("requires_second_entry", False)),
             acceptance_ready=bool(extra.get("acceptance_ready", False)),
             executable_signal_ready=bool(extra.get("executable_signal_ready", False)),
             candidate_stage=str(extra.get("candidate_stage", "") or ""),
+            setup_valid=bool(extra.get("setup_valid", False)),
+            setup_clear_trend_leg=bool(extra.get("setup_clear_trend_leg", False)),
+            setup_first_pullback_shape=bool(extra.get("setup_first_pullback_shape", False)),
+            setup_still_trend_side=bool(extra.get("setup_still_trend_side", False)),
+            setup_prior_leg_bars=int(extra.get("setup_prior_leg_bars", 0) or 0),
+            setup_pullback_bars=int(extra.get("setup_pullback_bars", 0) or 0),
+            setup_pullback_depth_ratio=float(extra.get("setup_pullback_depth_ratio", 0.0) or 0.0),
+            setup_pullback_overlap_ratio=float(extra.get("setup_pullback_overlap_ratio", 0.0) or 0.0),
             nearest_support=float(extra.get("nearest_support", 0.0) or 0.0),
             nearest_resistance=float(extra.get("nearest_resistance", 0.0) or 0.0),
             target_path_clear=bool(extra.get("target_path_clear", True)),
             stop_structure_ok=bool(extra.get("stop_structure_ok", True)),
             actual_to_perfect_risk_ratio=float(extra.get("actual_to_perfect_risk_ratio", 1.0) or 1.0),
+            nominal_risk=float(extra.get("nominal_risk", 0.0) or 0.0),
+            actual_risk=float(extra.get("actual_risk", 0.0) or 0.0),
+            stop_type=str(extra.get("stop_type", "") or ""),
+            signal_bar_stop=float(extra.get("signal_bar_stop", 0.0) or 0.0),
+            swing_stop=float(extra.get("swing_stop", 0.0) or 0.0),
+            major_hl_lh_stop=float(extra.get("major_hl_lh_stop", 0.0) or 0.0),
+            major_anchor=float(extra.get("major_anchor", 0.0) or 0.0),
             first_target_distance_r=float(extra.get("first_target_distance_r", 0.0) or 0.0),
+            first_target=float(extra.get("first_target", 0.0) or 0.0),
+            first_target_type=str(extra.get("first_target_type", "") or ""),
+            stretch_target=float(extra.get("stretch_target", 0.0) or 0.0),
+            stretch_target_type=str(extra.get("stretch_target_type", "") or ""),
+            target_buffer=float(extra.get("target_buffer", 0.0) or 0.0),
             blocking_magnet_distance_r=float(extra.get("blocking_magnet_distance_r", 0.0) or 0.0),
             trapped_side=str(extra.get("trapped_side", "") or ""),
             prior_leg_context=str(extra.get("prior_leg_context", "") or ""),
@@ -880,6 +1042,21 @@ class SimExchange:
             risk_percent=self._signal_risk_percent(signal),
             original_entry_price=float(extra.get("original_entry_price", entry_price) or entry_price),
             reentry_attempt=int(extra.get("reentry_attempt", 0) or 0),
+            management_template=str(extra.get("management_template", "") or ""),
+            first_entry_signal=bool(extra.get("first_entry_signal", False)),
+            first_profit_at_1x_actual_risk=bool(extra.get("first_profit_at_1x_actual_risk", False)),
+            allow_be_after_first_target=bool(extra.get("allow_be_after_first_target", False)),
+            prefer_partial_over_full_swing=bool(extra.get("prefer_partial_over_full_swing", False)),
+            allow_small_runner=bool(extra.get("allow_small_runner", False)),
+            handoff_to_h2_l2_if_failed=bool(extra.get("handoff_to_h2_l2_if_failed", False)),
+            prefer_lower_entry_be_rescue=bool(extra.get("prefer_lower_entry_be_rescue", False)),
+            first_target_is_close_test=bool(extra.get("first_target_is_close_test", False)),
+            disappointed_bull_bear_mode=bool(extra.get("disappointed_bull_bear_mode", False)),
+            exit_on_failed_follow_through=bool(extra.get("exit_on_failed_follow_through", False)),
+            exit_on_return_to_range=bool(extra.get("exit_on_return_to_range", False)),
+            exit_on_major_channel_break=bool(extra.get("exit_on_major_channel_break", False)),
+            runner_handoff_stop=float(extra.get("runner_handoff_stop", 0.0) or 0.0),
+            runner_handoff_stop_type=str(extra.get("runner_handoff_stop_type", "") or ""),
             signal_bar_high=float(getattr(signal, "signal_bar_high", 0.0) or 0.0),
             signal_bar_low=float(getattr(signal, "signal_bar_low", 0.0) or 0.0),
             confirmation_needed=bool(getattr(signal, "confirmation_needed", False)),
@@ -1193,6 +1370,18 @@ class SimExchange:
                     "signal_bar_quality": order.signal_bar_quality,
                     "signal_bar_tail_ratio": order.signal_bar_tail_ratio,
                     "signal_bar_close_position": order.signal_bar_close_position,
+                    "signal_bar_body_ratio": order.signal_bar_body_ratio,
+                    "signal_bar_good_tail_ratio": order.signal_bar_good_tail_ratio,
+                    "signal_bar_inside": order.signal_bar_inside,
+                    "signal_bar_ema_recovery": order.signal_bar_ema_recovery,
+                    "setup_valid": order.setup_valid,
+                    "setup_clear_trend_leg": order.setup_clear_trend_leg,
+                    "setup_first_pullback_shape": order.setup_first_pullback_shape,
+                    "setup_still_trend_side": order.setup_still_trend_side,
+                    "setup_prior_leg_bars": order.setup_prior_leg_bars,
+                    "setup_pullback_bars": order.setup_pullback_bars,
+                    "setup_pullback_depth_ratio": order.setup_pullback_depth_ratio,
+                    "setup_pullback_overlap_ratio": order.setup_pullback_overlap_ratio,
                     "reclaimed_prior_close": order.reclaimed_prior_close,
                     "broke_micro_extreme": order.broke_micro_extreme,
                     "requires_second_entry": order.requires_second_entry,
@@ -1204,6 +1393,13 @@ class SimExchange:
                     "target_path_clear": order.target_path_clear,
                     "stop_structure_ok": order.stop_structure_ok,
                     "actual_to_perfect_risk_ratio": order.actual_to_perfect_risk_ratio,
+                    "nominal_risk": order.nominal_risk,
+                    "actual_risk": order.actual_risk,
+                    "stop_type": order.stop_type,
+                    "signal_bar_stop": order.signal_bar_stop,
+                    "swing_stop": order.swing_stop,
+                    "major_hl_lh_stop": order.major_hl_lh_stop,
+                    "major_anchor": order.major_anchor,
                     "first_target_distance_r": order.first_target_distance_r,
                     "blocking_magnet_distance_r": order.blocking_magnet_distance_r,
                     "trapped_side": order.trapped_side,
@@ -1220,6 +1416,21 @@ class SimExchange:
                     "blocking_magnet_kind": order.blocking_magnet_kind,
                     "magnet_cluster_count": order.magnet_cluster_count,
                     "magnet_cluster_strength": order.magnet_cluster_strength,
+                    "management_template": order.management_template,
+                    "first_entry_signal": order.first_entry_signal,
+                    "first_profit_at_1x_actual_risk": order.first_profit_at_1x_actual_risk,
+                    "allow_be_after_first_target": order.allow_be_after_first_target,
+                    "prefer_partial_over_full_swing": order.prefer_partial_over_full_swing,
+                    "allow_small_runner": order.allow_small_runner,
+                    "handoff_to_h2_l2_if_failed": order.handoff_to_h2_l2_if_failed,
+                    "prefer_lower_entry_be_rescue": order.prefer_lower_entry_be_rescue,
+                    "first_target_is_close_test": order.first_target_is_close_test,
+                    "disappointed_bull_bear_mode": order.disappointed_bull_bear_mode,
+                    "exit_on_failed_follow_through": order.exit_on_failed_follow_through,
+                    "exit_on_return_to_range": order.exit_on_return_to_range,
+                    "exit_on_major_channel_break": order.exit_on_major_channel_break,
+                    "runner_handoff_stop": order.runner_handoff_stop,
+                    "runner_handoff_stop_type": order.runner_handoff_stop_type,
                     "signal_stage": order.signal_stage,
                     "signal_stage_reason": order.signal_stage_reason,
                     "original_entry_price": order.original_entry_price,
@@ -1382,6 +1593,13 @@ class SimExchange:
         tp2_r = plan["tp2_r"]
         magnet_take_r = self._magnet_take_r(trade)
         first_entry_signal = trade.strategy in {"高1", "低1"}
+        first_target_r = 0.0
+        if trade.first_target > 0 and trade.initial_risk > 0:
+            first_target_r = abs(float(trade.first_target) - float(trade.entry_price)) / max(trade.initial_risk, 1e-9)
+        stretch_target_r = 0.0
+        if trade.stretch_target > 0 and trade.initial_risk > 0:
+            stretch_target_r = abs(float(trade.stretch_target) - float(trade.entry_price)) / max(trade.initial_risk, 1e-9)
+        first_target_is_close_test = str(trade.first_target_type or "") in {"highest_close", "lowest_close"}
         tp1_fraction = 0.50
         tp2_fraction = 0.25
         # P3: H1/L1 按入场时上下文分级管理
@@ -1389,6 +1607,10 @@ class SimExchange:
         # BC/TR 中 H1 才该保守
         if self._family_key(trade) == "trend_recovery" and first_entry_signal:
             entry_state = str(trade.market_state or "").strip().lower()
+            if first_target_r > 0:
+                tp1_r = max(0.20, first_target_r)
+            if stretch_target_r > tp1_r + 0.05:
+                tp2_r = stretch_target_r
             if entry_state in ("spike", "bo", "strong_bo"):
                 # Spike/BO 后的 H1 = 最高概率趋势入场，按正常 swing 管理
                 pass  # 保留 plan 原始 tp1_r/tp2_r
@@ -1402,7 +1624,10 @@ class SimExchange:
                 tp2_r = min(tp2_r, 1.6)
                 tp1_fraction = 0.60
                 tp2_fraction = 0.15
-        if magnet_take_r > 0 and self._family_key(trade) == "trend_recovery":
+            if trade.prefer_partial_over_full_swing:
+                tp1_fraction = max(tp1_fraction, 0.60 if first_target_is_close_test else 0.50)
+                tp2_fraction = 0.25 if trade.allow_small_runner else max(0.0, 1.0 - tp1_fraction)
+        if magnet_take_r > 0 and self._family_key(trade) == "trend_recovery" and not first_entry_signal:
             if magnet_take_r < tp1_r:
                 tp1_r = max(0.8, magnet_take_r)
             elif magnet_take_r < tp2_r:
@@ -1453,7 +1678,12 @@ class SimExchange:
         if not trade.tp1_done and profit_r >= tp1_r:
             self._realize_partial(trade, self._price_at_r(trade, tp1_r), tp1_fraction, reason="TP")
             trade.tp1_done = True
-            self._update_stop_loss(trade, self._protective_stop(trade, plan["protect1_r"]))
+            protect_after_tp1 = plan["protect1_r"]
+            if first_entry_signal and trade.allow_be_after_first_target:
+                protect_after_tp1 = 0.0
+            self._update_stop_loss(trade, self._protective_stop(trade, protect_after_tp1))
+            if first_entry_signal and trade.allow_small_runner and float(trade.runner_handoff_stop or 0.0) > 0:
+                self._update_stop_loss(trade, float(trade.runner_handoff_stop))
 
         trend_detail = ""
         if self._family_key(trade) == "trend_recovery":
@@ -1470,7 +1700,7 @@ class SimExchange:
                 trade.tp2_done = True
                 self._update_stop_loss(trade, self._protective_stop(trade, 0.05))
 
-        if not trade.tp2_done and profit_r >= tp2_r:
+        if not trade.tp2_done and tp2_fraction > 0 and profit_r >= tp2_r:
             self._realize_partial(trade, self._price_at_r(trade, tp2_r), tp2_fraction, reason="TP")
             trade.tp2_done = True
             self._update_stop_loss(trade, self._protective_stop(trade, plan["protect2_r"]))
@@ -1629,18 +1859,47 @@ class SimExchange:
             and bool(trade.target_path_clear)
             and not tr_context
         )
+        weak_first_entry = self._weak_first_entry_structure(trade)
 
         # Brooks: first entry 失败更像 scratch；通道退化成 TR 更像把 swing 降成小 scalp。
         # 这两类都不该继续拖到保护性止损去决定结果。
         if detail == "first_entry_be":
+            if bars_in_state >= 1 and weak_first_entry and best_r >= 0.05 and profit_r >= -0.05:
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
             if bars_in_state >= stale_bars and bars_without_progress >= stale_bars and best_r >= 0.08 and profit_r >= -0.02:
                 self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                 return True
         elif detail == "channel_to_tr":
+            if bars_in_state >= 1 and weak_first_entry and best_r >= 0.05 and profit_r >= -0.05:
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
             if bars_in_state >= stale_bars and bars_without_progress >= stale_bars and best_r >= 0.05 and profit_r >= 0.0:
                 self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                 return True
         elif detail == "tr_scalp_protect":
+            weak_h1_l1_tr = self._weak_h1_l1_tr_scalp_structure(trade)
+            if (
+                weak_h1_l1_tr
+                and current_reason in {"PREMISE", "WEAK_SCALP", "FAILED_FT"}
+                and bars_in_state >= 1
+                and best_r >= 0.01
+                and profit_r >= -0.03
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
+            if (
+                weak_h1_l1_tr
+                and bars_in_state >= stale_bars
+                and bars_without_progress >= stale_bars
+                and best_r >= 0.0
+                and profit_r >= -0.04
+            ):
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
+            if bars_in_state >= 1 and weak_first_entry and best_r >= 0.05 and profit_r >= -0.05:
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
             if bars_in_state >= 1 and best_r >= 0.02 and profit_r >= -0.02:
                 self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                 return True
@@ -1665,6 +1924,9 @@ class SimExchange:
                 self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                 return True
         elif detail == "reversal_protect":
+            if bars_in_state >= 1 and weak_first_entry and best_r >= 0.05 and profit_r >= -0.05:
+                self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
+                return True
             if (
                 bars_in_state >= 1
                 and not reversal_confirmed

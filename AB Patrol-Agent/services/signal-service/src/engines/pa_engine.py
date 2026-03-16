@@ -180,6 +180,594 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         avg_range = sum(float(candle.high) - float(candle.low) for candle in recent) / max(len(recent), 1)
         return max(avg_range * 1.2, abs(reference_price) * 0.001)
 
+    @staticmethod
+    def _minimum_price_increment(candles: list[Candle], reference_price: float) -> float:
+        """从最近 K 线推断最小波动单位，用于 stop 触发价外一跳。"""
+        values: list[float] = []
+        recent = candles[-12:] if len(candles) >= 12 else candles
+        for candle in recent:
+            values.extend([
+                float(candle.open),
+                float(candle.high),
+                float(candle.low),
+                float(candle.close),
+            ])
+        unique_values = sorted({round(v, 10) for v in values if v > 0})
+        min_diff = 0.0
+        for idx in range(1, len(unique_values)):
+            diff = unique_values[idx] - unique_values[idx - 1]
+            if diff <= 0:
+                continue
+            min_diff = diff if min_diff <= 0 else min(min_diff, diff)
+        if min_diff > 0:
+            return min_diff
+        return max(abs(reference_price) * 0.0001, 1e-9)
+
+    def _stop_entry_trigger(self, signal_bar: Candle, direction: str, candles: list[Candle]) -> float:
+        """按 Brooks 的 stop 单语义，在 signal bar 外一跳触发。"""
+        increment = self._minimum_price_increment(candles, float(signal_bar.close))
+        if direction == "BUY":
+            return float(signal_bar.high) + increment
+        return float(signal_bar.low) - increment
+
+    def _stop_entry_reached(self, current_bar: Candle, signal_bar: Candle, direction: str, candles: list[Candle]) -> bool:
+        """当前 K 线是否已经真实触发了 stop 入场。"""
+        entry_trigger = self._stop_entry_trigger(signal_bar, direction, candles)
+        if direction == "BUY":
+            return float(current_bar.high) >= entry_trigger
+        return float(current_bar.low) <= entry_trigger
+
+    @staticmethod
+    def _bar_close_position(candle: Candle) -> float:
+        """收盘在 K 线区间中的位置，0=靠近 low，1=靠近 high。"""
+        bar_range = max(float(candle.high) - float(candle.low), 1e-9)
+        return (float(candle.close) - float(candle.low)) / bar_range
+
+    @staticmethod
+    def _bar_body_ratio(candle: Candle) -> float:
+        """实体占整根 K 线的比例。"""
+        bar_range = max(float(candle.high) - float(candle.low), 1e-9)
+        return abs(float(candle.close) - float(candle.open)) / bar_range
+
+    @staticmethod
+    def _bar_tail_ratios(candle: Candle) -> tuple[float, float]:
+        """返回上影线、下影线占整根 K 线的比例。"""
+        bar_range = max(float(candle.high) - float(candle.low), 1e-9)
+        upper_tail = float(candle.high) - max(float(candle.open), float(candle.close))
+        lower_tail = min(float(candle.open), float(candle.close)) - float(candle.low)
+        return max(upper_tail, 0.0) / bar_range, max(lower_tail, 0.0) / bar_range
+
+    def _h1_l1_signal_bar_profile(
+        self,
+        signal_bar: Candle,
+        prior_bar: Candle,
+        ema_value: float,
+        direction: str,
+    ) -> dict[str, float | bool | str]:
+        """把 H1/L1 的 signal bar 拆成类型学，而不是只靠一个总分。"""
+        close_position = self._bar_close_position(signal_bar)
+        body_ratio = self._bar_body_ratio(signal_bar)
+        upper_tail_ratio, lower_tail_ratio = self._bar_tail_ratios(signal_bar)
+        inside_bar = float(signal_bar.high) <= float(prior_bar.high) and float(signal_bar.low) >= float(prior_bar.low)
+        outside_bar = float(signal_bar.high) >= float(prior_bar.high) and float(signal_bar.low) <= float(prior_bar.low)
+
+        if direction == "BUY":
+            directional_bar = CandlePatterns.is_bull(signal_bar)
+            close_near_extreme_strong = close_position >= 0.56
+            close_near_extreme_soft = close_position >= 0.46
+            good_tail_ratio = lower_tail_ratio
+            bad_tail_ratio = upper_tail_ratio
+            trend_bar = directional_bar and body_ratio >= 0.34 and close_position >= 0.52 and bad_tail_ratio <= 0.40
+            reversal_bar = directional_bar and close_position >= 0.46 and good_tail_ratio >= 0.14 and bad_tail_ratio <= 0.42
+            inside_signal = inside_bar and directional_bar and close_position >= 0.48 and body_ratio >= 0.12 and bad_tail_ratio <= 0.42
+            ema_recovery = (
+                directional_bar
+                and float(signal_bar.low) <= float(ema_value)
+                and float(signal_bar.close) >= float(ema_value)
+                and close_position >= 0.45
+                and bad_tail_ratio <= 0.42
+            )
+            outside_follow = (
+                outside_bar
+                and directional_bar
+                and close_position >= 0.50
+                and body_ratio >= 0.24
+                and bad_tail_ratio <= 0.30
+            )
+        else:
+            directional_bar = CandlePatterns.is_bear(signal_bar)
+            close_near_extreme_strong = close_position <= 0.44
+            close_near_extreme_soft = close_position <= 0.54
+            good_tail_ratio = upper_tail_ratio
+            bad_tail_ratio = lower_tail_ratio
+            trend_bar = directional_bar and body_ratio >= 0.34 and close_position <= 0.48 and bad_tail_ratio <= 0.40
+            reversal_bar = directional_bar and close_position <= 0.54 and good_tail_ratio >= 0.14 and bad_tail_ratio <= 0.42
+            inside_signal = inside_bar and directional_bar and close_position <= 0.52 and body_ratio >= 0.12 and bad_tail_ratio <= 0.42
+            ema_recovery = (
+                directional_bar
+                and float(signal_bar.high) >= float(ema_value)
+                and float(signal_bar.close) <= float(ema_value)
+                and close_position <= 0.55
+                and bad_tail_ratio <= 0.42
+            )
+            outside_follow = (
+                outside_bar
+                and directional_bar
+                and close_position <= 0.50
+                and body_ratio >= 0.24
+                and bad_tail_ratio <= 0.30
+            )
+
+        signal_type = "weak"
+        if trend_bar:
+            signal_type = "trend_bar"
+        elif reversal_bar:
+            signal_type = "reversal_bar"
+        elif inside_signal:
+            signal_type = "inside_bar"
+        elif ema_recovery:
+            signal_type = "ema_recovery_bar"
+        elif outside_follow:
+            signal_type = "outside_follow_bar"
+
+        valid_signal_bar = bool(
+            directional_bar
+            and signal_type != "weak"
+            and bad_tail_ratio <= 0.45
+            and (
+                close_near_extreme_soft
+                or good_tail_ratio >= 0.18
+                or ema_recovery
+                or outside_follow
+                or inside_signal
+            )
+        )
+
+        return {
+            "signal_type_label": signal_type,
+            "valid_signal_bar": valid_signal_bar,
+            "directional_bar": directional_bar,
+            "close_near_extreme": close_near_extreme_soft,
+            "close_near_extreme_soft": close_near_extreme_soft,
+            "close_near_extreme_strong": close_near_extreme_strong,
+            "inside_bar": inside_bar,
+            "outside_bar": outside_bar,
+            "outside_follow": outside_follow,
+            "trend_bar": trend_bar,
+            "reversal_bar": reversal_bar,
+            "inside_signal": inside_signal,
+            "ema_recovery": ema_recovery,
+            "body_ratio": body_ratio,
+            "close_position": close_position,
+            "good_tail_ratio": good_tail_ratio,
+            "bad_tail_ratio": bad_tail_ratio,
+            "upper_tail_ratio": upper_tail_ratio,
+            "lower_tail_ratio": lower_tail_ratio,
+        }
+
+    def _h1_l1_major_swing_anchor(self, candles: list[Candle], direction: str) -> float | None:
+        """提取 H1/L1 背景里的最近 major HL/LH 锚点。"""
+        pre_pullback = candles[-20:-3] if len(candles) >= 23 else candles[:-3]
+        if len(pre_pullback) < 3:
+            return None
+        swings = CycleIdentifier._find_swings(pre_pullback)
+        if direction == "BUY":
+            swing_lows = [s for s in swings if s["type"] == "low"]
+            if not swing_lows:
+                return None
+            return float(swing_lows[-1]["price"])
+        swing_highs = [s for s in swings if s["type"] == "high"]
+        if not swing_highs:
+            return None
+        return float(swing_highs[-1]["price"])
+
+    def _h1_l1_is_countertrend_bar(
+        self,
+        candle: Candle,
+        prior_candle: Candle,
+        ema_value: float,
+        direction: str,
+    ) -> bool:
+        """判断某根 K 线是否仍处在 H1/L1 的回调段，而不是趋势恢复段。"""
+        if direction == "BUY":
+            return bool(
+                CandlePatterns.is_bear(candle)
+                or float(candle.close) <= float(prior_candle.close)
+                or float(candle.low) <= float(prior_candle.low)
+                or float(candle.close) <= float(ema_value)
+            )
+        return bool(
+            CandlePatterns.is_bull(candle)
+            or float(candle.close) >= float(prior_candle.close)
+            or float(candle.high) >= float(prior_candle.high)
+            or float(candle.close) >= float(ema_value)
+        )
+
+    def _h1_l1_setup_profile(
+        self,
+        candles: list[Candle],
+        ema20: list[float],
+        direction: str,
+        cycle: str,
+    ) -> dict[str, float | bool | int]:
+        """
+        用 Brooks 的 first pullback 语义确认 H1/L1 setup。
+
+        核心不是“最后一个 swing 点是否被守住”，而是：
+        1. 前面是否有清晰趋势腿
+        2. 当前是不是第一次像样回调
+        3. 回调是否已经退化成 endless pullback / TR
+        """
+        signal_index = len(candles) - 2
+        if signal_index < 3:
+            return {"valid_setup": False}
+
+        history = candles[: signal_index + 1]
+        pullback_core_end = signal_index - 1
+        if pullback_core_end < 1:
+            return {"valid_setup": False}
+
+        max_pullback_bars = 6 if cycle == "区间" else 5
+        pullback_core_start = pullback_core_end
+        while pullback_core_start - 1 >= 0 and (pullback_core_end - pullback_core_start + 1) < max_pullback_bars:
+            probe_index = pullback_core_start
+            ema_value = float(ema20[probe_index]) if probe_index < len(ema20) else float(ema20[-1])
+            if not self._h1_l1_is_countertrend_bar(
+                history[probe_index],
+                history[probe_index - 1],
+                ema_value,
+                direction,
+            ):
+                break
+            pullback_core_start -= 1
+
+        if pullback_core_start < pullback_core_end:
+            pullback_core_start += 1
+
+        pullback_bars = history[pullback_core_start : pullback_core_end + 1]
+        signal_bar = history[signal_index]
+        pullback_segment = pullback_bars + [signal_bar]
+        prior_leg = history[max(0, pullback_core_start - 6) : pullback_core_start]
+
+        if not prior_leg or not pullback_segment:
+            return {"valid_setup": False}
+
+        if direction == "BUY":
+            trend_side_bars = sum(1 for bar in prior_leg if CandlePatterns.is_bull(bar))
+            pullback_side_bars = sum(1 for bar in pullback_bars if CandlePatterns.is_bear(bar))
+            anchor_price = min(float(bar.low) for bar in prior_leg)
+            leg_end_price = max(float(bar.high) for bar in prior_leg)
+            pullback_extreme = min(float(bar.low) for bar in pullback_segment)
+            trend_progress = float(prior_leg[-1].close) - float(prior_leg[0].open)
+            ema_side_holds = sum(
+                1
+                for idx, bar in enumerate(prior_leg, start=max(0, pullback_core_start - len(prior_leg)))
+                if float(bar.close) >= float(ema20[min(idx, len(ema20) - 1)])
+            )
+        else:
+            trend_side_bars = sum(1 for bar in prior_leg if CandlePatterns.is_bear(bar))
+            pullback_side_bars = sum(1 for bar in pullback_bars if CandlePatterns.is_bull(bar))
+            anchor_price = max(float(bar.high) for bar in prior_leg)
+            leg_end_price = min(float(bar.low) for bar in prior_leg)
+            pullback_extreme = max(float(bar.high) for bar in pullback_segment)
+            trend_progress = float(prior_leg[0].open) - float(prior_leg[-1].close)
+            ema_side_holds = sum(
+                1
+                for idx, bar in enumerate(prior_leg, start=max(0, pullback_core_start - len(prior_leg)))
+                if float(bar.close) <= float(ema20[min(idx, len(ema20) - 1)])
+            )
+
+        leg_size = abs(leg_end_price - anchor_price)
+        if leg_size <= 0:
+            return {"valid_setup": False}
+
+        if direction == "BUY":
+            pullback_depth_ratio = (leg_end_price - pullback_extreme) / leg_size
+        else:
+            pullback_depth_ratio = (pullback_extreme - leg_end_price) / leg_size
+
+        pullback_overlap_ratio = CycleIdentifier._overlap_ratio(pullback_segment)
+        trend_overlap_ratio = CycleIdentifier._overlap_ratio(prior_leg)
+        pullback_bar_count = len(pullback_segment)
+
+        clear_trend_leg = bool(
+            len(prior_leg) >= 2
+            and trend_side_bars >= max(1, len(prior_leg) // 2)
+            and trend_progress > 0
+            and trend_overlap_ratio <= 0.80
+            and ema_side_holds >= max(1, len(prior_leg) // 2)
+        )
+        first_pullback_shape = bool(
+            1 <= pullback_bar_count <= max_pullback_bars
+            and pullback_side_bars >= 1
+            and pullback_depth_ratio <= 0.92
+            and pullback_overlap_ratio <= 0.82
+        )
+        still_trend_side = bool(
+            (pullback_extreme > anchor_price) if direction == "BUY" else (pullback_extreme < anchor_price)
+        )
+        valid_setup = clear_trend_leg and first_pullback_shape and still_trend_side
+
+        return {
+            "valid_setup": valid_setup,
+            "clear_trend_leg": clear_trend_leg,
+            "first_pullback_shape": first_pullback_shape,
+            "still_trend_side": still_trend_side,
+            "prior_leg_bars": len(prior_leg),
+            "pullback_bars": pullback_bar_count,
+            "trend_side_bars": trend_side_bars,
+            "pullback_side_bars": pullback_side_bars,
+            "pullback_depth_ratio": float(max(0.0, pullback_depth_ratio)),
+            "pullback_overlap_ratio": float(max(0.0, pullback_overlap_ratio)),
+            "trend_overlap_ratio": float(max(0.0, trend_overlap_ratio)),
+            "anchor_price": float(anchor_price),
+            "leg_end_price": float(leg_end_price),
+            "pullback_extreme": float(pullback_extreme),
+        }
+
+    def _h1_l1_stop_plan(
+        self,
+        candles: list[Candle],
+        signal_bar: Candle,
+        direction: str,
+        cycle: str,
+        entry_trigger: float,
+        signal_profile: dict[str, float | bool | str],
+        atr: float = 0.0,
+    ) -> dict[str, float | str]:
+        """按 H1/L1 模板返回初始止损方案。"""
+        increment = self._minimum_price_increment(candles, entry_trigger)
+        buffer_size = self._structure_buffer(candles, entry_trigger)
+
+        if direction == "BUY":
+            signal_bar_stop = float(signal_bar.low) - increment
+        else:
+            signal_bar_stop = float(signal_bar.high) + increment
+
+        if cycle == "区间":
+            swing_stop = build_channel_recovery_stop(
+                direction,
+                candles,
+                float(signal_bar.high),
+                float(signal_bar.low),
+                atr,
+            )
+        else:
+            swing_stop = build_trend_pullback_stop(
+                direction,
+                candles,
+                float(signal_bar.high),
+                float(signal_bar.low),
+                atr,
+            )
+
+        major_anchor = self._h1_l1_major_swing_anchor(candles, direction)
+        major_stop = 0.0
+        if major_anchor is not None:
+            major_stop = major_anchor - buffer_size if direction == "BUY" else major_anchor + buffer_size
+
+        selected_stop = swing_stop
+        selected_type = "swing_stop"
+        close_near_extreme_for_stop = bool(
+            signal_profile.get("close_near_extreme_strong", signal_profile.get("close_near_extreme"))
+        )
+        if cycle in {"趋势多", "趋势空", "急速多", "急速空"} and (
+            bool(signal_profile.get("trend_bar"))
+            or bool(signal_profile.get("reversal_bar"))
+            or bool(signal_profile.get("outside_follow"))
+        ) and close_near_extreme_for_stop and float(signal_profile.get("bad_tail_ratio") or 1.0) <= 0.30:
+            selected_stop = signal_bar_stop
+            selected_type = "signal_bar_stop"
+        elif cycle == "区间":
+            selected_stop = swing_stop
+            selected_type = "swing_stop"
+        elif major_stop > 0 and (
+            bool(signal_profile.get("inside_signal")) or bool(signal_profile.get("ema_recovery"))
+        ):
+            selected_stop = major_stop
+            selected_type = "major_hl_lh_stop"
+
+        actual_risk = entry_trigger - selected_stop if direction == "BUY" else selected_stop - entry_trigger
+        nominal_risk = entry_trigger - signal_bar_stop if direction == "BUY" else signal_bar_stop - entry_trigger
+
+        return {
+            "stop_loss": float(selected_stop),
+            "stop_type": selected_type,
+            "nominal_risk": float(max(nominal_risk, 0.0)),
+            "actual_risk": float(max(actual_risk, 0.0)),
+            "signal_bar_stop": float(signal_bar_stop),
+            "swing_stop": float(swing_stop),
+            "major_hl_lh_stop": float(major_stop),
+            "major_anchor": float(major_anchor or 0.0),
+            "runner_stop_loss": float(major_stop or selected_stop),
+            "runner_stop_type": "major_hl_lh_stop" if major_stop > 0 else selected_type,
+        }
+
+    def _h1_l1_target_plan(
+        self,
+        candles: list[Candle],
+        direction: str,
+        entry_trigger: float,
+        actual_risk: float,
+    ) -> dict[str, float | str]:
+        """按 H1/L1 模板返回第一目标和延伸目标。"""
+        increment = self._minimum_price_increment(candles, entry_trigger)
+        context = candles[-20:-1] if len(candles) > 1 else candles
+        if not context:
+            fallback_target = entry_trigger + actual_risk if direction == "BUY" else entry_trigger - actual_risk
+            return {
+                "take_profit": float(fallback_target),
+                "first_target": float(fallback_target),
+                "first_target_type": "measured_move_1x",
+                "stretch_target": float(
+                    entry_trigger + actual_risk * 2.0 if direction == "BUY" else entry_trigger - actual_risk * 2.0
+                ),
+                "stretch_target_type": "measured_move_2x",
+                "target_buffer": float(increment),
+            }
+
+        local_context = context[-6:] if len(context) >= 6 else context
+        candidate_map: dict[str, float] = {}
+        if direction == "BUY":
+            candidate_map["prior_high"] = max(float(bar.high) for bar in context)
+            candidate_map["highest_close"] = max(float(bar.close) for bar in context)
+            candidate_map["pullback_origin"] = max(float(bar.high) for bar in local_context)
+            candidate_map["measured_move_1x"] = entry_trigger + actual_risk
+            candidate_map["measured_move_2x"] = entry_trigger + actual_risk * 2.0
+            ordered_labels = ["highest_close", "prior_high", "pullback_origin", "measured_move_1x", "measured_move_2x"]
+            valid = [(label, candidate_map[label]) for label in ordered_labels if candidate_map[label] > entry_trigger + increment]
+            first_label, first_level = valid[0] if valid else ("measured_move_1x", entry_trigger + actual_risk)
+            stretch_label, stretch_level = next(
+                ((label, level) for label, level in valid[1:] if level > first_level + increment),
+                ("measured_move_2x", max(entry_trigger + actual_risk * 2.0, first_level + actual_risk)),
+            )
+            take_profit = max(first_level - increment, entry_trigger + increment)
+        else:
+            candidate_map["prior_low"] = min(float(bar.low) for bar in context)
+            candidate_map["lowest_close"] = min(float(bar.close) for bar in context)
+            candidate_map["pullback_origin"] = min(float(bar.low) for bar in local_context)
+            candidate_map["measured_move_1x"] = entry_trigger - actual_risk
+            candidate_map["measured_move_2x"] = entry_trigger - actual_risk * 2.0
+            ordered_labels = ["lowest_close", "prior_low", "pullback_origin", "measured_move_1x", "measured_move_2x"]
+            valid = [(label, candidate_map[label]) for label in ordered_labels if candidate_map[label] < entry_trigger - increment]
+            first_label, first_level = valid[0] if valid else ("measured_move_1x", entry_trigger - actual_risk)
+            stretch_label, stretch_level = next(
+                ((label, level) for label, level in valid[1:] if level < first_level - increment),
+                ("measured_move_2x", min(entry_trigger - actual_risk * 2.0, first_level - actual_risk)),
+            )
+            take_profit = min(first_level + increment, entry_trigger - increment)
+
+        return {
+            "take_profit": float(take_profit),
+            "first_target": float(first_level),
+            "first_target_type": first_label,
+            "stretch_target": float(stretch_level),
+            "stretch_target_type": stretch_label,
+            "target_buffer": float(increment),
+        }
+
+    def _h1_l1_management_plan(
+        self,
+        cycle: str,
+        signal_profile: dict[str, float | bool | str],
+        stop_plan: dict[str, float | str],
+        target_plan: dict[str, float | str],
+    ) -> dict[str, float | bool | str]:
+        """返回 H1/L1 first-entry 的管理意图。"""
+        strong_background = cycle in {"趋势多", "趋势空", "急速多", "急速空"} and bool(signal_profile.get("trend_bar"))
+        first_target_type = str(target_plan.get("first_target_type") or "")
+        close_test_target = first_target_type in {"highest_close", "lowest_close"}
+        return {
+            "management_template": "h1_l1_first_entry",
+            "first_entry_signal": True,
+            "first_profit_at_1x_actual_risk": not close_test_target,
+            "allow_be_after_first_target": True,
+            "prefer_partial_over_full_swing": True,
+            "handoff_to_h2_l2_if_failed": True,
+            "allow_small_runner": strong_background,
+            "prefer_lower_entry_be_rescue": True,
+            "first_target_is_close_test": close_test_target,
+            "disappointed_bull_bear_mode": True,
+            "runner_handoff_stop_type": str(stop_plan.get("runner_stop_type") or ""),
+            "runner_handoff_stop": float(stop_plan.get("runner_stop_loss") or 0.0),
+            "exit_on_failed_follow_through": True,
+            "exit_on_return_to_range": cycle == "区间" or bool(signal_profile.get("inside_signal")),
+            "exit_on_major_channel_break": True,
+            "first_target_type": str(target_plan.get("first_target_type") or ""),
+            "stretch_target_type": str(target_plan.get("stretch_target_type") or ""),
+        }
+
+    @staticmethod
+    def _attach_h1_l1_setup_extra(signal: PASignal | None, setup_profile: dict[str, float | bool | str] | None) -> PASignal | None:
+        """把 H1/L1 setup 结构字段统一补进信号 extra。"""
+        if signal is None or not isinstance(setup_profile, dict):
+            return signal
+        signal.extra.update(
+            {
+                "setup_valid": bool(setup_profile.get("valid_setup")),
+                "setup_clear_trend_leg": bool(setup_profile.get("clear_trend_leg")),
+                "setup_first_pullback_shape": bool(setup_profile.get("first_pullback_shape")),
+                "setup_still_trend_side": bool(setup_profile.get("still_trend_side")),
+                "setup_prior_leg_bars": int(setup_profile.get("prior_leg_bars") or 0),
+                "setup_pullback_bars": int(setup_profile.get("pullback_bars") or 0),
+                "setup_pullback_depth_ratio": float(setup_profile.get("pullback_depth_ratio") or 0.0),
+                "setup_pullback_overlap_ratio": float(setup_profile.get("pullback_overlap_ratio") or 0.0),
+            }
+        )
+        return signal
+
+    def _build_h1_l1_signal(
+        self,
+        *,
+        curr: Candle,
+        prev: Candle,
+        candles: list[Candle],
+        cycle: str,
+        direction: str,
+        strength: int,
+        probability: float,
+        message: str,
+        signal_profile: dict[str, float | bool | str],
+        sig_quality: float,
+        atr: float = 0.0,
+    ) -> Optional[PASignal]:
+        """统一生成 H1/L1 信号，避免不同分支再各自拼字段。"""
+        signal_type = "高1" if direction == "BUY" else "低1"
+        entry_trigger = self._stop_entry_trigger(prev, direction, candles)
+        stop_plan = self._h1_l1_stop_plan(candles, prev, direction, cycle, entry_trigger, signal_profile, atr)
+        actual_risk = float(stop_plan.get("actual_risk") or 0.0)
+        if actual_risk <= 0:
+            return None
+
+        target_plan = self._h1_l1_target_plan(candles, direction, entry_trigger, actual_risk)
+        management_plan = self._h1_l1_management_plan(cycle, signal_profile, stop_plan, target_plan)
+
+        return PASignal(
+            symbol=curr.symbol,
+            signal_type=signal_type,
+            direction=direction,
+            strength=min(95, strength),
+            message=message,
+            price=curr.close,
+            stop_loss=float(stop_plan["stop_loss"]),
+            take_profit=float(target_plan["take_profit"]),
+            probability=probability,
+            cycle=cycle,
+            timeframe=curr.timeframe,
+            signal_bar_high=prev.high,
+            signal_bar_low=prev.low,
+            entry_trigger=entry_trigger,
+            entry_type="STOP",
+            extra={
+                "signal_bar_quality": sig_quality,
+                "signal_rank": 1,
+                "signal_template": "H1_L1",
+                "signal_bar_type": signal_profile["signal_type_label"],
+                "signal_bar_close_position": signal_profile["close_position"],
+                "signal_bar_body_ratio": signal_profile["body_ratio"],
+                "signal_bar_tail_ratio": signal_profile["bad_tail_ratio"],
+                "signal_bar_good_tail_ratio": signal_profile["good_tail_ratio"],
+                "signal_bar_inside": signal_profile["inside_bar"],
+                "signal_bar_ema_recovery": signal_profile["ema_recovery"],
+                "signal_bar_trend": signal_profile["trend_bar"],
+                "signal_bar_reversal": signal_profile["reversal_bar"],
+                "signal_bar_outside_follow": signal_profile["outside_follow"],
+                "nominal_risk": stop_plan["nominal_risk"],
+                "actual_risk": stop_plan["actual_risk"],
+                "stop_type": stop_plan["stop_type"],
+                "signal_bar_stop": stop_plan["signal_bar_stop"],
+                "swing_stop": stop_plan["swing_stop"],
+                "major_hl_lh_stop": stop_plan["major_hl_lh_stop"],
+                "major_anchor": stop_plan["major_anchor"],
+                "first_target": target_plan["first_target"],
+                "first_target_type": target_plan["first_target_type"],
+                "stretch_target": target_plan["stretch_target"],
+                "stretch_target_type": target_plan["stretch_target_type"],
+                "target_buffer": target_plan["target_buffer"],
+                **management_plan,
+            },
+        )
+
     # === 急速方案 ===
 
     def detect_buy_now(self, candles: list[Candle], ema20: list[float], atr: float = 0.0) -> Optional[PASignal]:
@@ -293,63 +881,47 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 return None  # 回调棒不应是强阳线
             # 优选阴线作为回调棒
             pullback_is_bear = CandlePatterns.is_bear(prev)
-
-            # --- 3. 信号棒（当前K线）突破回调棒高点 ---
-            if curr.close <= prev.high:
+            signal_profile = self._h1_l1_signal_bar_profile(prev, prev2, ema20[-2], "BUY")
+            if not bool(signal_profile["valid_signal_bar"]):
                 return None
-            # 信号棒应该是阳线且有力
-            if not CandlePatterns.is_bull(curr):
+
+            # --- 3. 当前 K 线只要真实触发了 stop 单即可 ---
+            if not self._stop_entry_reached(curr, prev, "BUY", candles):
                 return None
             sig_quality = CandlePatterns.signal_bar_quality(
                 curr, candles[-6:-1], "BUY")
-            # Al Brooks: 信号棒只需收在回调高点之上。阈值0.65过严
-            # 很多有效H1信号棒实体比例50%、有小上影线，但总分只有0.60-0.64
-            if sig_quality < 0.55:
-                return None
 
             # --- 4. Higher Low 结构验证 ---
-            # 用 3-bar swing low 找回调前的真实 swing low
-            pre_pullback = candles[-20:-3] if len(candles) >= 23 else candles[:-3]
-            swings = CycleIdentifier._find_swings(pre_pullback)
-            swing_lows = [s for s in swings if s["type"] == "low"]
-            if not swing_lows:
-                return None  # 没有结构性 swing low，无法确认 Higher Low
-            prev_swing_low = swing_lows[-1]["price"]
-            pullback_low = min(prev.low, prev2.low)
-            if pullback_low <= prev_swing_low:
-                return None  # 不是 Higher Low
-
-            # --- 5. 止损和目标 ---
-            # Al Brooks: 止损应放到结构位外，而不是 ATR 倍数缓冲。
-            stop = build_trend_pullback_stop("BUY", candles, curr.high, min(prev.low, prev2.low), atr)
-            risk = curr.close - stop
-            if risk <= 0:
+            # 不再死卡“最后一个 swing low”，而是检查：
+            # 是否先有清晰多头腿，再出现第一次像样回调。
+            setup_profile = self._h1_l1_setup_profile(candles, ema20, "BUY", cycle)
+            if not bool(setup_profile.get("valid_setup")):
                 return None
-            target = curr.close + risk * 2.0
 
             strength = 78  # V2: 75→78，高1是趋势回调核心策略，基础强度提升
             if pullback_is_bear:
                 strength += 5
             if sig_quality >= 0.65:
                 strength += 5
+            if float(setup_profile.get("pullback_depth_ratio") or 1.0) <= 0.55:
+                strength += 3
+            if int(setup_profile.get("pullback_bars") or 0) <= 3:
+                strength += 2
 
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="高1",
-                direction="BUY",
-                strength=min(95, strength),
-                message="趋势多中 Higher Low 回调 EMA20 后反弹",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.60,
+            signal = self._build_h1_l1_signal(
+                curr=curr,
+                prev=prev,
+                candles=candles,
                 cycle=cycle,
-                timeframe=curr.timeframe,
-                extra={
-                    "signal_bar_quality": sig_quality,
-                    "signal_rank": 1,
-                },
+                direction="BUY",
+                strength=strength,
+                probability=0.60,
+                message="趋势多中 Higher Low 回调 EMA20 后反弹",
+                signal_profile=signal_profile,
+                sig_quality=sig_quality,
+                atr=atr,
             )
+            return self._attach_h1_l1_setup_extra(signal, setup_profile)
 
         elif cycle == "趋势空":
             # Al Brooks: L1 = 趋势空中第一次反弹后的空点
@@ -359,58 +931,44 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if CandlePatterns.is_strong_bear(prev):
                 return None
             pullback_is_bull = CandlePatterns.is_bull(prev)
-
-            if curr.close >= prev.low:
+            signal_profile = self._h1_l1_signal_bar_profile(prev, prev2, ema20[-2], "SELL")
+            if not bool(signal_profile["valid_signal_bar"]):
                 return None
-            if not CandlePatterns.is_bear(curr):
+
+            if not self._stop_entry_reached(curr, prev, "SELL", candles):
                 return None
             sig_quality = CandlePatterns.signal_bar_quality(
                 curr, candles[-6:-1], "SELL")
-            # Al Brooks: 低1信号棒只需收在反弹低点之下，阈值0.65过严
-            if sig_quality < 0.55:
-                return None
 
-            # Lower High 结构验证 — 用 3-bar swing high
-            pre_pullback = candles[-20:-3] if len(candles) >= 23 else candles[:-3]
-            swings = CycleIdentifier._find_swings(pre_pullback)
-            swing_highs = [s for s in swings if s["type"] == "high"]
-            if not swing_highs:
-                return None  # 没有结构性 swing high，无法确认 Lower High
-            prev_swing_high = swing_highs[-1]["price"]
-            pullback_high = max(prev.high, prev2.high)
-            if pullback_high >= prev_swing_high:
-                return None  # 不是 Lower High
-
-            # Al Brooks: 止损应放到结构位外，而不是 ATR 倍数缓冲。
-            stop = build_trend_pullback_stop("SELL", candles, max(prev.high, prev2.high), curr.low, atr)
-            risk = stop - curr.close
-            if risk <= 0:
+            # Lower High 结构验证：同样只确认“清晰空头腿 + 第一次像样反弹”
+            setup_profile = self._h1_l1_setup_profile(candles, ema20, "SELL", cycle)
+            if not bool(setup_profile.get("valid_setup")):
                 return None
-            target = curr.close - risk * 2.0
 
             strength = 78  # V2: 75→78，低1是趋势回落核心策略，基础强度提升
             if pullback_is_bull:
                 strength += 5
             if sig_quality >= 0.65:
                 strength += 5
+            if float(setup_profile.get("pullback_depth_ratio") or 1.0) <= 0.55:
+                strength += 3
+            if int(setup_profile.get("pullback_bars") or 0) <= 3:
+                strength += 2
 
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="低1",
-                direction="SELL",
-                strength=min(95, strength),
-                message="趋势空中 Lower High 反弹 EMA20 后回落",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.60,
+            signal = self._build_h1_l1_signal(
+                curr=curr,
+                prev=prev,
+                candles=candles,
                 cycle=cycle,
-                timeframe=curr.timeframe,
-                extra={
-                    "signal_bar_quality": sig_quality,
-                    "signal_rank": 1,
-                },
+                direction="SELL",
+                strength=strength,
+                probability=0.60,
+                message="趋势空中 Lower High 反弹 EMA20 后回落",
+                signal_profile=signal_profile,
+                sig_quality=sig_quality,
+                atr=atr,
             )
+            return self._attach_h1_l1_setup_extra(signal, setup_profile)
 
         elif cycle == "急速多":
             # Al Brooks: 急速拉升后的第一次回调买点（急速H1）
@@ -423,22 +981,14 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if CandlePatterns.is_strong_bull(prev):
                 return None
             pullback_is_bear = CandlePatterns.is_bear(prev)
-
-            # 2. 信号棒突破回调棒高点，且收盘有力
-            if curr.close <= prev.high:
+            signal_profile = self._h1_l1_signal_bar_profile(prev, prev2, ema20[-2], "BUY")
+            if not bool(signal_profile["valid_signal_bar"]):
                 return None
-            if not CandlePatterns.is_bull(curr):
+
+            # 2. 当前 K 线只要真实触发了 stop 单即可
+            if not self._stop_entry_reached(curr, prev, "BUY", candles):
                 return None
             sig_quality = CandlePatterns.signal_bar_quality(curr, candles[-6:-1], "BUY")
-            if sig_quality < 0.55:
-                return None
-
-            # 3. 止损和目标（与趋势H1相同逻辑）
-            stop = build_trend_pullback_stop("BUY", candles, curr.high, min(prev.low, prev2.low), atr)
-            risk = curr.close - stop
-            if risk <= 0:
-                return None
-            target = curr.close + risk * 2.0
 
             # 急速H1基础强度76（比趋势H1的78低2分：急速波动大，风险稍高）
             strength = 76
@@ -447,23 +997,21 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if sig_quality >= 0.65:
                 strength += 5  # 高质量信号棒 +5
 
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="高1",
-                direction="BUY",
-                strength=min(95, strength),
-                message="急速多后微回调再入场（急速H1）",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.55,
+            setup_profile = self._h1_l1_setup_profile(candles, ema20, "BUY", cycle)
+            signal = self._build_h1_l1_signal(
+                curr=curr,
+                prev=prev,
+                candles=candles,
                 cycle=cycle,
-                timeframe=curr.timeframe,
-                extra={
-                    "signal_bar_quality": sig_quality,
-                    "signal_rank": 1,
-                },
+                direction="BUY",
+                strength=strength,
+                probability=0.55,
+                message="急速多后微回调再入场（急速H1）",
+                signal_profile=signal_profile,
+                sig_quality=sig_quality,
+                atr=atr,
             )
+            return self._attach_h1_l1_setup_extra(signal, setup_profile)
 
         elif cycle == "急速空":
             # Al Brooks: 急速下冲后的第一次反弹空点（急速L1）
@@ -474,22 +1022,14 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if CandlePatterns.is_strong_bear(prev):
                 return None
             pullback_is_bull = CandlePatterns.is_bull(prev)
-
-            # 2. 信号棒跌破反弹棒低点，且收盘有力（阴线）
-            if curr.close >= prev.low:
+            signal_profile = self._h1_l1_signal_bar_profile(prev, prev2, ema20[-2], "SELL")
+            if not bool(signal_profile["valid_signal_bar"]):
                 return None
-            if not CandlePatterns.is_bear(curr):
+
+            # 2. 当前 K 线只要真实触发了 stop 单即可
+            if not self._stop_entry_reached(curr, prev, "SELL", candles):
                 return None
             sig_quality = CandlePatterns.signal_bar_quality(curr, candles[-6:-1], "SELL")
-            if sig_quality < 0.55:
-                return None
-
-            # 3. 止损和目标
-            stop = build_trend_pullback_stop("SELL", candles, max(prev.high, prev2.high), curr.low, atr)
-            risk = stop - curr.close
-            if risk <= 0:
-                return None
-            target = curr.close - risk * 2.0
 
             strength = 76
             if pullback_is_bull:
@@ -497,23 +1037,21 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if sig_quality >= 0.65:
                 strength += 5
 
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="低1",
-                direction="SELL",
-                strength=min(95, strength),
-                message="急速空后微反弹再空（急速L1）",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.55,
+            setup_profile = self._h1_l1_setup_profile(candles, ema20, "SELL", cycle)
+            signal = self._build_h1_l1_signal(
+                curr=curr,
+                prev=prev,
+                candles=candles,
                 cycle=cycle,
-                timeframe=curr.timeframe,
-                extra={
-                    "signal_bar_quality": sig_quality,
-                    "signal_rank": 1,
-                },
+                direction="SELL",
+                strength=strength,
+                probability=0.55,
+                message="急速空后微反弹再空（急速L1）",
+                signal_profile=signal_profile,
+                sig_quality=sig_quality,
+                atr=atr,
             )
+            return self._attach_h1_l1_setup_extra(signal, setup_profile)
 
         elif cycle == "区间":
             # Al Brooks: 区间中顺大趋势方向的H1
@@ -530,19 +1068,13 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 if CandlePatterns.is_strong_bull(prev):
                     return None
                 pullback_is_bear = CandlePatterns.is_bear(prev)
-                if curr.close <= prev.high:
+                signal_profile = self._h1_l1_signal_bar_profile(prev, prev2, ema20[-2], "BUY")
+                if not bool(signal_profile["valid_signal_bar"]):
                     return None
-                if not CandlePatterns.is_bull(curr):
+                if not self._stop_entry_reached(curr, prev, "BUY", candles):
                     return None
                 sig_quality = CandlePatterns.signal_bar_quality(
                     curr, candles[-6:-1], "BUY")
-                if sig_quality < 0.55:
-                    return None
-                stop = min(prev.low, prev2.low)
-                risk = curr.close - stop
-                if risk <= 0:
-                    return None
-                target = curr.close + risk * 2.0
                 # 区间H1基础强度78（需要两个加成才能过评分80）
                 # 评分: trend=12, 加成后strength=88→quality=17+match=22+rr=16+risk=15=82 ✓
                 # Al Brooks: 区间H1要求EMA方向+回调棒+高质量信号棒三个条件同时满足
@@ -551,65 +1083,55 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     strength += 5
                 if sig_quality >= 0.65:
                     strength += 5
-                return PASignal(
-                    symbol=curr.symbol,
-                    signal_type="高1",
-                    direction="BUY",
-                    strength=min(95, strength),
-                    message="区间整理中顺EMA方向回调买入（区间H1）",
-                    price=curr.close,
-                    stop_loss=stop,
-                    take_profit=target,
-                    probability=0.50,
+                setup_profile = self._h1_l1_setup_profile(candles, ema20, "BUY", cycle)
+                signal = self._build_h1_l1_signal(
+                    curr=curr,
+                    prev=prev,
+                    candles=candles,
                     cycle=cycle,
-                    timeframe=curr.timeframe,
-                    extra={
-                        "signal_bar_quality": sig_quality,
-                        "signal_rank": 1,
-                    },
+                    direction="BUY",
+                    strength=strength,
+                    probability=0.50,
+                    message="区间整理中顺EMA方向回调买入（区间H1）",
+                    signal_profile=signal_profile,
+                    sig_quality=sig_quality,
+                    atr=atr,
                 )
+                return self._attach_h1_l1_setup_extra(signal, setup_profile)
 
             elif ema_slope_dn:
                 # 区间内偏空 → 做L1 SELL
                 if CandlePatterns.is_strong_bear(prev):
                     return None
                 pullback_is_bull = CandlePatterns.is_bull(prev)
-                if curr.close >= prev.low:
+                signal_profile = self._h1_l1_signal_bar_profile(prev, prev2, ema20[-2], "SELL")
+                if not bool(signal_profile["valid_signal_bar"]):
                     return None
-                if not CandlePatterns.is_bear(curr):
+                if not self._stop_entry_reached(curr, prev, "SELL", candles):
                     return None
                 sig_quality = CandlePatterns.signal_bar_quality(
                     curr, candles[-6:-1], "SELL")
-                if sig_quality < 0.55:
-                    return None
-                stop = max(prev.high, prev2.high)
-                risk = stop - curr.close
-                if risk <= 0:
-                    return None
-                target = curr.close - risk * 2.0
                 # 区间L1基础强度78（对称）
                 strength = 78
                 if pullback_is_bull:
                     strength += 5
                 if sig_quality >= 0.65:
                     strength += 5
-                return PASignal(
-                    symbol=curr.symbol,
-                    signal_type="低1",
-                    direction="SELL",
-                    strength=min(95, strength),
-                    message="区间整理中顺EMA方向反弹做空（区间L1）",
-                    price=curr.close,
-                    stop_loss=stop,
-                    take_profit=target,
-                    probability=0.50,
+                setup_profile = self._h1_l1_setup_profile(candles, ema20, "SELL", cycle)
+                signal = self._build_h1_l1_signal(
+                    curr=curr,
+                    prev=prev,
+                    candles=candles,
                     cycle=cycle,
-                    timeframe=curr.timeframe,
-                    extra={
-                        "signal_bar_quality": sig_quality,
-                        "signal_rank": 1,
-                    },
+                    direction="SELL",
+                    strength=strength,
+                    probability=0.50,
+                    message="区间整理中顺EMA方向反弹做空（区间L1）",
+                    signal_profile=signal_profile,
+                    sig_quality=sig_quality,
+                    atr=atr,
                 )
+                return self._attach_h1_l1_setup_extra(signal, setup_profile)
 
         return None
 

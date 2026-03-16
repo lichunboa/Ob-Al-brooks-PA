@@ -225,6 +225,11 @@ def classify_management_style(
     entry_type: str = "STOP",
     route_style: str = "",
     playbook_id: str = "",
+    setup_valid: bool = True,
+    setup_clear_trend_leg: bool = True,
+    setup_first_pullback_shape: bool = True,
+    setup_pullback_depth_ratio: float = 0.0,
+    setup_pullback_overlap_ratio: float = 0.0,
 ) -> str:
     """把策略映射到回测专用管理模板。"""
     label = normalize_strategy_label(signal_type)
@@ -236,10 +241,7 @@ def classify_management_style(
     order_type = normalize_strategy_label(entry_type).upper()
     route_key = normalize_strategy_label(route_style)
     playbook_key = normalize_strategy_label(playbook_id)
-
-    # Brooks 原课里纯 TR 优先 BLSHS: limit + scalp。
-    # 这里保留的是结构语义，不把它再写成“只限某个固定周期”。
-    if (
+    tr_like_context = (
         playbook_key in {
             "TR1_BLSHS",
             "TR2_FAILED_BO_FADE",
@@ -249,9 +251,32 @@ def classify_management_style(
             "T6_TR_LEG_CHANNEL_RECOVERY",
             "T6_TR_LEG_EMA_RECOVERY",
         }
-        or market_key == "tight_range"
+        or market_key in {"tight_range", "broad_range", "bc", "weak_trend_bull", "weak_trend_bear"}
         or higher_key in {"tight_range", "broad_range"}
         or route_key in {"tr_blshs_limit", "higher_tr_limit_reversal", "tr_leg_limit_pullback"}
+    )
+    weak_h1_l1_setup = (
+        label in {"高1", "低1"}
+        and (
+            not setup_valid
+            or not setup_clear_trend_leg
+            or not setup_first_pullback_shape
+            or float(setup_pullback_depth_ratio or 0.0) >= 0.75
+            or float(setup_pullback_overlap_ratio or 0.0) >= 0.60
+        )
+    )
+
+    # Brooks 语义里，弱 first-entry continuation 不该继续按普通 swing 去拿。
+    # 如果它已经退化成 TR/弱趋势上下文，就按 TR BLSHS 管；否则先按保守 scalp 处理。
+    if weak_h1_l1_setup:
+        if tr_like_context or order_type == "LIMIT":
+            return "brooks_tr_blshs"
+        return "brooks_scalp"
+
+    # Brooks 原课里纯 TR 优先 BLSHS: limit + scalp。
+    # 这里保留的是结构语义，不把它再写成“只限某个固定周期”。
+    if (
+        tr_like_context
     ):
         if order_type == "LIMIT" or label in {
             "高1",
@@ -304,6 +329,11 @@ def management_score_floor(
     entry_type: str = "STOP",
     route_style: str = "",
     playbook_id: str = "",
+    setup_valid: bool = True,
+    setup_clear_trend_leg: bool = True,
+    setup_first_pullback_shape: bool = True,
+    setup_pullback_depth_ratio: float = 0.0,
+    setup_pullback_overlap_ratio: float = 0.0,
 ) -> int:
     """不同管理模板下的最低分要求。"""
     style = normalize_management_style(
@@ -316,6 +346,11 @@ def management_score_floor(
         entry_type=entry_type,
         route_style=route_style,
         playbook_id=playbook_id,
+        setup_valid=setup_valid,
+        setup_clear_trend_leg=setup_clear_trend_leg,
+        setup_first_pullback_shape=setup_first_pullback_shape,
+        setup_pullback_depth_ratio=setup_pullback_depth_ratio,
+        setup_pullback_overlap_ratio=setup_pullback_overlap_ratio,
         )
     )
     if management_profile != "brooks_pdf":

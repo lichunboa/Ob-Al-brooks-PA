@@ -2536,6 +2536,11 @@ class BacktestRunner:
             entry_type=str(getattr(event, "entry_type", "STOP") or "STOP"),
             route_style=str(extra.get("route_style", "") or ""),
             playbook_id=str(extra.get("playbook_id", "") or ""),
+            setup_valid=bool(extra.get("setup_valid", True)),
+            setup_clear_trend_leg=bool(extra.get("setup_clear_trend_leg", True)),
+            setup_first_pullback_shape=bool(extra.get("setup_first_pullback_shape", True)),
+            setup_pullback_depth_ratio=float(extra.get("setup_pullback_depth_ratio", 0.0) or 0.0),
+            setup_pullback_overlap_ratio=float(extra.get("setup_pullback_overlap_ratio", 0.0) or 0.0),
         )
         style = normalize_management_style(style)
         extra = dict(getattr(event, "extra", {}) or {})
