@@ -14,6 +14,7 @@ from .analysis import (
     calculate_ema,
     ema_slope,
 )
+from .h1_l1_template import H1L1TemplateMixin
 from .models import Candle, MarketState, PASignal
 from .risk import RiskManager
 from .strategy_advanced import AdvancedStrategyDetectorMixin
@@ -27,6 +28,7 @@ __all__ = [
     "TrendValidator",
     "CandlePatterns",
     "CycleIdentifier",
+    "H1L1TemplateMixin",
     "RiskManager",
     "AdvancedStrategyDetectorMixin",
     "calculate_ema",

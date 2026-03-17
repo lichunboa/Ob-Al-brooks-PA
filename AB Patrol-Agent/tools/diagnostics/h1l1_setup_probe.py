@@ -48,6 +48,16 @@ RANDOM_SCENARIOS = [
     Scenario("R4_SOL_15m_2025Q3", "SOLUSDT", "15m", "2025-08-01", "2025-08-31"),
 ]
 
+STRESS_5M_SCENARIOS = [
+    Scenario("P1_BTC_5m_2022Q1", "BTCUSDT", "5m", "2022-01-24", "2022-02-23"),
+    Scenario("P2_BTC_5m_2024Q1", "BTCUSDT", "5m", "2024-02-01", "2024-03-02"),
+    Scenario("P3_BTC_5m_2024Q3", "BTCUSDT", "5m", "2024-08-10", "2024-09-09"),
+    Scenario("P4_ETH_5m_2022Q1", "ETHUSDT", "5m", "2022-01-24", "2022-02-23"),
+    Scenario("P5_ETH_5m_2024Q3", "ETHUSDT", "5m", "2024-08-10", "2024-09-09"),
+    Scenario("P6_BNB_5m_2024Q3", "BNBUSDT", "5m", "2024-08-10", "2024-09-09"),
+    Scenario("P7_SOL_5m_2025Q3", "SOLUSDT", "5m", "2025-08-01", "2025-08-31"),
+]
+
 
 def _days(start: str, end: str) -> int:
     """计算场景跨度天数。"""
@@ -94,6 +104,7 @@ def _summarize_group(
     cache_dir: str,
     fee_rate: float,
     output: Path,
+    include_trades: bool,
 ) -> dict[str, Any]:
     """按场景运行 H1/L1，并返回聚合结果。"""
     rows: list[dict[str, Any]] = []
@@ -143,6 +154,8 @@ def _summarize_group(
             "l1_trades": l1_trades,
             "by_exit_reason": dict(result.by_exit_reason),
         }
+        if include_trades:
+            row["trade_details"] = list(result.trades)
         rows.append(row)
 
         total_trades += len(result.trades)
@@ -195,7 +208,7 @@ def _summarize_group(
 def main() -> None:
     """脚本入口。"""
     parser = argparse.ArgumentParser(description="H1/L1 单策略验证脚本")
-    parser.add_argument("--group", choices=["fixed", "random"], required=True, help="验证场景组")
+    parser.add_argument("--group", choices=["fixed", "random", "stress5m"], required=True, help="验证场景组")
     parser.add_argument("--labels", default="", help="只跑指定标签，逗号分隔")
     parser.add_argument(
         "--cache-dir",
@@ -203,15 +216,27 @@ def main() -> None:
         help="历史数据目录",
     )
     parser.add_argument("--fee-rate", type=float, default=0.0004, help="单边手续费率")
+    parser.add_argument("--include-trades", action="store_true", help="输出逐笔交易明细")
     parser.add_argument("--output", required=True, help="输出 JSON 路径")
     args = parser.parse_args()
 
-    scenarios = FIXED_SCENARIOS if args.group == "fixed" else RANDOM_SCENARIOS
+    if args.group == "fixed":
+        scenarios = FIXED_SCENARIOS
+    elif args.group == "random":
+        scenarios = RANDOM_SCENARIOS
+    else:
+        scenarios = STRESS_5M_SCENARIOS
     labels = {item.strip() for item in str(args.labels or "").split(",") if item.strip()}
     if labels:
         scenarios = [item for item in scenarios if item.label in labels]
     output = Path(args.output)
-    payload = _summarize_group(scenarios, str(args.cache_dir), float(args.fee_rate), output)
+    payload = _summarize_group(
+        scenarios,
+        str(args.cache_dir),
+        float(args.fee_rate),
+        output,
+        include_trades=bool(args.include_trades),
+    )
     output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"已写出: {output}", flush=True)
 
