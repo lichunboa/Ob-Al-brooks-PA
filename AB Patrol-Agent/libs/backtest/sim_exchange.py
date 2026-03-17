@@ -50,6 +50,15 @@ BROOKS_TR_SCALP_STYLES = {
     "brooks_tr_blshs",
     "brooks_tr4_daily_tr_fade",
 }
+BROOKS_TREND_RECOVERY_DYNAMIC_TEMPLATES = {
+    "h1_l1_first_entry",
+    "h2_l2_second_entry",
+    "breakout_pullback_continuation",
+    "ema_gap_continuation",
+    "ema_gap_mag_final_leg",
+    "first_ema_gap_reentry",
+    "ema_gap_fade",
+}
 
 
 class SimExchange:
@@ -142,6 +151,9 @@ class SimExchange:
 
     def _family_key(self, trade: Trade) -> str:
         """把管理模板归并到更稳定的 Brooks 管理家族。"""
+        template_key = str(getattr(trade, "management_template", "") or "").strip().lower()
+        if template_key in {"ema_gap_continuation", "ema_gap_mag_final_leg", "first_ema_gap_reentry"}:
+            return "trend_recovery"
         style_key = self._style_key(trade.management_style)
         if style_key in {"brooks_swing", "brooks_t4_wedge_pullback"}:
             return "trend_recovery"
@@ -159,6 +171,15 @@ class SimExchange:
         if style_key in BROOKS_TR_SCALP_STYLES:
             return "tr_scalp"
         return "other"
+
+    @staticmethod
+    def _uses_dynamic_management(trade: Trade) -> bool:
+        """判断这笔单是否应该先交给动态管理，而不是先吃固定 TP。"""
+        template_key = str(getattr(trade, "management_template", "") or "").strip().lower()
+        if template_key in BROOKS_TREND_RECOVERY_DYNAMIC_TEMPLATES:
+            return True
+        style_key = normalize_management_style(str(getattr(trade, "management_style", "") or ""))
+        return style_key in BROOKS_MANAGED_STYLES
 
     @staticmethod
     def _market_state_key(trade: Trade, market_data: dict | None) -> str:
@@ -540,7 +561,7 @@ class SimExchange:
                 closed = self._manage_protective_scalp(trade, candle, market_data)
 
             # 默认模板保留老逻辑；Brooks swing / reversal 交给 2R/3R 分批和结构保护。
-            if not closed and trade.management_style not in BROOKS_MANAGED_STYLES:
+            if not closed and not self._uses_dynamic_management(trade):
                 be_trigger = self._breakeven_trigger(trade.management_style)
                 if trade.direction == "BUY":
                     unrealized = candle.high - trade.entry_price
@@ -708,17 +729,17 @@ class SimExchange:
         return str(getattr(signal, "intent", "") or extra.get("intent") or "").upper()
 
     def _signal_risk_percent(self, signal) -> float:
-        """按 S7 梯度提取回测侧的单笔风险。"""
+        """按 S7 的 0.4 / 0.3 / 0.3 梯度提取回测侧的单笔风险。"""
         extra = getattr(signal, "extra", {}) or {}
         explicit = float(extra.get("risk_percent", 0.0) or getattr(signal, "risk_percent", 0.0) or 0.0)
         if explicit > 0:
             return explicit
         intent = self._signal_intent(signal)
-        if intent == "PYRAMID_ADD":
-            return 0.4
         if intent in {"ADD_ON", "SCALE_IN"}:
             return 0.3
-        return 0.3
+        if intent == "PYRAMID_ADD":
+            return 0.3
+        return 0.4
 
     @staticmethod
     def _resolve_signal_bar_type(extra: dict) -> str:
@@ -914,6 +935,13 @@ class SimExchange:
             stretch_target=float(getattr(signal, "stretch_target", extra.get("stretch_target", 0.0)) or 0.0),
             stretch_target_type=str(getattr(signal, "stretch_target_type", extra.get("stretch_target_type", "")) or ""),
             target_buffer=float(getattr(signal, "target_buffer", extra.get("target_buffer", 0.0)) or 0.0),
+            ema_gap_bars=int(extra.get("ema_gap_bars", 0) or 0),
+            ema_gap_variant=str(extra.get("ema_gap_variant", "") or ""),
+            ema_gap_overextended=bool(extra.get("ema_gap_overextended", False)),
+            ema_gap_first_reentry=bool(extra.get("ema_gap_first_reentry", False)),
+            ema_gap_context_tier=str(extra.get("ema_gap_context_tier", "") or ""),
+            ema_gap_expectation=str(extra.get("ema_gap_expectation", "") or ""),
+            ema_gap_expectation_reason=str(extra.get("ema_gap_expectation_reason", "") or ""),
             blocking_magnet_distance_r=float(extra.get("blocking_magnet_distance_r", 0.0) or 0.0),
             trapped_side=str(extra.get("trapped_side", "") or ""),
             prior_leg_context=str(extra.get("prior_leg_context", "") or ""),
@@ -931,6 +959,9 @@ class SimExchange:
             magnet_cluster_strength=float(extra.get("magnet_cluster_strength", 0.0) or 0.0),
             signal_stage=str(extra.get("signal_stage", "") or ""),
             signal_stage_reason=str(extra.get("signal_stage_reason", "") or ""),
+            setup_disposition=str(extra.get("setup_disposition", "") or ""),
+            setup_disposition_reason=str(extra.get("setup_disposition_reason", "") or ""),
+            minimum_target_distance_r=float(extra.get("minimum_target_distance_r", 0.0) or 0.0),
             weak_h1_l1_disposition=str(extra.get("weak_h1_l1_disposition", "") or ""),
             executed_as_fade=bool(extra.get("executed_as_fade", False)),
             fade_source_signal=str(extra.get("fade_source_signal", "") or ""),
@@ -1076,6 +1107,13 @@ class SimExchange:
             stretch_target=float(extra.get("stretch_target", 0.0) or 0.0),
             stretch_target_type=str(extra.get("stretch_target_type", "") or ""),
             target_buffer=float(extra.get("target_buffer", 0.0) or 0.0),
+            ema_gap_bars=int(extra.get("ema_gap_bars", 0) or 0),
+            ema_gap_variant=str(extra.get("ema_gap_variant", "") or ""),
+            ema_gap_overextended=bool(extra.get("ema_gap_overextended", False)),
+            ema_gap_first_reentry=bool(extra.get("ema_gap_first_reentry", False)),
+            ema_gap_context_tier=str(extra.get("ema_gap_context_tier", "") or ""),
+            ema_gap_expectation=str(extra.get("ema_gap_expectation", "") or ""),
+            ema_gap_expectation_reason=str(extra.get("ema_gap_expectation_reason", "") or ""),
             blocking_magnet_distance_r=float(extra.get("blocking_magnet_distance_r", 0.0) or 0.0),
             trapped_side=str(extra.get("trapped_side", "") or ""),
             prior_leg_context=str(extra.get("prior_leg_context", "") or ""),
@@ -1093,6 +1131,9 @@ class SimExchange:
             magnet_cluster_strength=float(extra.get("magnet_cluster_strength", 0.0) or 0.0),
             signal_stage=str(extra.get("signal_stage", "") or ""),
             signal_stage_reason=str(extra.get("signal_stage_reason", "") or ""),
+            setup_disposition=str(extra.get("setup_disposition", "") or ""),
+            setup_disposition_reason=str(extra.get("setup_disposition_reason", "") or ""),
+            minimum_target_distance_r=float(extra.get("minimum_target_distance_r", 0.0) or 0.0),
             weak_h1_l1_disposition=str(extra.get("weak_h1_l1_disposition", "") or ""),
             executed_as_fade=bool(extra.get("executed_as_fade", False)),
             fade_source_signal=str(extra.get("fade_source_signal", "") or ""),
@@ -1485,6 +1526,13 @@ class SimExchange:
                     "h1_l1_context_tier": order.h1_l1_context_tier,
                     "h1_l1_expectation": order.h1_l1_expectation,
                     "h1_l1_expectation_reason": order.h1_l1_expectation_reason,
+                    "ema_gap_bars": order.ema_gap_bars,
+                    "ema_gap_variant": order.ema_gap_variant,
+                    "ema_gap_overextended": order.ema_gap_overextended,
+                    "ema_gap_first_reentry": order.ema_gap_first_reentry,
+                    "ema_gap_context_tier": order.ema_gap_context_tier,
+                    "ema_gap_expectation": order.ema_gap_expectation,
+                    "ema_gap_expectation_reason": order.ema_gap_expectation_reason,
                     "blocking_magnet_distance_r": order.blocking_magnet_distance_r,
                     "trapped_side": order.trapped_side,
                     "prior_leg_context": order.prior_leg_context,
@@ -1517,6 +1565,9 @@ class SimExchange:
                     "runner_handoff_stop_type": order.runner_handoff_stop_type,
                     "signal_stage": order.signal_stage,
                     "signal_stage_reason": order.signal_stage_reason,
+                    "setup_disposition": order.setup_disposition,
+                    "setup_disposition_reason": order.setup_disposition_reason,
+                    "minimum_target_distance_r": order.minimum_target_distance_r,
                     "weak_h1_l1_disposition": order.weak_h1_l1_disposition,
                     "executed_as_fade": order.executed_as_fade,
                     "fade_source_signal": order.fade_source_signal,
@@ -1635,7 +1686,7 @@ class SimExchange:
     def _check_stop_target_hits(self, trade: Trade, candle) -> tuple[float, str]:
         """检测当前 K 线是否先触发止损或最终止盈。"""
         allow_fixed_tp = not (
-            trade.management_style in BROOKS_MANAGED_STYLES
+            self._uses_dynamic_management(trade)
             and trade.management_state != "protective_scalp"
             and not trade.tp2_done
         )
@@ -1667,17 +1718,22 @@ class SimExchange:
 
     def _apply_brooks_management(self, trade: Trade, candle, market_data: dict | None = None) -> None:
         """Brooks 风格持仓管理：2R/3R 分批、保护性移损与余仓 trailing。"""
-        plan = self._management_plan(trade.management_style)
-        if (
-            not plan
-            or trade.initial_risk <= 0
-            or trade.remaining_size <= 0
-            or trade.management_state == "protective_scalp"
-        ):
+        if trade.initial_risk <= 0 or trade.remaining_size <= 0 or trade.management_state == "protective_scalp":
             return
 
-        tp1_r = plan["tp1_r"]
-        tp2_r = plan["tp2_r"]
+        plan = self._management_plan(trade.management_style)
+        trend_recovery_profile = None
+        if self._family_key(trade) == "trend_recovery":
+            trend_recovery_profile = build_trend_recovery_management_profile(
+                trade,
+                default_tp1_r=float(plan["tp1_r"]) if plan else 1.0,
+                default_tp2_r=float(plan["tp2_r"]) if plan else 2.0,
+            )
+        if not plan and trend_recovery_profile is None:
+            return
+
+        tp1_r = float(plan["tp1_r"]) if plan else 1.0
+        tp2_r = float(plan["tp2_r"]) if plan else 2.0
         magnet_take_r = self._magnet_take_r(trade)
         first_entry_signal = trade.strategy in {"高1", "低1"}
         first_target_r = 0.0
@@ -1701,6 +1757,9 @@ class SimExchange:
         tp1_fraction = 0.50
         tp2_fraction = 0.25
         style_key = self._style_key(trade.management_style)
+        tp1_protect_r = float(plan["protect1_r"]) if plan else 0.0
+        tp2_protect_r = float(plan["protect2_r"]) if plan else 0.0
+        trail_r = float(plan["trail_r"]) if plan else 0.0
         if magnet_take_r > 0 and self._family_key(trade) == "trend_recovery" and not first_entry_signal:
             if magnet_take_r < tp1_r:
                 tp1_r = max(0.8, magnet_take_r)
@@ -1713,6 +1772,7 @@ class SimExchange:
                 tp2_r = max(tp1_r + 0.15, magnet_take_r)
 
         profit_r = self._profit_in_r(trade, candle.close)
+        best_r = self._profit_in_r(trade, trade.best_price or trade.entry_price)
         bars_without_progress = max(0, trade.bars_held - int(trade.best_price_bar or 0))
 
         # 趋势恢复族一旦已经走出接近 1R，又长时间无推进，就先保护到保本，
@@ -1748,23 +1808,18 @@ class SimExchange:
         if style_key == "brooks_mtr_reversal" and not trade.tp1_done and profit_r >= 1.1:
             self._update_stop_loss(trade, self._protective_stop(trade, 0.15))
 
-        tp1_protect_r = plan["protect1_r"]
-        if self._family_key(trade) == "trend_recovery":
-            trend_recovery_profile = build_trend_recovery_management_profile(
-                trade,
-                default_tp1_r=tp1_r,
-                default_tp2_r=tp2_r,
-            )
-            if trend_recovery_profile is not None:
-                tp1_r = float(trend_recovery_profile["tp1_r"])
-                tp2_r = float(trend_recovery_profile["tp2_r"])
-                tp1_fraction = float(trend_recovery_profile["tp1_fraction"])
-                tp2_fraction = float(trend_recovery_profile["tp2_fraction"])
-                tp1_protect_r = float(trend_recovery_profile["protect_after_tp1"])
-                if trade.prefer_partial_over_full_swing and not bool(trend_recovery_profile["runner_enabled"]):
-                    tp2_fraction = max(0.0, min(tp2_fraction, 1.0 - tp1_fraction))
+        if trend_recovery_profile is not None:
+            tp1_r = float(trend_recovery_profile["tp1_r"])
+            tp2_r = float(trend_recovery_profile["tp2_r"])
+            tp1_fraction = float(trend_recovery_profile["tp1_fraction"])
+            tp2_fraction = float(trend_recovery_profile["tp2_fraction"])
+            tp1_protect_r = float(trend_recovery_profile["protect_after_tp1"])
+            tp2_protect_r = float(trend_recovery_profile.get("protect2_r", tp2_protect_r or tp1_protect_r) or 0.0)
+            trail_r = float(trend_recovery_profile.get("trail_r", trail_r or tp2_protect_r or tp1_protect_r) or 0.0)
+            if trade.prefer_partial_over_full_swing and not bool(trend_recovery_profile["runner_enabled"]):
+                tp2_fraction = max(0.0, min(tp2_fraction, 1.0 - tp1_fraction))
 
-        if not trade.tp1_done and profit_r >= tp1_r:
+        if not trade.tp1_done and best_r >= tp1_r:
             self._realize_partial(trade, self._price_at_r(trade, tp1_r), tp1_fraction, reason="TP")
             trade.tp1_done = True
             protect_after_tp1 = tp1_protect_r
@@ -1789,13 +1844,13 @@ class SimExchange:
                 trade.tp2_done = True
                 self._update_stop_loss(trade, self._protective_stop(trade, 0.05))
 
-        if not trade.tp2_done and tp2_fraction > 0 and profit_r >= tp2_r:
+        if not trade.tp2_done and tp2_fraction > 0 and best_r >= tp2_r:
             self._realize_partial(trade, self._price_at_r(trade, tp2_r), tp2_fraction, reason="TP")
             trade.tp2_done = True
-            self._update_stop_loss(trade, self._protective_stop(trade, plan["protect2_r"]))
+            self._update_stop_loss(trade, self._protective_stop(trade, tp2_protect_r))
 
         if trade.tp2_done and trade.remaining_size > 0:
-            self._update_stop_loss(trade, self._trail_stop(trade, plan["trail_r"], plan["protect2_r"]))
+            self._update_stop_loss(trade, self._trail_stop(trade, trail_r, tp2_protect_r))
 
         if style_key == "brooks_mtr_reversal" and trade.tp1_done and trade.remaining_size > 0:
             # MTR 本来就允许 2R 兑现；一旦兑现后没有继续形成顺畅延续，
