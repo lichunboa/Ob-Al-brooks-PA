@@ -35,6 +35,7 @@ from trading.market.playbook_router import (
     infer_htf_sr_bias,
     resolve_playbook_context,
 )
+from trading.market.timeframe_roles import resolve_filter_cycles, resolve_timeframe_roles
 from trading.position_management.followup import annotate_followup_signal
 
 from .cycle_identifier import BACKTEST_STRATEGY_MATRIX, CycleIdentifier, classify_backtest_market_state
@@ -84,15 +85,6 @@ class BacktestConfig:
     strategy_profile: str = ""  # 策略配置档
     management_profile: str = "default"  # 回测专用管理模板
 
-
-# 周期→过滤器周期映射（信号周期→质量分析/趋势确认/逆势过滤）
-TF_FILTER_MAP = {
-    "1m":  {"quality": "5m",  "trend": "15m", "counter": "1h"},
-    "5m":  {"quality": "5m",  "trend": "15m", "counter": "1h"},
-    "15m": {"quality": "15m", "trend": "1h",  "counter": "4h"},
-    "30m": {"quality": "30m", "trend": "1h",  "counter": "4h"},
-    "1h":  {"quality": "1h",  "trend": "4h",  "counter": "1d"},
-}
 
 # Al Brooks: 反转策略允许逆 Always In 方向交易
 REVERSAL_STRATEGIES = {
@@ -393,9 +385,9 @@ class BacktestRunner:
                     self._signals_blocked_strategy_by_strategy[signal_label] += 1
                     continue
 
-                # 信号周期 → 过滤器周期映射
+                # 当前周期负责当前结构质量，多周期角色由共享模块统一定义
                 sig_tf = getattr(event, "timeframe", cfg.timeframes[0])
-                ftf = TF_FILTER_MAP.get(sig_tf, TF_FILTER_MAP["5m"])
+                ftf = resolve_filter_cycles(sig_tf)
 
                 candles_q = replay.get_candles(
                     event.symbol, ftf["quality"], limit=30
@@ -705,15 +697,15 @@ class BacktestRunner:
         )
 
     @staticmethod
-    def _higher_structure_timeframe(timeframe: str) -> str:
-        """给信号周期映射一个更高一级的结构周期。"""
+    def _timeframe_roles(timeframe: str) -> dict[str, str]:
+        """返回统一的周期角色定义。"""
+        roles = resolve_timeframe_roles(timeframe)
         return {
-            "1m": "5m",
-            "5m": "15m",
-            "15m": "1h",
-            "30m": "1h",
-            "1h": "4h",
-        }.get(str(timeframe or ""), "")
+            "signal": roles.signal,
+            "structure": roles.structure,
+            "context": roles.context,
+            "anchor": roles.anchor,
+        }
 
     @staticmethod
     def _load_runtime_target_router():
@@ -815,28 +807,61 @@ class BacktestRunner:
         return snapshot["state"]
 
     def _attach_higher_tf_context(self, event, replay):
-        """给信号补一个更高一级的结构状态，避免 5m 脱离 15m 乱做。"""
-        higher_tf = self._higher_structure_timeframe(str(getattr(event, "timeframe", "") or ""))
-        if not higher_tf:
-            return None
+        """给信号补统一的结构周期 / 主背景周期 / 锚定周期上下文。"""
+        roles = self._timeframe_roles(str(getattr(event, "timeframe", "") or ""))
+        structure_tf = roles["structure"]
+        context_tf = roles["context"]
+        anchor_tf = roles["anchor"]
 
-        candles_higher = replay.get_candles(event.symbol, higher_tf, limit=80)
-        snapshot = self._identify_market_state_snapshot(candles_higher)
-        if not snapshot:
-            return None
+        def _snapshot(tf: str):
+            if not tf:
+                return None
+            candles = replay.get_candles(event.symbol, tf, limit=80)
+            return self._identify_market_state_snapshot(candles)
+
+        structure_snapshot = _snapshot(structure_tf)
+        context_snapshot = _snapshot(context_tf)
+        anchor_snapshot = _snapshot(anchor_tf) if anchor_tf not in {structure_tf, context_tf} else None
 
         extra = dict(getattr(event, "extra", {}) or {})
-        extra["higher_timeframe"] = higher_tf
-        extra["higher_market_state"] = snapshot["market_state"]
-        extra["higher_pullback_ratio"] = snapshot["pullback_ratio"]
-        extra["higher_follow_through"] = snapshot["follow_through"]
-        extra["higher_channel_type"] = snapshot["channel_type"]
-        extra["higher_range_position"] = snapshot["range_position"]
-        extra["higher_range_edge"] = snapshot["range_edge"]
-        extra["higher_range_zone"] = snapshot["range_zone"]
-        extra["higher_range_window"] = snapshot["range_window"]
+
+        extra["structure_timeframe"] = structure_tf
+        if structure_snapshot:
+            extra["structure_market_state"] = structure_snapshot["market_state"]
+            extra["structure_pullback_ratio"] = structure_snapshot["pullback_ratio"]
+            extra["structure_follow_through"] = structure_snapshot["follow_through"]
+            extra["structure_channel_type"] = structure_snapshot["channel_type"]
+            extra["structure_range_position"] = structure_snapshot["range_position"]
+            extra["structure_range_edge"] = structure_snapshot["range_edge"]
+            extra["structure_range_zone"] = structure_snapshot["range_zone"]
+            extra["structure_range_window"] = structure_snapshot["range_window"]
+
+        # 兼容旧字段：higher_* 统一代表“主背景周期”
+        extra["higher_timeframe"] = context_tf
+        extra["main_context_timeframe"] = context_tf
+        if context_snapshot:
+            extra["higher_market_state"] = context_snapshot["market_state"]
+            extra["higher_pullback_ratio"] = context_snapshot["pullback_ratio"]
+            extra["higher_follow_through"] = context_snapshot["follow_through"]
+            extra["higher_channel_type"] = context_snapshot["channel_type"]
+            extra["higher_range_position"] = context_snapshot["range_position"]
+            extra["higher_range_edge"] = context_snapshot["range_edge"]
+            extra["higher_range_zone"] = context_snapshot["range_zone"]
+            extra["higher_range_window"] = context_snapshot["range_window"]
+
+        extra["anchor_timeframe"] = anchor_tf
+        if anchor_snapshot:
+            extra["anchor_market_state"] = anchor_snapshot["market_state"]
+            extra["anchor_pullback_ratio"] = anchor_snapshot["pullback_ratio"]
+            extra["anchor_follow_through"] = anchor_snapshot["follow_through"]
+            extra["anchor_channel_type"] = anchor_snapshot["channel_type"]
+            extra["anchor_range_position"] = anchor_snapshot["range_position"]
+            extra["anchor_range_edge"] = anchor_snapshot["range_edge"]
+            extra["anchor_range_zone"] = anchor_snapshot["range_zone"]
+            extra["anchor_range_window"] = anchor_snapshot["range_window"]
+
         event.extra = extra
-        return snapshot["state"]
+        return context_snapshot["state"] if context_snapshot else None
 
     def _attach_daily_playbook_context(self, event, replay) -> None:
         """补充日线 TR fade / 微通道所需的上下文。"""

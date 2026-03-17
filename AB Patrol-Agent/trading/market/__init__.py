@@ -7,6 +7,7 @@ from .market_analysis import (
     detect_market_state,
     find_structure_points,
 )
+from .timeframe_roles import TimeframeRoles, resolve_filter_cycles, resolve_timeframe_roles
 
 __all__ = [
     "analyze_market",
@@ -14,4 +15,7 @@ __all__ = [
     "detect_ai_direction",
     "detect_market_state",
     "find_structure_points",
+    "TimeframeRoles",
+    "resolve_filter_cycles",
+    "resolve_timeframe_roles",
 ]

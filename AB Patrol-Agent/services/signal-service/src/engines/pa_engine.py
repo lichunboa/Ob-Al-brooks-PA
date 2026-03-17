@@ -42,6 +42,7 @@ from trading.market.playbook_router import (
     infer_htf_sr_bias,
     resolve_playbook_context,
 )
+from trading.market.timeframe_roles import resolve_timeframe_roles
 
 from .base import BaseEngine
 from .pa.analysis import (
@@ -2349,19 +2350,19 @@ class PASignalEngine(BaseEngine):
         current_price = float(candles[-1].close)
         signal_time = candles[-1].timestamp
         context: dict[str, float | str | int | bool] = {"signal_timeframe": timeframe}
+        roles = resolve_timeframe_roles(timeframe)
+        context["structure_timeframe"] = roles.structure
+        context["main_context_timeframe"] = roles.context
+        context["anchor_timeframe"] = roles.anchor
+        # 兼容旧字段：higher_timeframe 统一视为“主背景周期”
+        context["higher_timeframe"] = roles.context
 
         daily_candles = self._fetch_candles(symbol, "1d", limit=8)
         daily_context = build_daily_playbook_context(daily_candles, current_price, signal_time, timeframe)
         if daily_context:
             context.update(daily_context)
 
-        higher_tf = {
-            "1m": "15m",
-            "5m": "1h",
-            "15m": "4h",
-            "30m": "4h",
-            "1h": "1d",
-        }.get(timeframe, "")
+        higher_tf = roles.context
         if not higher_tf:
             return context
 
@@ -2389,6 +2390,18 @@ class PASignalEngine(BaseEngine):
             context["htf_support_level"] = nearest_support
         if nearest_resistance > 0:
             context["htf_resistance_level"] = nearest_resistance
+
+        anchor_tf = roles.anchor
+        if anchor_tf and anchor_tf not in {higher_tf, "1d"}:
+            anchor_candles = self._fetch_candles(symbol, anchor_tf, limit=40)
+            if len(anchor_candles) >= 3:
+                anchor_window = anchor_candles[-30:] if len(anchor_candles) >= 30 else anchor_candles
+                anchor_swings = CycleIdentifier._find_swings(anchor_window)
+                anchor_support, anchor_resistance = self._nearest_levels_from_swings(current_price, anchor_swings)
+                if anchor_support > 0:
+                    context["anchor_support_level"] = anchor_support
+                if anchor_resistance > 0:
+                    context["anchor_resistance_level"] = anchor_resistance
 
         return context
 

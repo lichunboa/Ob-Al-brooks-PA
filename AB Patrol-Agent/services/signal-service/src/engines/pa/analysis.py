@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from trading.market.timeframe_roles import resolve_timeframe_roles
+
 from .models import Candle, MarketState
 
 
@@ -96,14 +98,6 @@ class MeasuredMoveCalculator:
 
 class TrendValidator:
     """多周期趋势验证。"""
-
-    _HIGHER_TF_MAP = {
-        "1m": "5m",
-        "5m": "15m",
-        "15m": "1h",
-        "30m": "1h",
-        "1h": "4h",
-    }
     _TIMEFRAME_MINUTES = {
         "1m": 1,
         "5m": 5,
@@ -111,13 +105,14 @@ class TrendValidator:
         "30m": 30,
         "1h": 60,
         "4h": 240,
+        "1d": 1440,
     }
 
     @classmethod
     def _aggregate_to_higher_timeframe(cls, candles: list[Candle], timeframe: str) -> tuple[list[Candle], str]:
-        """把当前周期聚合成更高一级背景，不把固定周期写成策略逻辑。"""
+        """把当前周期聚合到主背景周期，不把固定周期写死在策略逻辑里。"""
         base_tf = str(timeframe or "5m")
-        higher_tf = cls._HIGHER_TF_MAP.get(base_tf, "")
+        higher_tf = resolve_timeframe_roles(base_tf).context
         base_minutes = int(cls._TIMEFRAME_MINUTES.get(base_tf, 0))
         higher_minutes = int(cls._TIMEFRAME_MINUTES.get(higher_tf, 0))
         if not higher_tf or base_minutes <= 0 or higher_minutes <= base_minutes:
