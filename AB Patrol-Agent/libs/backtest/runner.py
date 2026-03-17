@@ -41,6 +41,7 @@ from trading.position_management.followup import annotate_followup_signal
 from .cycle_identifier import BACKTEST_STRATEGY_MATRIX, CycleIdentifier, classify_backtest_market_state
 from .data_loader import DataLoader
 from .h1_l1_targets import (
+    classify_h1_l1_expectation,
     h1_l1_context_profile,
     resolve_h1_l1_effective_target,
     target_distance_r,
@@ -1534,6 +1535,14 @@ class BacktestRunner:
         extra["perfect_stop"] = perfect_stop
         extra["stop_auto_realigned"] = stop_auto_realigned
         extra["actual_to_perfect_risk_ratio"] = actual_to_perfect_risk_ratio
+        h1_l1_expectation = classify_h1_l1_expectation(
+            event,
+            extra,
+            entry_price=entry_price,
+            actual_risk=actual_risk,
+        )
+        extra["h1_l1_expectation"] = str(h1_l1_expectation.get("expectation", "") or "")
+        extra["h1_l1_expectation_reason"] = str(h1_l1_expectation.get("expectation_reason", "") or "")
         extra["range_window"] = int(current_context["window_size"] or 0)
         extra["higher_range_window"] = int(higher_context["window_size"] or 0)
         event.extra = extra

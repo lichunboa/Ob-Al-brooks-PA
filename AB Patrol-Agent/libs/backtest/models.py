@@ -148,6 +148,8 @@ class Trade:
     swing_target_type: str = ""
     valid_previous_entry: bool = False
     h1_l1_context_tier: str = ""
+    h1_l1_expectation: str = ""
+    h1_l1_expectation_reason: str = ""
     rescue_target_distance_r: float = 0.0
     close_test_target_distance_r: float = 0.0
     swing_target_distance_r: float = 0.0
@@ -301,6 +303,8 @@ class PendingOrder:
     swing_target_type: str = ""
     valid_previous_entry: bool = False
     h1_l1_context_tier: str = ""
+    h1_l1_expectation: str = ""
+    h1_l1_expectation_reason: str = ""
     rescue_target_distance_r: float = 0.0
     close_test_target_distance_r: float = 0.0
     swing_target_distance_r: float = 0.0

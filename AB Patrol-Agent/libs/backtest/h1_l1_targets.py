@@ -15,6 +15,74 @@ def target_distance_r(level: float, entry_price: float, actual_risk: float) -> f
     return abs(level - entry_price) / actual_risk
 
 
+def classify_h1_l1_expectation(event, extra: dict, *, entry_price: float, actual_risk: float) -> dict[str, object]:
+    """按 Brooks 语境判断 first-entry 更合理的预期层级。"""
+    context = h1_l1_context_profile(event, extra)
+    weak_disposition = str(extra.get("weak_h1_l1_disposition", "") or "")
+    target_path_clear = bool(extra.get("target_path_clear", True))
+    follow_through = bool(extra.get("follow_through", False))
+    higher_follow_through = bool(extra.get("higher_follow_through", False))
+    acceptance_ready = bool(extra.get("acceptance_ready", False))
+    reclaimed_prior_close = bool(extra.get("reclaimed_prior_close", False))
+    first_target = float(extra.get("first_target", 0.0) or 0.0)
+    rescue_target = float(extra.get("rescue_target", 0.0) or 0.0)
+    close_test_target = float(extra.get("close_test_target", 0.0) or 0.0)
+    swing_target = float(extra.get("swing_target", 0.0) or 0.0)
+
+    rescue_r = target_distance_r(rescue_target, entry_price, actual_risk)
+    close_test_r = target_distance_r(close_test_target, entry_price, actual_risk)
+    swing_r = target_distance_r(swing_target, entry_price, actual_risk)
+    first_target_r = target_distance_r(first_target, entry_price, actual_risk)
+
+    tier = str(context.get("tier", "weak") or "weak")
+    valid_previous_entry = bool(context.get("valid_previous_entry", False))
+    double_broad_range = bool(context.get("double_broad_range", False))
+    range_trendbar_context = bool(context.get("range_trendbar_context", False))
+
+    expectation = "scalp"
+    reason = "first_entry 默认按保守预期处理"
+
+    if bool(extra.get("executed_as_fade", False)) or weak_disposition == "fade_candidate":
+        expectation = "fade"
+        reason = "弱 H1/L1 已经降级成反做 fade"
+    elif weak_disposition in {"no_trade_too_close", "no_trade_range_trendbar"}:
+        expectation = "avoid"
+        reason = "目标过近或双边 broad range，不立 continuation"
+    elif tier == "strong" and valid_previous_entry and target_path_clear and (
+        follow_through or higher_follow_through or acceptance_ready or reclaimed_prior_close
+    ):
+        if swing_r >= max(1.20, close_test_r + 0.25):
+            expectation = "swing"
+            reason = "强背景 + valid previous entry，可期待 continuation swing"
+        elif close_test_r > 0:
+            expectation = "close_test"
+            reason = "强背景但更像先测试 highest/lowest close"
+        elif rescue_r > 0:
+            expectation = "rescue"
+            reason = "强背景 first-entry 仍优先救回 prior entry"
+    elif valid_previous_entry and not double_broad_range and close_test_r > 0:
+        expectation = "close_test"
+        reason = "存在 valid previous entry，先看 close-test"
+    elif rescue_r > 0 and not range_trendbar_context:
+        expectation = "rescue"
+        reason = "弱或中背景 first-entry，更合理的是救援与保本"
+
+    if expectation == "swing" and first_target_r > 0 and first_target_r < 0.20:
+        expectation = "close_test"
+        reason = "第一目标过近，不该按 swing 预期管理"
+
+    return {
+        "expectation": expectation,
+        "expectation_reason": reason,
+        "context_tier": tier,
+        "valid_previous_entry": valid_previous_entry,
+        "first_target_distance_r": first_target_r,
+        "rescue_target_distance_r": rescue_r,
+        "close_test_target_distance_r": close_test_r,
+        "swing_target_distance_r": swing_r,
+    }
+
+
 def h1_l1_context_profile(event, extra: dict) -> dict[str, object]:
     """按 Brooks 语境给 H1/L1 分成 strong / medium / weak 三层。"""
     direction = str(getattr(event, "direction", "") or "")

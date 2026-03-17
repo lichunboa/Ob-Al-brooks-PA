@@ -304,6 +304,8 @@ class BacktestResult:
                 "swing_target_type": t.swing_target_type,
                 "valid_previous_entry": t.valid_previous_entry,
                 "h1_l1_context_tier": t.h1_l1_context_tier,
+                "h1_l1_expectation": t.h1_l1_expectation,
+                "h1_l1_expectation_reason": t.h1_l1_expectation_reason,
                 "rescue_target_distance_r": round(t.rescue_target_distance_r, 4),
                 "close_test_target_distance_r": round(t.close_test_target_distance_r, 4),
                 "swing_target_distance_r": round(t.swing_target_distance_r, 4),

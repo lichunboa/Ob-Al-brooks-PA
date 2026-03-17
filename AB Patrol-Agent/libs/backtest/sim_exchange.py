@@ -12,6 +12,7 @@ import sys
 from importlib import import_module
 from pathlib import Path
 
+from .h1_l1_management import build_h1_l1_management_profile
 from .models import PendingOrder, Trade
 from .strategy_filters import normalize_management_style
 
@@ -897,6 +898,12 @@ class SimExchange:
             h1_l1_context_tier=str(
                 getattr(signal, "h1_l1_context_tier", extra.get("h1_l1_context_tier", "")) or ""
             ),
+            h1_l1_expectation=str(
+                getattr(signal, "h1_l1_expectation", extra.get("h1_l1_expectation", "")) or ""
+            ),
+            h1_l1_expectation_reason=str(
+                getattr(signal, "h1_l1_expectation_reason", extra.get("h1_l1_expectation_reason", "")) or ""
+            ),
             rescue_target_distance_r=float(extra.get("rescue_target_distance_r", 0.0) or 0.0),
             close_test_target_distance_r=float(extra.get("close_test_target_distance_r", 0.0) or 0.0),
             swing_target_distance_r=float(extra.get("swing_target_distance_r", 0.0) or 0.0),
@@ -1059,6 +1066,8 @@ class SimExchange:
             swing_target_type=str(extra.get("swing_target_type", "") or ""),
             valid_previous_entry=bool(extra.get("valid_previous_entry", False)),
             h1_l1_context_tier=str(extra.get("h1_l1_context_tier", "") or ""),
+            h1_l1_expectation=str(extra.get("h1_l1_expectation", "") or ""),
+            h1_l1_expectation_reason=str(extra.get("h1_l1_expectation_reason", "") or ""),
             rescue_target_distance_r=float(extra.get("rescue_target_distance_r", 0.0) or 0.0),
             close_test_target_distance_r=float(extra.get("close_test_target_distance_r", 0.0) or 0.0),
             swing_target_distance_r=float(extra.get("swing_target_distance_r", 0.0) or 0.0),
@@ -1413,6 +1422,7 @@ class SimExchange:
                 signal_stub.effective_target_type = order.effective_target_type
                 signal_stub.valid_previous_entry = order.valid_previous_entry
                 signal_stub.h1_l1_context_tier = order.h1_l1_context_tier
+                signal_stub.h1_l1_expectation = order.h1_l1_expectation
                 signal_stub.intent = order.intent
                 signal_stub.risk_percent = order.risk_percent
                 signal_stub.extra = {
@@ -1473,6 +1483,8 @@ class SimExchange:
                     "effective_target_type": order.effective_target_type,
                     "valid_previous_entry": order.valid_previous_entry,
                     "h1_l1_context_tier": order.h1_l1_context_tier,
+                    "h1_l1_expectation": order.h1_l1_expectation,
+                    "h1_l1_expectation_reason": order.h1_l1_expectation_reason,
                     "blocking_magnet_distance_r": order.blocking_magnet_distance_r,
                     "trapped_side": order.trapped_side,
                     "prior_leg_context": order.prior_leg_context,
@@ -1689,54 +1701,6 @@ class SimExchange:
         tp1_fraction = 0.50
         tp2_fraction = 0.25
         style_key = self._style_key(trade.management_style)
-        # P3: H1/L1 按入场时上下文分级管理
-        # Brooks S6-channel: Spike 后 H1 = 最强入场，不该压低
-        # BC/TR 中 H1 才该保守
-        if self._family_key(trade) == "trend_recovery" and first_entry_signal:
-            entry_state = str(trade.market_state or "").strip().lower()
-            weak_first_entry_context = (
-                trade.weak_h1_l1_disposition in {"scalp_only", "no_trade_too_close"}
-                or style_key in {"brooks_tr_blshs", "brooks_scalp"}
-                or entry_state in {"bc", "tight_range", "broad_range", "weak_trend_bull", "weak_trend_bear"}
-                or not trade.follow_through
-            )
-            if rescue_target_r > 0:
-                tp1_r = max(0.12, rescue_target_r)
-            elif close_test_target_r > 0:
-                tp1_r = max(0.20, close_test_target_r)
-            elif first_target_r > 0:
-                tp1_r = max(0.20, first_target_r)
-
-            if weak_first_entry_context:
-                if close_test_target_r > tp1_r + 0.05:
-                    tp2_r = close_test_target_r
-                elif stretch_target_r > tp1_r + 0.05:
-                    tp2_r = stretch_target_r
-                tp1_fraction = 0.70 if rescue_target_r > 0 else 0.60
-                tp2_fraction = 0.10 if trade.allow_small_runner else 0.0
-            else:
-                if close_test_target_r > tp1_r + 0.05:
-                    tp2_r = close_test_target_r
-                elif swing_target_r > tp1_r + 0.05:
-                    tp2_r = swing_target_r
-                elif stretch_target_r > tp1_r + 0.05:
-                    tp2_r = stretch_target_r
-            if entry_state in ("spike", "bo", "strong_bo"):
-                # Spike/BO 后的 H1 = 最高概率趋势入场，按正常 swing 管理
-                pass  # 保留 plan 原始 tp1_r/tp2_r
-            elif entry_state in ("tc", "tight_channel"):
-                # 强 TC 中 H1 有效性中高，稍微收紧
-                tp1_r = min(tp1_r, 1.0)
-                tp2_r = min(tp2_r, 2.0)
-            else:
-                # BC/TR/弱趋势中的 H1 才保守管理
-                tp1_r = min(tp1_r, 0.8)
-                tp2_r = min(tp2_r, 1.6)
-                tp1_fraction = 0.60
-                tp2_fraction = 0.15
-            if trade.prefer_partial_over_full_swing:
-                tp1_fraction = max(tp1_fraction, 0.60 if (first_target_is_close_test or rescue_target_r > 0) else 0.50)
-                tp2_fraction = 0.25 if trade.allow_small_runner else max(0.0, 1.0 - tp1_fraction)
         if magnet_take_r > 0 and self._family_key(trade) == "trend_recovery" and not first_entry_signal:
             if magnet_take_r < tp1_r:
                 tp1_r = max(0.8, magnet_take_r)
@@ -1784,10 +1748,25 @@ class SimExchange:
         if style_key == "brooks_mtr_reversal" and not trade.tp1_done and profit_r >= 1.1:
             self._update_stop_loss(trade, self._protective_stop(trade, 0.15))
 
+        tp1_protect_r = plan["protect1_r"]
+        if self._family_key(trade) == "trend_recovery" and first_entry_signal:
+            h1_l1_profile = build_h1_l1_management_profile(
+                trade,
+                default_tp1_r=tp1_r,
+                default_tp2_r=tp2_r,
+            )
+            tp1_r = float(h1_l1_profile["tp1_r"])
+            tp2_r = float(h1_l1_profile["tp2_r"])
+            tp1_fraction = float(h1_l1_profile["tp1_fraction"])
+            tp2_fraction = float(h1_l1_profile["tp2_fraction"])
+            tp1_protect_r = float(h1_l1_profile["protect_after_tp1"])
+            if trade.prefer_partial_over_full_swing and not bool(h1_l1_profile["runner_enabled"]):
+                tp2_fraction = max(0.0, min(tp2_fraction, 1.0 - tp1_fraction))
+
         if not trade.tp1_done and profit_r >= tp1_r:
             self._realize_partial(trade, self._price_at_r(trade, tp1_r), tp1_fraction, reason="TP")
             trade.tp1_done = True
-            protect_after_tp1 = plan["protect1_r"]
+            protect_after_tp1 = tp1_protect_r
             if first_entry_signal and trade.allow_be_after_first_target:
                 protect_after_tp1 = 0.0
             self._update_stop_loss(trade, self._protective_stop(trade, protect_after_tp1))

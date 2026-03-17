@@ -58,6 +58,23 @@ STRESS_5M_SCENARIOS = [
     Scenario("P7_SOL_5m_2025Q3", "SOLUSDT", "5m", "2025-08-01", "2025-08-31"),
 ]
 
+STRESS_15M_SCENARIOS = [
+    Scenario("Q1_BTC_15m_2022Q1", "BTCUSDT", "15m", "2022-01-24", "2022-02-23"),
+    Scenario("Q2_BTC_15m_2024Q3", "BTCUSDT", "15m", "2024-08-10", "2024-09-09"),
+    Scenario("Q3_ETH_15m_2022Q1", "ETHUSDT", "15m", "2022-01-24", "2022-02-23"),
+    Scenario("Q4_ETH_15m_2024Q2", "ETHUSDT", "15m", "2024-05-15", "2024-06-14"),
+    Scenario("Q5_BNB_15m_2023Q4", "BNBUSDT", "15m", "2023-10-01", "2023-10-31"),
+    Scenario("Q6_SOL_15m_2025Q3", "SOLUSDT", "15m", "2025-08-01", "2025-08-31"),
+]
+
+STRESS_1H_SCENARIOS = [
+    Scenario("W1_BTC_1h_2022Q1", "BTCUSDT", "1h", "2022-01-24", "2022-02-23"),
+    Scenario("W2_BTC_1h_2024Q3", "BTCUSDT", "1h", "2024-08-10", "2024-09-09"),
+    Scenario("W3_ETH_1h_2024Q2", "ETHUSDT", "1h", "2024-05-15", "2024-06-14"),
+    Scenario("W4_BNB_1h_2023Q4", "BNBUSDT", "1h", "2023-10-01", "2023-10-31"),
+    Scenario("W5_SOL_1h_2025Q3", "SOLUSDT", "1h", "2025-08-01", "2025-08-31"),
+]
+
 
 def _days(start: str, end: str) -> int:
     """计算场景跨度天数。"""
@@ -208,7 +225,12 @@ def _summarize_group(
 def main() -> None:
     """脚本入口。"""
     parser = argparse.ArgumentParser(description="H1/L1 单策略验证脚本")
-    parser.add_argument("--group", choices=["fixed", "random", "stress5m"], required=True, help="验证场景组")
+    parser.add_argument(
+        "--group",
+        choices=["fixed", "random", "stress5m", "stress15m", "stress1h"],
+        required=True,
+        help="验证场景组",
+    )
     parser.add_argument("--labels", default="", help="只跑指定标签，逗号分隔")
     parser.add_argument(
         "--cache-dir",
@@ -224,8 +246,12 @@ def main() -> None:
         scenarios = FIXED_SCENARIOS
     elif args.group == "random":
         scenarios = RANDOM_SCENARIOS
-    else:
+    elif args.group == "stress5m":
         scenarios = STRESS_5M_SCENARIOS
+    elif args.group == "stress15m":
+        scenarios = STRESS_15M_SCENARIOS
+    else:
+        scenarios = STRESS_1H_SCENARIOS
     labels = {item.strip() for item in str(args.labels or "").split(",") if item.strip()}
     if labels:
         scenarios = [item for item in scenarios if item.label in labels]
