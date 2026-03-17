@@ -15,6 +15,8 @@ from .analysis import (
     ema_slope,
 )
 from .breakout_pullback_template import BreakoutPullbackTemplateMixin
+from .ema_context import project_higher_timeframe_ema
+from .ema_gap_template import EMAGapTemplateMixin
 from .h1_l1_template import H1L1TemplateMixin
 from .h2_l2_template import H2L2TemplateMixin
 from .models import Candle, MarketState, PASignal
@@ -31,6 +33,8 @@ __all__ = [
     "CandlePatterns",
     "CycleIdentifier",
     "BreakoutPullbackTemplateMixin",
+    "project_higher_timeframe_ema",
+    "EMAGapTemplateMixin",
     "H1L1TemplateMixin",
     "H2L2TemplateMixin",
     "RiskManager",

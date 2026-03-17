@@ -29,92 +29,53 @@ class AdvancedStrategyDetectorMixin:
         ema20: list[float],
         cycle: str,
         atr: float = 0.0,
+        *,
+        gap_context_candles: Optional[list[Candle]] = None,
+        gap_context_ema20: Optional[list[float]] = None,
+        gap_context_timeframe: str = "",
     ) -> Optional[PASignal]:
         """
         第一均线缺口 (First EMA Gap)
-        条件：
-        - 趋势中首次远离 EMA20 形成明显缺口
-        - 至少 5 根 K 线完全脱离 EMA
-        - 价格回归 EMA20 时入场
+        - 趋势中已有足够长的同侧 gap
+        - 先短暂穿透 EMA 对侧
+        - 再回到原趋势侧，用 stop 单验证
         """
-        if not cycle.startswith("趋势") or len(candles) < 20 or len(ema20) < 20:
+        if (not cycle.startswith("趋势") and not cycle.startswith("急速") and cycle != "区间") or len(candles) < 25 or len(ema20) < 25:
             return None
 
         curr = candles[-1]
+        if cycle in {"趋势多", "急速多"}:
+            directions = ("BUY",)
+        elif cycle in {"趋势空", "急速空"}:
+            directions = ("SELL",)
+        else:
+            directions = ("BUY", "SELL")
 
-        gap_bars = 0
-        for i in range(-2, -15, -1):
-            if abs(i) > len(candles) or abs(i) > len(ema20):
-                break
-
-            candle = candles[i]
-            ema_value = ema20[i]
-
-            if cycle == "趋势多":
-                if candle.low > ema_value * 1.005:
-                    gap_bars += 1
-                else:
-                    break
-            else:
-                if candle.high < ema_value * 0.995:
-                    gap_bars += 1
-                else:
-                    break
-
-        if gap_bars < 5:
-            return None
-
-        if cycle == "趋势多":
-            if curr.low <= ema20[-1] * 1.003 and curr.close > ema20[-1]:
-                pullback_low = min(candle.low for candle in candles[-5:])
-                stop = build_channel_recovery_stop("BUY", candles, curr.high, pullback_low, atr)
-                target = curr.close + (curr.close - stop) * 2.5
-
-                return PASignal(
-                    symbol=curr.symbol,
-                    signal_type="第一均线缺口",
-                    direction="BUY",
-                    strength=83,
-                    message=f"首次{gap_bars}根缺口后触及EMA20，高概率反弹",
-                    price=curr.close,
-                    stop_loss=stop,
-                    take_profit=target,
-                    probability=0.65,
-                    cycle=cycle,
-                    timeframe=curr.timeframe,
-                    signal_bar_high=curr.high,
-                    signal_bar_low=curr.low,
-                    entry_trigger=curr.high,
-                    entry_type="STOP",
-                    extra={"gap_bars": gap_bars},
-                )
-
-        elif cycle == "趋势空":
-            if curr.high >= ema20[-1] * 0.997 and curr.close < ema20[-1]:
-                pullback_high = max(candle.high for candle in candles[-5:])
-                stop = build_channel_recovery_stop("SELL", candles, pullback_high, curr.low, atr)
-                target = curr.close - (stop - curr.close) * 2.5
-
-                return PASignal(
-                    symbol=curr.symbol,
-                    signal_type="第一均线缺口",
-                    direction="SELL",
-                    strength=83,
-                    message=f"首次{gap_bars}根缺口后触及EMA20，高概率回落",
-                    price=curr.close,
-                    stop_loss=stop,
-                    take_profit=target,
-                    probability=0.65,
-                    cycle=cycle,
-                    timeframe=curr.timeframe,
-                    signal_bar_high=curr.high,
-                    signal_bar_low=curr.low,
-                    entry_trigger=curr.low,
-                    entry_type="STOP",
-                    extra={"gap_bars": gap_bars},
-                )
-
-        return None
+        candidates: list[PASignal] = []
+        for direction in directions:
+            recent_crosses = self._ema_gap_recent_opposite_side_bars(
+                candles[-5:-1],
+                ema20[-5:-1],
+                direction,
+                lookback=4,
+            )
+            if recent_crosses <= 0:
+                continue
+            sig = self._build_ema_gap_signal(
+                curr=curr,
+                candles=candles,
+                ema20=ema20,
+                cycle=cycle,
+                direction=direction,
+                first_reentry=True,
+                atr=atr,
+                gap_context_candles=gap_context_candles,
+                gap_context_ema20=gap_context_ema20,
+                gap_context_timeframe=gap_context_timeframe,
+            )
+            if sig:
+                candidates.append(sig)
+        return self._select_best_ema_gap_signal(candidates)
 
     def detect_ii_breakout(
         self,

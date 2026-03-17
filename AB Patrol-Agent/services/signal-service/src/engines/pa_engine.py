@@ -55,6 +55,8 @@ from .pa.analysis import (
     calculate_ema,
 )
 from .pa.breakout_pullback_template import BreakoutPullbackTemplateMixin
+from .pa.ema_context import project_higher_timeframe_ema
+from .pa.ema_gap_template import EMAGapTemplateMixin
 from .pa.h1_l1_template import H1L1TemplateMixin
 from .pa.h2_l2_template import H2L2TemplateMixin
 from .pa.models import Candle, MarketState, PASignal
@@ -160,7 +162,13 @@ BROOKS_REVERSAL_SIGNALS = {
 
 # ============ 策略检测器 ============
 
-class StrategyDetector(H1L1TemplateMixin, H2L2TemplateMixin, BreakoutPullbackTemplateMixin, AdvancedStrategyDetectorMixin):
+class StrategyDetector(
+    H1L1TemplateMixin,
+    H2L2TemplateMixin,
+    BreakoutPullbackTemplateMixin,
+    EMAGapTemplateMixin,
+    AdvancedStrategyDetectorMixin,
+):
     """11 策略检测器"""
 
     def __init__(self):
@@ -1199,88 +1207,47 @@ class StrategyDetector(H1L1TemplateMixin, H2L2TemplateMixin, BreakoutPullbackTem
 
         return None
 
-    def detect_ema_gap(self, candles: list[Candle], ema20: list[float], cycle: str, atr: float = 0.0) -> Optional[PASignal]:
+    def detect_ema_gap(
+        self,
+        candles: list[Candle],
+        ema20: list[float],
+        cycle: str,
+        atr: float = 0.0,
+        *,
+        gap_context_candles: Optional[list[Candle]] = None,
+        gap_context_ema20: Optional[list[float]] = None,
+        gap_context_timeframe: str = "",
+    ) -> Optional[PASignal]:
         """
-        20均线缺口 / MAG (MA Gap Bar) — Al Brooks 定义
-        - EMA触及 (7-14根远离): 普通均线回测，strength=80
-        - MAG 20/20 Setup (15+根远离): Al Brooks原版定义，Final Trend Leg后触及，strength=85（scalp优先）
-        条件：趋势中价格连续在EMA单侧后首次触及EMA20
+        20均线缺口 / MAG 20/20 Setup 统一模板。
         """
-        if not cycle.startswith("趋势") or len(candles) < 25 or len(ema20) < 25:
+        if len(candles) < 25 or len(ema20) < 25:
             return None
-
         curr = candles[-1]
+        if cycle in {"趋势多", "急速多"}:
+            directions = ("BUY",)
+        elif cycle in {"趋势空", "急速空"}:
+            directions = ("SELL",)
+        else:
+            directions = ("BUY", "SELL")
 
-        # 检查之前连续远离 EMA 的根数（最多回看 22 根，覆盖真正 MAG 的 20 根）
-        bars_away = 0
-        for i in range(-2, -23, -1):
-            if abs(i) > len(candles) or abs(i) > len(ema20):
-                break
-            if cycle == "趋势多":
-                if candles[i].low > ema20[i] * 1.005:  # 价格持续高于 EMA
-                    bars_away += 1
-                else:
-                    break  # 连续性中断即停止计数
-            else:
-                if candles[i].high < ema20[i] * 0.995:
-                    bars_away += 1
-                else:
-                    break
-
-        if bars_away < 7:  # 少于 7 根：EMA 未真正拉开，跳过
-            return None
-
-        # 是否为真正的 MAG (15+根 = Al Brooks 20/20 Setup)
-        is_mag = bars_away >= 15
-        strength = 85 if is_mag else 80
-        label = "MAG 20/20 Setup" if is_mag else "20均线缺口"
-        prob = 0.72 if is_mag else 0.65
-        # MAG 是 scalp 优先，止盈目标收窄至 1.5R
-        rr_mult = 1.5 if is_mag else 2.0
-
-        # 首次触及 EMA
-        if cycle == "趋势多":
-            if curr.low <= ema20[-1] * 1.003 and curr.close > ema20[-1]:
-                # EMA gap 用 pullback 结构低点做 swing stop，而不是只贴当前 signal bar。
-                pullback_low = min(c.low for c in candles[-5:])
-                stop = build_channel_recovery_stop("BUY", candles, curr.high, pullback_low, atr)
-                target = curr.close + (curr.close - stop) * rr_mult
-
-                return PASignal(
-                    symbol=curr.symbol,
-                    signal_type=label,
-                    direction="BUY",
-                    strength=strength,
-                    message=f"{'MAG: 20+根远离后' if is_mag else '均线缺口'}触及 EMA20（{bars_away}根），scalp多",
-                    price=curr.close,
-                    stop_loss=stop,
-                    take_profit=target,
-                    probability=prob,
-                    cycle=cycle,
-                    timeframe=curr.timeframe,
-                )
-
-        elif cycle == "趋势空":
-            if curr.high >= ema20[-1] * 0.997 and curr.close < ema20[-1]:
-                pullback_high = max(c.high for c in candles[-5:])
-                stop = build_channel_recovery_stop("SELL", candles, pullback_high, curr.low, atr)
-                target = curr.close - (stop - curr.close) * rr_mult
-
-                return PASignal(
-                    symbol=curr.symbol,
-                    signal_type=label,
-                    direction="SELL",
-                    strength=strength,
-                    message=f"{'MAG: 20+根远离后' if is_mag else '均线缺口'}触及 EMA20（{bars_away}根），scalp空",
-                    price=curr.close,
-                    stop_loss=stop,
-                    take_profit=target,
-                    probability=prob,
-                    cycle=cycle,
-                    timeframe=curr.timeframe,
-                )
-
-        return None
+        candidates: list[PASignal] = []
+        for direction in directions:
+            sig = self._build_ema_gap_signal(
+                curr=curr,
+                candles=candles,
+                ema20=ema20,
+                cycle=cycle,
+                direction=direction,
+                first_reentry=False,
+                atr=atr,
+                gap_context_candles=gap_context_candles,
+                gap_context_ema20=gap_context_ema20,
+                gap_context_timeframe=gap_context_timeframe,
+            )
+            if sig:
+                candidates.append(sig)
+        return self._select_best_ema_gap_signal(candidates)
 
     # === 反转方案 ===
 
@@ -2950,6 +2917,29 @@ class PASignalEngine(BaseEngine):
         market_state = CycleIdentifier.identify(candles, ema20)
         cycle = market_state.cycle  # 向后兼容的字符串
 
+        # EMA gap 族按 Brooks 的多周期 EMA 语义独立建模：
+        # 小周期执行图上，可以参考更大一级背景 EMA，而不是只看本周期 EMA。
+        gap_roles = resolve_timeframe_roles(timeframe)
+        gap_context_tf = gap_roles.context if gap_roles.context else timeframe
+        gap_context_candles = self._fetch_candles(symbol, gap_context_tf, limit=60) if gap_context_tf != timeframe else candles
+        gap_ema20 = (
+            project_higher_timeframe_ema(candles, gap_context_candles, period=20)
+            if gap_context_tf != timeframe
+            else ema20
+        )
+        if not gap_ema20 or len(gap_ema20) != len(candles):
+            gap_ema20 = ema20
+            gap_context_tf = timeframe
+            gap_context_candles = candles
+        gap_context_closes = [candle.close for candle in gap_context_candles]
+        gap_context_ema20 = calculate_ema(gap_context_closes, 20)
+        if gap_context_ema20:
+            gap_market_state = CycleIdentifier.identify(gap_context_candles, gap_context_ema20)
+        else:
+            gap_market_state = CycleIdentifier.identify(candles, gap_ema20)
+        gap_cycle = gap_market_state.cycle
+        gap_ch_type = gap_market_state.channel_type
+
         # V5.0: 八状态分类
         from engines.market_state_engine import classify_market_state
         v5_market_state = classify_market_state(market_state)
@@ -3022,16 +3012,6 @@ class PASignalEngine(BaseEngine):
                 if sig:
                     sig.timeframe = timeframe
                     signals.append(sig)
-            if is_allowed("20均线缺口"):
-                sig = self.detector.detect_ema_gap(candles, ema20, cycle, atr)
-                if sig:
-                    sig.timeframe = timeframe
-                    signals.append(sig)
-            if is_allowed("首次均线缺口"):
-                sig = self.detector.detect_first_ema_gap(candles, ema20, cycle, atr)
-                if sig:
-                    sig.timeframe = timeframe
-                    signals.append(sig)
             if is_allowed("市价追进"):
                 sig = self.detector.detect_buy_now(candles, ema20, atr)
                 if sig:
@@ -3046,16 +3026,6 @@ class PASignalEngine(BaseEngine):
         if cycle.startswith("趋势") and ch_type == "broad":
             if is_allowed("高2低2"):
                 sig = self.detector.detect_h2_l2(candles, ema20, cycle, atr)
-                if sig:
-                    sig.timeframe = timeframe
-                    signals.append(sig)
-            if is_allowed("20均线缺口"):
-                sig = self.detector.detect_ema_gap(candles, ema20, cycle, atr)
-                if sig:
-                    sig.timeframe = timeframe
-                    signals.append(sig)
-            if is_allowed("首次均线缺口"):
-                sig = self.detector.detect_first_ema_gap(candles, ema20, cycle, atr)
                 if sig:
                     sig.timeframe = timeframe
                     signals.append(sig)
@@ -3105,6 +3075,49 @@ class PASignalEngine(BaseEngine):
                 sig = self.detector.detect_fade_breakout(candles, ema20, cycle, atr)
                 if sig:
                     sig.timeframe = timeframe
+                    signals.append(sig)
+
+        # --- EMA gap 族：单独使用 gap 专属背景 EMA 角色，不再混用执行周期自身 EMA ---
+        if (
+            gap_cycle == "区间"
+            or (gap_cycle.startswith("趋势") and gap_ch_type in {"tight", "broad"})
+            or gap_cycle.startswith("急速")
+        ):
+            if is_allowed("20均线缺口"):
+                sig = self.detector.detect_ema_gap(
+                    candles,
+                    gap_ema20,
+                    gap_cycle,
+                    atr,
+                    gap_context_candles=gap_context_candles,
+                    gap_context_ema20=gap_context_ema20,
+                    gap_context_timeframe=gap_context_tf,
+                )
+                if sig:
+                    sig.timeframe = timeframe
+                    extra = dict(getattr(sig, "extra", {}) or {})
+                    extra["gap_reference_timeframe"] = gap_context_tf
+                    extra["gap_reference_cycle"] = gap_cycle
+                    extra["gap_reference_channel_type"] = gap_ch_type
+                    sig.extra = extra
+                    signals.append(sig)
+            if is_allowed("首次均线缺口"):
+                sig = self.detector.detect_first_ema_gap(
+                    candles,
+                    gap_ema20,
+                    gap_cycle,
+                    atr,
+                    gap_context_candles=gap_context_candles,
+                    gap_context_ema20=gap_context_ema20,
+                    gap_context_timeframe=gap_context_tf,
+                )
+                if sig:
+                    sig.timeframe = timeframe
+                    extra = dict(getattr(sig, "extra", {}) or {})
+                    extra["gap_reference_timeframe"] = gap_context_tf
+                    extra["gap_reference_cycle"] = gap_cycle
+                    extra["gap_reference_channel_type"] = gap_ch_type
+                    sig.extra = extra
                     signals.append(sig)
             if is_allowed("双重顶底"):
                 sig = self.detector.detect_double_top_bottom(candles, ema20, atr)
