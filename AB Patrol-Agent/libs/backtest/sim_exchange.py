@@ -12,9 +12,9 @@ import sys
 from importlib import import_module
 from pathlib import Path
 
-from .h1_l1_management import build_h1_l1_management_profile
 from .models import PendingOrder, Trade
 from .strategy_filters import normalize_management_style
+from .trend_recovery_management import build_trend_recovery_management_profile
 
 # 周期缩放因子（基于 5m = 1）
 TF_SCALE = {"1m": 0.2, "5m": 1, "15m": 3, "30m": 6, "1h": 12}
@@ -1749,19 +1749,20 @@ class SimExchange:
             self._update_stop_loss(trade, self._protective_stop(trade, 0.15))
 
         tp1_protect_r = plan["protect1_r"]
-        if self._family_key(trade) == "trend_recovery" and first_entry_signal:
-            h1_l1_profile = build_h1_l1_management_profile(
+        if self._family_key(trade) == "trend_recovery":
+            trend_recovery_profile = build_trend_recovery_management_profile(
                 trade,
                 default_tp1_r=tp1_r,
                 default_tp2_r=tp2_r,
             )
-            tp1_r = float(h1_l1_profile["tp1_r"])
-            tp2_r = float(h1_l1_profile["tp2_r"])
-            tp1_fraction = float(h1_l1_profile["tp1_fraction"])
-            tp2_fraction = float(h1_l1_profile["tp2_fraction"])
-            tp1_protect_r = float(h1_l1_profile["protect_after_tp1"])
-            if trade.prefer_partial_over_full_swing and not bool(h1_l1_profile["runner_enabled"]):
-                tp2_fraction = max(0.0, min(tp2_fraction, 1.0 - tp1_fraction))
+            if trend_recovery_profile is not None:
+                tp1_r = float(trend_recovery_profile["tp1_r"])
+                tp2_r = float(trend_recovery_profile["tp2_r"])
+                tp1_fraction = float(trend_recovery_profile["tp1_fraction"])
+                tp2_fraction = float(trend_recovery_profile["tp2_fraction"])
+                tp1_protect_r = float(trend_recovery_profile["protect_after_tp1"])
+                if trade.prefer_partial_over_full_swing and not bool(trend_recovery_profile["runner_enabled"]):
+                    tp2_fraction = max(0.0, min(tp2_fraction, 1.0 - tp1_fraction))
 
         if not trade.tp1_done and profit_r >= tp1_r:
             self._realize_partial(trade, self._price_at_r(trade, tp1_r), tp1_fraction, reason="TP")

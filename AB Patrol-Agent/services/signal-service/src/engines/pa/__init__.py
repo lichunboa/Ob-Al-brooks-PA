@@ -14,7 +14,9 @@ from .analysis import (
     calculate_ema,
     ema_slope,
 )
+from .breakout_pullback_template import BreakoutPullbackTemplateMixin
 from .h1_l1_template import H1L1TemplateMixin
+from .h2_l2_template import H2L2TemplateMixin
 from .models import Candle, MarketState, PASignal
 from .risk import RiskManager
 from .strategy_advanced import AdvancedStrategyDetectorMixin
@@ -28,7 +30,9 @@ __all__ = [
     "TrendValidator",
     "CandlePatterns",
     "CycleIdentifier",
+    "BreakoutPullbackTemplateMixin",
     "H1L1TemplateMixin",
+    "H2L2TemplateMixin",
     "RiskManager",
     "AdvancedStrategyDetectorMixin",
     "calculate_ema",

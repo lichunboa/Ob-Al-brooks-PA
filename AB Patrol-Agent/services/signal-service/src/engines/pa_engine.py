@@ -54,7 +54,9 @@ from .pa.analysis import (
     calculate_atr,
     calculate_ema,
 )
+from .pa.breakout_pullback_template import BreakoutPullbackTemplateMixin
 from .pa.h1_l1_template import H1L1TemplateMixin
+from .pa.h2_l2_template import H2L2TemplateMixin
 from .pa.models import Candle, MarketState, PASignal
 from .pa.risk import BREAKOUT_CHASE_SIGNALS, TR_LIMIT_FRIENDLY_SIGNALS, RiskManager
 from .pa.strategy_advanced import AdvancedStrategyDetectorMixin
@@ -158,7 +160,7 @@ BROOKS_REVERSAL_SIGNALS = {
 
 # ============ 策略检测器 ============
 
-class StrategyDetector(H1L1TemplateMixin, AdvancedStrategyDetectorMixin):
+class StrategyDetector(H1L1TemplateMixin, H2L2TemplateMixin, BreakoutPullbackTemplateMixin, AdvancedStrategyDetectorMixin):
     """11 策略检测器"""
 
     def __init__(self):
@@ -614,10 +616,11 @@ class StrategyDetector(H1L1TemplateMixin, AdvancedStrategyDetectorMixin):
         if cycle == "趋势多":
             # === H2 BUY — 双底结构 ===
 
-            # 入场条件: 当前棒阳线且突破前棒高点
+            # 入场条件: 当前棒阳线且结构恢复
             if not CandlePatterns.is_bull(curr):
                 return None
-            if curr.close <= prev.high:
+            signal_profile = self._h1_l1_signal_bar_profile(curr, prev, ema20[-1], "BUY")
+            if not bool(signal_profile["valid_signal_bar"]):
                 return None
 
             # 信号棒质量
@@ -663,33 +666,6 @@ class StrategyDetector(H1L1TemplateMixin, AdvancedStrategyDetectorMixin):
             # 在强趋势（Spike/TightChannel）中，回调可能远未触及EMA仍是有效H2
             # 原来的 near_ema 条件在强牛市中会杀死几乎所有H2信号
 
-            # 止损和目标
-            # Brooks 更看重结构止损，而不是只放在 signal bar 下方。
-            recent_pullback_low = min(c.low for c in candles[-6:])
-            recent_overlap = CycleIdentifier._overlap_ratio(candles[-10:])
-            stop_anchor = min(sl1["price"], sl2["price"], recent_pullback_low)
-            if recent_overlap >= 0.38:
-                stop = build_channel_recovery_stop(
-                    "BUY",
-                    candles,
-                    curr.high,
-                    stop_anchor,
-                    atr,
-                )
-            else:
-                stop = build_trend_pullback_stop(
-                    "BUY",
-                    candles,
-                    curr.high,
-                    stop_anchor,
-                    atr,
-                )
-            risk = curr.close - stop
-            if risk <= 0:
-                return None
-            # Al Brooks: H2是最高概率入场，设3R目标（反转如果成功空间大）
-            target = curr.close + risk * 3.0
-
             # 强度: H2 基础分更高
             strength = 82
             if sig_quality >= 0.65:
@@ -701,31 +677,36 @@ class StrategyDetector(H1L1TemplateMixin, AdvancedStrategyDetectorMixin):
             if sl2["price"] > sl1["price"]:
                 strength += 3
 
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="高2",
-                direction="BUY",
-                strength=min(95, strength),
-                message=f"趋势多双底H2: 两次回调低点{sl1['price']:.1f}/{sl2['price']:.1f}确认支撑",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.65,
+            signal = self._build_h2_l2_signal(
+                curr=curr,
+                candles=candles,
                 cycle=cycle,
-                timeframe=curr.timeframe,
-                extra={
-                    "signal_bar_quality": sig_quality,
-                    "signal_rank": 2,
-                },
+                direction="BUY",
+                strength=strength,
+                probability=0.65,
+                message=f"趋势多双底H2: 两次回调低点{sl1['price']:.1f}/{sl2['price']:.1f}确认支撑",
+                signal_profile=signal_profile,
+                sig_quality=sig_quality,
+                atr=atr,
             )
+            if signal is not None:
+                signal.extra.update(
+                    {
+                        "signal_rank": 2,
+                        "double_bottom_tolerance": float(tolerance),
+                        "double_bottom_gap_bars": int(bar_gap),
+                    }
+                )
+            return signal
 
         elif cycle == "趋势空":
             # === L2 SELL — 双顶结构 ===
 
-            # 入场条件: 当前棒阴线且跌破前棒低点
+            # 入场条件: 当前棒阴线且结构恢复
             if not CandlePatterns.is_bear(curr):
                 return None
-            if curr.close >= prev.low:
+            signal_profile = self._h1_l1_signal_bar_profile(curr, prev, ema20[-1], "SELL")
+            if not bool(signal_profile["valid_signal_bar"]):
                 return None
 
             # 信号棒质量
@@ -768,33 +749,6 @@ class StrategyDetector(H1L1TemplateMixin, AdvancedStrategyDetectorMixin):
             # Al Brooks: L2 = 趋势空中的第二次反弹，跟EMA距离没有硬性关系
             # 在强空头趋势中，反弹可能远未触及EMA仍是有效L2
 
-            # 止损和目标
-            # L2 也使用 swing stop，让回调腿有足够呼吸空间。
-            recent_pullback_high = max(c.high for c in candles[-6:])
-            recent_overlap = CycleIdentifier._overlap_ratio(candles[-10:])
-            stop_anchor = max(sh1["price"], sh2["price"], recent_pullback_high)
-            if recent_overlap >= 0.38:
-                stop = build_channel_recovery_stop(
-                    "SELL",
-                    candles,
-                    stop_anchor,
-                    curr.low,
-                    atr,
-                )
-            else:
-                stop = build_trend_pullback_stop(
-                    "SELL",
-                    candles,
-                    stop_anchor,
-                    curr.low,
-                    atr,
-                )
-            risk = stop - curr.close
-            if risk <= 0:
-                return None
-            # Al Brooks: L2是最高概率做空入场，设3R目标
-            target = curr.close - risk * 3.0
-
             strength = 82
             if sig_quality >= 0.65:
                 strength += 5
@@ -803,23 +757,27 @@ class StrategyDetector(H1L1TemplateMixin, AdvancedStrategyDetectorMixin):
             if sh2["price"] < sh1["price"]:
                 strength += 3  # Lower High 加分
 
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="低2",
-                direction="SELL",
-                strength=min(95, strength),
-                message=f"趋势空双顶L2: 两次回调高点{sh1['price']:.1f}/{sh2['price']:.1f}确认阻力",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.65,
+            signal = self._build_h2_l2_signal(
+                curr=curr,
+                candles=candles,
                 cycle=cycle,
-                timeframe=curr.timeframe,
-                extra={
-                    "signal_bar_quality": sig_quality,
-                    "signal_rank": 2,
-                },
+                direction="SELL",
+                strength=strength,
+                probability=0.65,
+                message=f"趋势空双顶L2: 两次回调高点{sh1['price']:.1f}/{sh2['price']:.1f}确认阻力",
+                signal_profile=signal_profile,
+                sig_quality=sig_quality,
+                atr=atr,
             )
+            if signal is not None:
+                signal.extra.update(
+                    {
+                        "signal_rank": 2,
+                        "double_top_tolerance": float(tolerance),
+                        "double_top_gap_bars": int(bar_gap),
+                    }
+                )
+            return signal
 
         return None
 
@@ -1953,10 +1911,9 @@ class StrategyDetector(H1L1TemplateMixin, AdvancedStrategyDetectorMixin):
         if broke_up and cycle == "趋势多":
             # 当前回调到突破点附近
             if curr.low <= range_high * 1.005 and curr.close > range_high:
-                # 信号棒质量检查
-                sbq = CandlePatterns.signal_bar_quality(
-                    curr, candles[-6:-1], "BUY")
-                if sbq < 0.45:
+                signal_profile = self._h1_l1_signal_bar_profile(curr, recent[-2], ema20[-1], "BUY")
+                sbq = CandlePatterns.signal_bar_quality(curr, candles[-6:-1], "BUY")
+                if sbq < 0.45 or not bool(signal_profile["valid_signal_bar"]):
                     return None
                 # 回调幅度检查
                 highest_after_breakout = max(c.high for c in recent)
@@ -1964,63 +1921,66 @@ class StrategyDetector(H1L1TemplateMixin, AdvancedStrategyDetectorMixin):
                 breakout_height = highest_after_breakout - range_high
 
                 if breakout_height > 0 and pullback_depth < breakout_height * 0.5:
-                    stop = build_channel_recovery_stop("BUY", candles, curr.high, curr.low, atr)
-                    target = curr.close + (curr.close - stop) * 2
-
-                    return PASignal(
-                        symbol=curr.symbol,
-                        signal_type="突破回调",
-                        direction="BUY",
-                        strength=85, # 顺势高分
-                        message="突破区间后回调至突破点，继续做多",
-                        price=curr.close,
-                        stop_loss=stop,
-                        take_profit=target,
-                        probability=0.65,
+                    signal = self._build_breakout_pullback_signal(
+                        curr=curr,
+                        candles=candles,
                         cycle=cycle,
-                        timeframe=curr.timeframe,
-                        signal_bar_high=curr.high,
-                        signal_bar_low=curr.low,
-                        entry_trigger=curr.high,
-                        entry_type="STOP",
-                        confirmation_needed=True,
+                        direction="BUY",
+                        strength=85,
+                        probability=0.65,
+                        message="突破区间后回调至突破点，继续做多",
+                        signal_profile=signal_profile,
+                        breakout_level=float(range_high),
+                        breakout_extreme=float(highest_after_breakout),
+                        atr=atr,
                     )
+                    if signal is not None:
+                        signal.extra.update(
+                            {
+                                "signal_bar_quality": sbq,
+                                "pullback_depth_ratio": float(pullback_depth / breakout_height),
+                                "breakout_level": float(range_high),
+                                "breakout_extreme": float(highest_after_breakout),
+                            }
+                        )
+                    return signal
 
         # 检测向下突破后的回调（只在确认趋势中）
         broke_down = any(c.close < range_low for c in recent[:-2])
         if broke_down and cycle == "趋势空":
             if curr.high >= range_low * 0.995 and curr.close < range_low:
-                # 信号棒质量检查
-                sbq = CandlePatterns.signal_bar_quality(
-                    curr, candles[-6:-1], "SELL")
-                if sbq < 0.45:
+                signal_profile = self._h1_l1_signal_bar_profile(curr, recent[-2], ema20[-1], "SELL")
+                sbq = CandlePatterns.signal_bar_quality(curr, candles[-6:-1], "SELL")
+                if sbq < 0.45 or not bool(signal_profile["valid_signal_bar"]):
                     return None
                 lowest_after_breakout = min(c.low for c in recent)
                 pullback_depth = curr.high - lowest_after_breakout
                 breakout_height = range_low - lowest_after_breakout
 
                 if breakout_height > 0 and pullback_depth < breakout_height * 0.5:
-                    stop = build_channel_recovery_stop("SELL", candles, curr.high, curr.low, atr)
-                    target = curr.close - (stop - curr.close) * 2
-
-                    return PASignal(
-                        symbol=curr.symbol,
-                        signal_type="突破回调",
-                        direction="SELL",
-                        strength=85, # 顺势高分
-                        message="突破区间后回调至突破点，继续做空",
-                        price=curr.close,
-                        stop_loss=stop,
-                        take_profit=target,
-                        probability=0.65,
+                    signal = self._build_breakout_pullback_signal(
+                        curr=curr,
+                        candles=candles,
                         cycle=cycle,
-                        timeframe=curr.timeframe,
-                        signal_bar_high=curr.high,
-                        signal_bar_low=curr.low,
-                        entry_trigger=curr.low,
-                        entry_type="STOP",
-                        confirmation_needed=True,
+                        direction="SELL",
+                        strength=85,
+                        probability=0.65,
+                        message="突破区间后回调至突破点，继续做空",
+                        signal_profile=signal_profile,
+                        breakout_level=float(range_low),
+                        breakout_extreme=float(lowest_after_breakout),
+                        atr=atr,
                     )
+                    if signal is not None:
+                        signal.extra.update(
+                            {
+                                "signal_bar_quality": sbq,
+                                "pullback_depth_ratio": float(pullback_depth / breakout_height),
+                                "breakout_level": float(range_low),
+                                "breakout_extreme": float(lowest_after_breakout),
+                            }
+                        )
+                    return signal
 
         return None
 
