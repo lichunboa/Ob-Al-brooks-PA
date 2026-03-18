@@ -412,9 +412,23 @@ class BacktestRunner:
                     self._entry_block_reasons[reason] += 1
                     self._entry_block_by_strategy[str(event.signal_type or "UNKNOWN")][reason] += 1
                     continue
+                gap_route_allowed, gap_route_rerouted = self._prepare_ema_gap_pre_route_disposition(
+                    event,
+                    candles_q,
+                    replay,
+                    market_state,
+                    higher_market_state,
+                    management_profile=management_profile,
+                )
+                if not gap_route_allowed:
+                    reason = str((getattr(event, "extra", {}) or {}).get("signal_stage_reason", "") or "弱 gap setup 不可执行")
+                    self._signals_blocked_rr += 1
+                    self._entry_block_reasons[reason] += 1
+                    self._entry_block_by_strategy[str(event.signal_type or "UNKNOWN")][reason] += 1
+                    continue
                 self._attach_htf_sr_context(event)
                 self._attach_playbook_context(event, market_state, higher_market_state)
-                if pre_route_rerouted:
+                if pre_route_rerouted or gap_route_rerouted:
                     extra = dict(getattr(event, "extra", {}) or {})
                     extra["playbook_id"] = "TR2_FAILED_BO_FADE"
                     extra["playbook_family"] = "tr_fade"
@@ -1420,8 +1434,19 @@ class BacktestRunner:
                     stop_structure_ok = False
 
         router = self._load_runtime_target_router()
+        management_template = str(extra.get("management_template", "") or "").strip().lower()
+        is_ema_gap_family = signal_type in {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"} or management_template in {
+            "ema_gap_continuation",
+            "ema_gap_test",
+            "ema_gap_mag_final_leg",
+            "first_ema_gap_reentry",
+        }
         mm_target = float(extra.get("measured_move_target", 0.0) or 0.0)
         ab_mm: dict[str, object] = {}
+        # gap 族的主目标优先级应先服从 prior high/low、close-test 与 rescue。
+        # Brooks / 太妃的 20-gap、第一均线缺口、MAG 语义都不该被通用 measured move 磁体提前拦掉。
+        if is_ema_gap_family:
+            mm_target = 0.0
         if direction == "BUY" and mm_target > entry_price:
             ab_mm["nearest_bull_target"] = {"price": mm_target, "type": "measured_move"}
         elif direction == "SELL" and 0 < mm_target < entry_price:
@@ -1463,12 +1488,39 @@ class BacktestRunner:
         target_path_clear = bool(target_plan.get("path_clear", True))
         router_recommended_target = float(target_plan.get("recommended_target") or 0.0)
         h1_l1_context = h1_l1_context_profile(event, extra)
-        recommended_target, effective_target_type = resolve_h1_l1_effective_target(
-            event,
-            extra,
-            entry_price=entry_price,
-            router_recommended_target=router_recommended_target,
-        )
+        management_template = str(extra.get("management_template", "") or "").strip().lower()
+        is_ema_gap_family = signal_type in {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"} or management_template in {
+            "ema_gap_continuation",
+            "ema_gap_test",
+            "ema_gap_mag_final_leg",
+            "first_ema_gap_reentry",
+            "ema_gap_fade",
+        }
+        if is_ema_gap_family:
+            # gap 族已经在 detector 模板里明确写了 first/close-test/rescue/swing 目标，
+            # 这里不能再用通用路由目标把模板语义覆盖掉。
+            recommended_target = float(
+                extra.get("effective_target")
+                or extra.get("first_target")
+                or extra.get("close_test_target")
+                or extra.get("rescue_target")
+                or router_recommended_target
+                or 0.0
+            )
+            effective_target_type = str(
+                extra.get("effective_target_type")
+                or extra.get("first_target_type")
+                or extra.get("close_test_target_type")
+                or extra.get("rescue_target_type")
+                or "strategy_target"
+            )
+        else:
+            recommended_target, effective_target_type = resolve_h1_l1_effective_target(
+                event,
+                extra,
+                entry_price=entry_price,
+                router_recommended_target=router_recommended_target,
+            )
         raw_blocking_cluster = target_plan.get("blocking_cluster")
         blocking_cluster = raw_blocking_cluster if isinstance(raw_blocking_cluster, dict) else {}
         blocking_price = float(blocking_cluster.get("price") or 0.0)
@@ -1499,7 +1551,10 @@ class BacktestRunner:
         extra["recommended_target"] = recommended_target
         extra["effective_target"] = recommended_target
         extra["effective_target_type"] = effective_target_type
-        extra["valid_previous_entry"] = bool(h1_l1_context.get("valid_previous_entry", False))
+        # 保留策略模板已写入的 valid_previous_entry，避免被 H1/L1 通用上下文误覆盖。
+        extra["valid_previous_entry"] = bool(
+            extra.get("valid_previous_entry", h1_l1_context.get("valid_previous_entry", False))
+        )
         extra["h1_l1_context_tier"] = str(h1_l1_context.get("tier", "") or "")
         extra["target_magnets"] = target_plan.get("magnet_summary") or []
         extra["target_clusters"] = target_plan.get("cluster_summary") or []
@@ -2065,30 +2120,39 @@ class BacktestRunner:
         extra = dict(getattr(event, "extra", {}) or {})
         if not bool(profile.get("active")):
             extra["weak_h1_l1_disposition"] = ""
+            extra["setup_disposition"] = ""
+            extra["setup_disposition_reason"] = ""
+            extra["minimum_target_distance_r"] = 0.0
             event.extra = extra
             return True, False
 
         extra["weak_h1_l1_min_target_r"] = float(profile.get("min_target_r", 0.0) or 0.0)
+        extra["minimum_target_distance_r"] = float(profile.get("min_target_r", 0.0) or 0.0)
         disposition = str(profile.get("disposition", "") or "")
         extra["weak_h1_l1_disposition"] = disposition
+        extra["setup_disposition"] = disposition
         event.extra = extra
         if disposition == "no_trade_too_close":
-            extra["signal_stage"] = "candidate"
-            extra["signal_stage_reason"] = (
+            reason = (
                 f"弱 H1/L1 第一目标仅 {float(extra.get('first_target_distance_r', 0.0) or 0.0):.2f}R，"
                 f"低于覆盖成本所需的 {float(profile.get('min_target_r', 0.0) or 0.0):.2f}R"
             )
+            extra["signal_stage"] = "candidate"
+            extra["signal_stage_reason"] = reason
+            extra["setup_disposition_reason"] = reason
             event.extra = extra
             return False, False
         if disposition == "no_trade_range_trendbar":
             extra["signal_stage"] = "candidate"
             extra["signal_stage_reason"] = "双边 broad range 里的弱 trend-bar H1/L1 更像 no-trade / fade"
+            extra["setup_disposition_reason"] = str(extra.get("signal_stage_reason", "") or "")
             event.extra = extra
             return False, False
         if disposition == "scalp_only":
             extra["management_style_override"] = str(profile.get("style", "") or "brooks_scalp")
             extra["signal_stage"] = "executable"
             extra["signal_stage_reason"] = "弱 H1/L1 降级为 scalp-only 管理"
+            extra["setup_disposition_reason"] = str(extra.get("signal_stage_reason", "") or "")
             event.extra = extra
             return True, False
         if disposition == "fade_candidate":
@@ -2096,10 +2160,479 @@ class BacktestRunner:
             self._attach_structure_context(event, candles_q, replay)
             extra = dict(getattr(event, "extra", {}) or {})
             extra["weak_h1_l1_disposition"] = "fade_candidate"
+            extra["setup_disposition"] = "fade_candidate"
             extra["executed_as_fade"] = True
             extra["fade_source_signal"] = str(getattr(event, "signal_type", "") or "")
             extra["signal_stage"] = "executable"
             extra["signal_stage_reason"] = "弱 H1/L1 已降级成 limit fade 执行"
+            extra["setup_disposition_reason"] = str(extra.get("signal_stage_reason", "") or "")
+            event.extra = extra
+            return True, True
+        return True, False
+
+    @staticmethod
+    def _ema_gap_disposition_profile(event, management_profile: str) -> dict[str, object]:
+        """在路由前判断 gap 族是 continuation、scalp、fade 还是 no-trade。"""
+        extra = dict(getattr(event, "extra", {}) or {})
+        signal_type = str(getattr(event, "signal_type", "") or "")
+        management_template = str(extra.get("management_template", "") or "").strip().lower()
+        is_ema_gap_family = signal_type in {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"} or management_template in {
+            "ema_gap_continuation",
+            "ema_gap_test",
+            "ema_gap_mag_final_leg",
+            "first_ema_gap_reentry",
+        }
+        if not is_ema_gap_family:
+            return {"active": False}
+
+        market_state = str(extra.get("market_state", "") or "")
+        higher_market_state = str(extra.get("higher_market_state", "") or "")
+        gap_reference_cycle = str(extra.get("gap_reference_cycle", "") or "")
+        gap_reference_channel_type = str(extra.get("gap_reference_channel_type", "") or "")
+        ema_gap_setup_mode = str(extra.get("ema_gap_setup_mode", "") or "").strip().lower()
+        ema_gap_expected_objective = str(extra.get("ema_gap_expected_objective", "") or "").strip().lower()
+        first_target_type = str(extra.get("first_target_type", "") or "")
+        valid_previous_entry = bool(extra.get("valid_previous_entry", False))
+        follow_through = bool(extra.get("follow_through", False))
+        higher_follow_through = bool(extra.get("higher_follow_through", False))
+        acceptance_ready = bool(extra.get("acceptance_ready", False))
+        reclaimed_prior_close = bool(extra.get("reclaimed_prior_close", False))
+        trendline_break_confirmed = bool(extra.get("trendline_break_confirmed", False))
+        ema_gap_structure_direction_match = bool(extra.get("ema_gap_structure_direction_match", False))
+        ema_gap_recent_reclaim_ready = bool(extra.get("ema_gap_recent_reclaim_ready", False))
+        ema_gap_continuation_cycle_ready = bool(extra.get("ema_gap_continuation_cycle_ready", False))
+        ema_gap_fresh_touch_window = bool(extra.get("ema_gap_fresh_touch_window", False))
+        ema_gap_trend_restoration_bar = bool(extra.get("ema_gap_trend_restoration_bar", False))
+        signal_bar_type = str(extra.get("signal_bar_type", "") or "").strip().lower()
+        signal_bar_quality = float(extra.get("signal_bar_quality", 0.0) or 0.0)
+        signal_bar_close_position = float(extra.get("signal_bar_close_position", 0.0) or 0.0)
+        signal_bar_tail_ratio = float(extra.get("signal_bar_tail_ratio", 0.0) or 0.0)
+        first_target_distance_r = float(extra.get("first_target_distance_r", 0.0) or 0.0)
+        rescue_target_distance_r = float(extra.get("rescue_target_distance_r", 0.0) or 0.0)
+        close_test_target_distance_r = float(extra.get("close_test_target_distance_r", 0.0) or 0.0)
+        target_buffer = float(extra.get("target_buffer", 0.0) or 0.0)
+        actual_risk = float(extra.get("actual_risk", 0.0) or 0.0)
+        entry_type = str(getattr(event, "entry_type", "STOP") or "STOP").upper()
+        symbol = str(getattr(event, "symbol", "") or "")
+        entry_price = float(getattr(event, "entry_trigger", 0.0) or getattr(event, "price", 0.0) or 0.0)
+        range_position = float(extra.get("range_position", 0.5) or 0.5)
+        range_edge = str(extra.get("range_edge", "") or "")
+        range_zone = str(extra.get("range_zone", "") or "")
+        direction = str(getattr(event, "direction", "") or "")
+
+        tradeable_zone = (
+            BacktestRunner._range_edge_matches_direction(range_edge, direction)
+            or BacktestRunner._range_zone_matches_direction(range_zone, direction, allow_origin=True)
+            or BacktestRunner._is_advantage_zone(range_position, direction)
+            or BacktestRunner._is_edge_zone(range_position, direction)
+        )
+        weak_gap_context = (
+            market_state in {"tight_range", "broad_range", "bc", "weak_trend_bull", "weak_trend_bear"}
+            or higher_market_state in {"tight_range", "broad_range", "weak_trend_bull", "weak_trend_bear"}
+            or gap_reference_cycle == "区间"
+            or gap_reference_channel_type == "broad"
+        )
+        continuation_ready = bool(
+            gap_reference_cycle.startswith(("趋势", "急速"))
+            and gap_reference_channel_type in {"tight", "spike", "broad"}
+            and (follow_through or higher_follow_through or acceptance_ready or reclaimed_prior_close or trendline_break_confirmed)
+        )
+        detector_continuation_mode = ema_gap_setup_mode == "continuation"
+        detector_test_mode = ema_gap_setup_mode == "test"
+        first_target_is_close_test = (
+            ema_gap_expected_objective == "close_test"
+            or (
+                not ema_gap_expected_objective
+                and first_target_type in {"prior_high", "prior_low", "highest_close", "lowest_close"}
+            )
+        )
+        min_target_r = BacktestRunner._minimum_net_target_distance_r(
+            symbol,
+            entry_price,
+            actual_risk,
+            entry_type=entry_type,
+            target_buffer=target_buffer,
+        )
+        close_test_tradeable = bool(
+            first_target_is_close_test
+            and close_test_target_distance_r > 0
+            and min_target_r > 0
+            and close_test_target_distance_r >= min_target_r
+        )
+        primary_gap_target_distance_r = first_target_distance_r
+        if is_ema_gap_family:
+            if ema_gap_expected_objective == "close_test":
+                gap_candidates = [
+                    value
+                    for value in (
+                        close_test_target_distance_r,
+                        rescue_target_distance_r,
+                        first_target_distance_r,
+                    )
+                    if value > 0
+                ]
+                primary_gap_target_distance_r = min(gap_candidates) if gap_candidates else 0.0
+            elif ema_gap_expected_objective == "trend_extreme":
+                gap_candidates = [
+                    value
+                    for value in (
+                        first_target_distance_r,
+                        close_test_target_distance_r,
+                        rescue_target_distance_r,
+                    )
+                    if value > 0
+                ]
+                primary_gap_target_distance_r = gap_candidates[0] if gap_candidates else 0.0
+        too_close_after_cost = (
+            primary_gap_target_distance_r > 0
+            and min_target_r > 0
+            and primary_gap_target_distance_r < min_target_r
+        )
+        rescue_only_expected = bool(
+            first_target_is_close_test
+            and valid_previous_entry
+            and rescue_target_distance_r > 0
+            and not close_test_tradeable
+            and not continuation_ready
+            and not detector_continuation_mode
+        )
+        extreme_wrong_half = bool(
+            weak_gap_context
+            and not tradeable_zone
+            and BacktestRunner._is_mid_band(range_position)
+            and not valid_previous_entry
+            and not reclaimed_prior_close
+            and signal_bar_quality < 0.58
+        )
+        broad_range_close_test_scalp = bool(
+            signal_type == "20均线缺口"
+            and detector_test_mode
+            and market_state == "broad_range"
+            and first_target_is_close_test
+            and not ema_gap_structure_direction_match
+            and not ema_gap_recent_reclaim_ready
+            and not ema_gap_continuation_cycle_ready
+            and not ema_gap_fresh_touch_window
+            and not ema_gap_trend_restoration_bar
+        )
+        broad_range_continuation_scalp = bool(
+            signal_type == "20均线缺口"
+            and management_template == "ema_gap_continuation"
+            and market_state == "broad_range"
+            and valid_previous_entry
+            and not ema_gap_recent_reclaim_ready
+            and not ema_gap_continuation_cycle_ready
+            and not ema_gap_fresh_touch_window
+            and not ema_gap_trend_restoration_bar
+        )
+        broad_range_weak_signal_no_trade = bool(
+            signal_type == "20均线缺口"
+            and broad_range_close_test_scalp
+            and (
+                signal_bar_type == "reversal_bar"
+                or (
+                    signal_bar_type == "trend_bar"
+                    and signal_bar_tail_ratio >= 0.20
+                    and signal_bar_close_position < 0.85
+                    and not ema_gap_structure_direction_match
+                )
+            )
+        )
+        active = bool(
+            broad_range_weak_signal_no_trade
+            or
+            too_close_after_cost
+            or broad_range_close_test_scalp
+            or broad_range_continuation_scalp
+            or (
+                detector_test_mode
+                and weak_gap_context
+                and (
+                    rescue_only_expected
+                    or (first_target_is_close_test and not valid_previous_entry and not continuation_ready)
+                )
+            )
+        )
+        disposition = ""
+        if active:
+            if broad_range_weak_signal_no_trade:
+                disposition = "no_trade_close_test_only"
+            elif too_close_after_cost:
+                if extreme_wrong_half:
+                    disposition = "fade_candidate"
+                elif valid_previous_entry and first_target_is_close_test and not close_test_tradeable:
+                    disposition = "scalp_only"
+                else:
+                    disposition = "no_trade_too_close"
+            elif detector_test_mode and rescue_only_expected:
+                disposition = "scalp_only"
+            elif broad_range_close_test_scalp:
+                disposition = "scalp_only"
+            elif broad_range_continuation_scalp:
+                disposition = "scalp_only"
+            elif detector_test_mode and first_target_is_close_test and not valid_previous_entry and not continuation_ready:
+                disposition = "no_trade_close_test_only"
+
+        context_tier = "weak"
+        if (
+            gap_reference_cycle.startswith(("趋势", "急速"))
+            and gap_reference_channel_type in {"tight", "spike"}
+            and tradeable_zone
+            and (follow_through or higher_follow_through or acceptance_ready or reclaimed_prior_close)
+        ):
+            context_tier = "strong"
+        elif (
+            gap_reference_cycle.startswith(("趋势", "急速"))
+            or valid_previous_entry
+            or rescue_target_distance_r > 0
+            or close_test_target_distance_r > 0
+        ):
+            context_tier = "medium"
+
+        expectation = "swing"
+        expectation_reason = "gap 延续背景完整，仍按 continuation swing 预期处理"
+        if disposition == "fade_candidate":
+            expectation = "fade"
+            expectation_reason = "弱 gap continuation 位于错误半区，更像失败延续后的 fade"
+        elif disposition in {"no_trade_too_close", "no_trade_close_test_only"}:
+            expectation = "no_trade"
+            expectation_reason = "净目标不足或只剩 close-test 语义，先不做 continuation"
+        elif management_template == "first_ema_gap_reentry":
+            if disposition == "scalp_only" and valid_previous_entry and rescue_target_distance_r > 0:
+                expectation = "rescue"
+                expectation_reason = "第一均线缺口更像被更低买点/更高卖点救出的 first-entry"
+            elif first_target_is_close_test and close_test_target_distance_r > 0:
+                expectation = "close_test"
+                expectation_reason = "第一均线缺口先看回测 prior high/low，不先期待 continuation swing"
+            elif disposition == "scalp_only":
+                expectation = "scalp"
+                expectation_reason = "弱第一均线缺口只剩小 scalp 预期，不再按 swing 管"
+            else:
+                expectation = "swing" if continuation_ready else "close_test"
+                expectation_reason = "第一均线缺口在背景完整时可保留 swing，否则先看 close-test"
+        elif management_template == "ema_gap_mag_final_leg":
+            if weak_gap_context or first_target_is_close_test:
+                expectation = "close_test"
+                expectation_reason = "MAG 更像末端腿，先看 close-test 与保护利润"
+            else:
+                expectation = "swing"
+                expectation_reason = "MAG 背景完整时仍可保留趋势恢复 swing 预期"
+        elif management_template == "ema_gap_test":
+            if disposition == "scalp_only":
+                expectation = "scalp"
+                expectation_reason = "20-gap test 只保留小 scalp / close-test 预期，不再按 continuation swing 管理"
+            elif disposition in {"no_trade_too_close", "no_trade_close_test_only"}:
+                expectation = "no_trade"
+                expectation_reason = "20-gap test 净目标不足，或没有可测试磁体，先不做"
+            else:
+                expectation = "close_test"
+                expectation_reason = "20-gap test 先按 prior high/low 或 highest/lowest close 测试处理"
+        else:
+            if disposition == "scalp_only":
+                expectation = "close_test" if first_target_is_close_test else "scalp"
+                expectation_reason = "弱 20-gap 先按 close-test/scalp 处理，不直接期待 continuation swing"
+            elif first_target_is_close_test and not continuation_ready and not detector_continuation_mode:
+                expectation = "close_test"
+                expectation_reason = "20-gap 缺少 follow-through 时，先看 prior high/low 或 highest/lowest close 测试"
+            elif detector_continuation_mode:
+                expectation = "swing"
+                expectation_reason = "detector 已把 20-gap 识别为 continuation，不再由弱背景标签改写成 close-test/scalp"
+
+        style = normalize_management_style(
+            classify_management_style(
+                signal_type,
+                management_profile,
+                market_state=market_state,
+                higher_market_state=higher_market_state,
+                timeframe=str(getattr(event, "timeframe", "") or ""),
+                entry_type=entry_type,
+                route_style=str(extra.get("route_style", "") or ""),
+                playbook_id=str(extra.get("playbook_id", "") or ""),
+                setup_valid=bool(extra.get("setup_valid", True)),
+                setup_clear_trend_leg=bool(extra.get("setup_clear_trend_leg", True)),
+                setup_first_pullback_shape=bool(extra.get("setup_first_pullback_shape", True)),
+                setup_pullback_depth_ratio=float(extra.get("setup_pullback_depth_ratio", 0.0) or 0.0),
+                setup_pullback_overlap_ratio=float(extra.get("setup_pullback_overlap_ratio", 0.0) or 0.0),
+            )
+        )
+        return {
+            "active": active,
+            "disposition": disposition,
+            "style": "brooks_scalp" if disposition in {"scalp_only", "fade_candidate"} else style,
+            "min_target_r": min_target_r,
+            "primary_gap_target_distance_r": primary_gap_target_distance_r,
+            "too_close_after_cost": too_close_after_cost,
+            "extreme_wrong_half": extreme_wrong_half,
+            "first_target_is_close_test": first_target_is_close_test,
+            "rescue_only_expected": rescue_only_expected,
+            "context_tier": context_tier,
+            "setup_mode": ema_gap_setup_mode,
+            "expectation": expectation,
+            "expectation_reason": expectation_reason,
+            "broad_range_weak_signal_no_trade": broad_range_weak_signal_no_trade,
+        }
+
+    @staticmethod
+    def _ema_gap_fade_target(event, candles_q) -> tuple[float, float]:
+        """给弱 gap continuation 生成更保守的 limit fade 目标。"""
+        signal_bar = candles_q[-1]
+        signal_high = float(getattr(event, "signal_bar_high", 0.0) or float(signal_bar.high))
+        signal_low = float(getattr(event, "signal_bar_low", 0.0) or float(signal_bar.low))
+        bar_range = max(signal_high - signal_low, 1e-9)
+        reference_price = float(getattr(event, "price", 0.0) or float(signal_bar.close))
+        buffer = max(bar_range * 0.10, abs(reference_price) * 0.0001, 1e-9)
+        if str(getattr(event, "direction", "") or "") == "SELL":
+            target = max(signal_low + buffer, signal_low + bar_range * 0.22)
+            target = min(float(getattr(event, "price", reference_price) or reference_price) - buffer, target)
+        else:
+            target = min(signal_high - buffer, signal_high - bar_range * 0.22)
+            target = max(float(getattr(event, "price", reference_price) or reference_price) + buffer, target)
+        return float(target), float(buffer)
+
+    def _convert_ema_gap_fade(self, event, candles_q) -> None:
+        """把弱 gap continuation 改成 Brooks 式 limit fade。"""
+        original_direction = str(getattr(event, "direction", "") or "")
+        if original_direction not in {"BUY", "SELL"} or not candles_q:
+            return
+        fade_direction = "SELL" if original_direction == "BUY" else "BUY"
+        extra = dict(getattr(event, "extra", {}) or {})
+        extra.update(
+            {
+                "setup_disposition": "fade_candidate",
+                "executed_as_fade": True,
+                "fade_source_signal": str(getattr(event, "signal_type", "") or ""),
+                "management_style_override": "brooks_scalp",
+                "management_template": "ema_gap_fade",
+                "route_style": "ema_gap_fade_limit",
+                "playbook_id": "TR2_FAILED_BO_FADE",
+                "playbook_family": "tr_fade",
+                "order_bias": "fade",
+                "first_entry_signal": False,
+                "first_profit_at_1x_actual_risk": False,
+                "allow_be_after_first_target": False,
+                "prefer_partial_over_full_swing": True,
+                "allow_small_runner": False,
+                "handoff_to_h2_l2_if_failed": False,
+                "prefer_lower_entry_be_rescue": False,
+                "first_target_is_close_test": False,
+                "disappointed_bull_bear_mode": False,
+                "exit_on_failed_follow_through": True,
+                "exit_on_return_to_range": True,
+                "exit_on_major_channel_break": False,
+            }
+        )
+        event.extra = extra
+        event.direction = fade_direction
+        self._convert_to_limit_order(
+            event,
+            candles_q,
+            route_style="ema_gap_fade_limit",
+            inner_low=0.04,
+            inner_high=0.20,
+            stop_buffer=0.22,
+        )
+        fade_target, target_buffer = self._ema_gap_fade_target(event, candles_q)
+        event.take_profit = fade_target
+        extra = dict(getattr(event, "extra", {}) or {})
+        extra.update(
+            {
+                "recommended_target": fade_target,
+                "first_target": fade_target,
+                "first_target_type": "fade_signal_bar_opposite",
+                "stretch_target": fade_target,
+                "stretch_target_type": "fade_signal_bar_opposite",
+                "target_buffer": target_buffer,
+                "signal_stage": "executable",
+                "signal_stage_reason": "弱 gap continuation 已降级成 limit fade 执行",
+                "setup_disposition_reason": "弱 gap continuation 位于错误半区且净目标不足，更像 fade",
+            }
+        )
+        event.extra = extra
+
+    def _prepare_ema_gap_pre_route_disposition(
+        self,
+        event,
+        candles_q,
+        replay,
+        market_state,
+        higher_market_state,
+        *,
+        management_profile: str,
+    ) -> tuple[bool, bool]:
+        """在路由前决定 gap 族是 continuation、scalp、fade 还是 no-trade。"""
+        profile = self._ema_gap_disposition_profile(event, management_profile)
+        extra = dict(getattr(event, "extra", {}) or {})
+        extra["ema_gap_context_tier"] = str(profile.get("context_tier", "") or "")
+        extra["ema_gap_expectation"] = str(profile.get("expectation", "") or "")
+        extra["ema_gap_expectation_reason"] = str(profile.get("expectation_reason", "") or "")
+        if not bool(profile.get("active")):
+            extra["setup_disposition"] = ""
+            extra["setup_disposition_reason"] = ""
+            event.extra = extra
+            return True, False
+
+        extra["minimum_target_distance_r"] = float(profile.get("min_target_r", 0.0) or 0.0)
+        disposition = str(profile.get("disposition", "") or "")
+        extra["setup_disposition"] = disposition
+        event.extra = extra
+        if disposition == "no_trade_too_close":
+            reason = (
+                f"gap 第一目标仅 {float(profile.get('primary_gap_target_distance_r', 0.0) or 0.0):.2f}R，"
+                f"低于覆盖成本所需的 {float(profile.get('min_target_r', 0.0) or 0.0):.2f}R"
+            )
+            extra["signal_stage"] = "candidate"
+            extra["signal_stage_reason"] = reason
+            extra["setup_disposition_reason"] = reason
+            event.extra = extra
+            return False, False
+        if disposition == "no_trade_close_test_only":
+            broad_range_weak_signal_no_trade = bool(profile.get("broad_range_weak_signal_no_trade", False))
+            if (
+                str(getattr(event, "signal_type", "") or "") == "20均线缺口"
+                and str(extra.get("market_state", "") or "") == "broad_range"
+            ):
+                if broad_range_weak_signal_no_trade:
+                    reason = "broad range 里的 20-gap close-test 信号棒偏弱，先不做"
+                else:
+                    reason = "broad range 里的 20-gap close-test 同时缺少结构同向、回踩收复与恢复腿，先不做"
+            else:
+                reason = "弱 gap 只有 close-test / rescue 预期，且缺少 continuation 证据，先不做"
+            extra["signal_stage"] = "candidate"
+            extra["signal_stage_reason"] = reason
+            extra["setup_disposition_reason"] = reason
+            event.extra = extra
+            return False, False
+        if disposition == "scalp_only":
+            extra["management_style_override"] = str(profile.get("style", "") or "brooks_scalp")
+            extra["signal_stage"] = "executable"
+            if (
+                str(getattr(event, "signal_type", "") or "") == "20均线缺口"
+                and str(extra.get("market_state", "") or "") == "broad_range"
+            ):
+                if str(extra.get("management_template", "") or "") == "ema_gap_continuation":
+                    extra["signal_stage_reason"] = "broad range 里的 20-gap continuation 缺少新鲜回踩、收复与恢复腿，只按 scalp-only 管理"
+                else:
+                    extra["signal_stage_reason"] = "broad range 里的 20-gap close-test 缺少恢复证据，只按 scalp-only 管理"
+            else:
+                extra["signal_stage_reason"] = "弱 gap continuation 降级为 scalp-only 管理"
+            extra["setup_disposition_reason"] = str(extra.get("signal_stage_reason", "") or "")
+            event.extra = extra
+            return True, False
+        if disposition == "fade_candidate":
+            self._convert_ema_gap_fade(event, candles_q)
+            self._attach_structure_context(event, candles_q, replay)
+            extra = dict(getattr(event, "extra", {}) or {})
+            extra["ema_gap_context_tier"] = str(profile.get("context_tier", "") or "")
+            extra["ema_gap_expectation"] = str(profile.get("expectation", "") or "fade")
+            extra["ema_gap_expectation_reason"] = str(
+                profile.get("expectation_reason", "") or "弱 gap continuation 已降级为 fade"
+            )
+            extra["setup_disposition"] = "fade_candidate"
+            extra["executed_as_fade"] = True
+            extra["fade_source_signal"] = str(getattr(event, "signal_type", "") or "")
+            extra["signal_stage"] = "executable"
+            extra["signal_stage_reason"] = "弱 gap continuation 已降级成 limit fade 执行"
+            extra["setup_disposition_reason"] = str(extra.get("signal_stage_reason", "") or "")
             event.extra = extra
             return True, True
         return True, False
@@ -2161,12 +2694,33 @@ class BacktestRunner:
         direction = str(getattr(event, "direction", "") or "")
         entry_type = str(getattr(event, "entry_type", "STOP") or "STOP").upper()
         extra = dict(getattr(event, "extra", {}) or {})
+        management_template = str(extra.get("management_template", "") or "")
+        first_target_is_close_test = bool(extra.get("first_target_is_close_test", False))
         range_edge = str(extra.get("range_edge", "") or "")
         range_zone = str(extra.get("range_zone", "") or "")
         higher_range_position = float(extra.get("higher_range_position", 0.5) or 0.5)
         higher_range_edge = str(extra.get("higher_range_edge", "") or "")
+        if entry_type == "LIMIT":
+            return
 
-        if timeframe != "5m" or entry_type == "LIMIT":
+        if (
+            timeframe != "5m"
+            and signal_type == "20均线缺口"
+            and market_key == "broad_range"
+            and management_template == "ema_gap_test"
+            and first_target_is_close_test
+        ):
+            self._convert_to_limit_order(
+                event,
+                candles_q,
+                route_style="ema_gap_broad_range_limit_test",
+                inner_low=0.18,
+                inner_high=0.42,
+                stop_buffer=0.12,
+            )
+            return
+
+        if timeframe != "5m":
             return
 
         higher_range_like = higher_key in {"tight_range", "broad_range"}
@@ -2258,6 +2812,8 @@ class BacktestRunner:
             classify_backtest_market_state(higher_market_state) if higher_market_state is not None else ""
         ) or str(extra.get("higher_market_state", "") or "")
         higher_timeframe = str(extra.get("higher_timeframe", "") or "")
+        gap_reference_cycle = str(extra.get("gap_reference_cycle", "") or "")
+        gap_reference_channel_type = str(extra.get("gap_reference_channel_type", "") or "")
         higher_follow_through = bool(
             getattr(higher_market_state, "follow_through", extra.get("higher_follow_through", False))
         )
@@ -2281,12 +2837,22 @@ class BacktestRunner:
         trendline_break_confirmed = bool(extra.get("trendline_break_confirmed", False))
         signal_bar_quality = float(extra.get("signal_bar_quality", 0.0) or 0.0)
         near_ema = bool(extra.get("near_ema", False))
+        first_target_type = str(extra.get("first_target_type", "") or "")
+        close_test_target_type = str(extra.get("close_test_target_type", "") or "")
+        rescue_target_type = str(extra.get("rescue_target_type", "") or "")
+        management_template = str(extra.get("management_template", "") or "").strip().lower()
 
         is_reversal = signal_type in ROUTE_REVERSAL_STRATEGIES
         is_minor_reversal = signal_type in ROUTE_MINOR_REVERSAL_STRATEGIES
         is_trend = signal_type in ROUTE_TREND_STRATEGIES
         is_tr_blshs = BacktestRunner._is_tr_blshs_signal(signal_type, direction, range_edge, range_zone)
         is_breakout_chase = signal_type in BREAKOUT_CHASE_SIGNALS
+        is_ema_gap_family = signal_type in {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"} or management_template in {
+            "ema_gap_continuation",
+            "ema_gap_test",
+            "ema_gap_mag_final_leg",
+            "first_ema_gap_reentry",
+        }
         is_breakout = (
             ("突破" in signal_type and signal_type not in {"突破回调", "看衰突破"})
             or signal_type == "收线追进"
@@ -2308,9 +2874,24 @@ class BacktestRunner:
         acceptance_ready = bool(extra.get("acceptance_ready", False))
         executable_signal_ready = bool(extra.get("executable_signal_ready", False))
         reclaimed_prior_close = bool(extra.get("reclaimed_prior_close", False))
+        valid_previous_entry = bool(extra.get("valid_previous_entry", False))
         gap_context = extra.get("gap_context") if isinstance(extra.get("gap_context"), dict) else {}
         stairs_pattern = bool(gap_context.get("stairs_pattern", False))
         exhaustion_detected = bool(gap_context.get("exhaustion_detected", False))
+        is_ema_gap_family = signal_type in {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"}
+        gap_reference_ready = (
+            is_ema_gap_family
+            and gap_reference_cycle.startswith(("趋势", "急速"))
+            and gap_reference_channel_type in {"tight", "broad", "spike"}
+        )
+        ema_gap_target_ready = (
+            is_ema_gap_family
+            and (
+                first_target_type in {"prior_high", "prior_low", "highest_close", "lowest_close"}
+                or close_test_target_type in {"prior_high", "prior_low"}
+                or rescue_target_type in {"highest_close", "lowest_close"}
+            )
+        )
         classic_reversal_setup = signal_type in {
             "高2",
             "低2",
@@ -2378,7 +2959,7 @@ class BacktestRunner:
             )
         )
         strong_second_entry_recovery = (
-            signal_type in {"高2", "低2", "突破回调", "20均线缺口", "第一均线缺口"}
+            signal_type in {"高2", "低2", "突破回调", "20均线缺口", "MAG 20/20 Setup", "第一均线缺口"}
             and (good_signal_bar or signal_bar_quality >= 0.52)
             and (
                 trendline_break_confirmed
@@ -2386,15 +2967,20 @@ class BacktestRunner:
                 or prior_leg_context in {"trend_leg", "tr_second_leg"}
                 or (acceptance_ready and executable_signal_ready)
                 or reclaimed_prior_close
+                or valid_previous_entry
                 or stairs_pattern
+                or gap_reference_ready
             )
         )
         continuation_context_ready = (
             acceptance_ready
             or executable_signal_ready
             or reclaimed_prior_close
+            or valid_previous_entry
             or stairs_pattern
             or exhaustion_detected
+            or gap_reference_ready
+            or ema_gap_target_ready
         )
         endless_pullback_ready = (
             trendline_break_confirmed
@@ -2405,6 +2991,11 @@ class BacktestRunner:
             or (tradeable_zone and reclaimed_prior_close and good_signal_bar)
             or (acceptance_ready and executable_signal_ready and good_signal_bar)
             or (stairs_pattern and tradeable_zone and good_signal_bar)
+            or (gap_reference_ready and reclaimed_prior_close)
+            or (gap_reference_ready and valid_previous_entry)
+            or (gap_reference_ready and good_signal_bar)
+            or (ema_gap_target_ready and reclaimed_prior_close)
+            or (ema_gap_target_ready and valid_previous_entry)
         )
 
         if market_key == "strong_trend_bull":
@@ -2507,7 +3098,10 @@ class BacktestRunner:
                     or continuation_context_ready
                 )
                 if endless_pullback_context and not endless_pullback_ready:
-                    return False, "endless PB 里先等 BO+FT 或收回前收盘"
+                    if is_ema_gap_family and (gap_reference_ready or ema_gap_target_ready):
+                        pass
+                    else:
+                        return False, "endless PB 里先等 BO+FT 或收回前收盘"
                 if (
                     range_zone == "middle"
                     and not continuation_ready
@@ -2517,7 +3111,10 @@ class BacktestRunner:
                 if (
                     not continuation_ready
                 ):
-                    return False, "宽通道顺势恢复缺少 follow-through"
+                    if is_ema_gap_family and (gap_reference_ready or ema_gap_target_ready):
+                        pass
+                    else:
+                        return False, "宽通道顺势恢复缺少 follow-through"
                 if is_breakout and not follow_through and not breakout_mode_ready:
                     return False, "宽通道里不追弱突破"
 
@@ -2655,6 +3252,10 @@ class BacktestRunner:
         prior_leg_bars = int(extra.get("prior_leg_bars", 0) or 0)
         prior_leg_overlap_ratio = float(extra.get("prior_leg_overlap_ratio", 0.0) or 0.0)
         playbook_id = str(extra.get("playbook_id") or "")
+        effective_target_type = str(extra.get("effective_target_type") or "")
+        first_target_type = str(extra.get("first_target_type") or "")
+        close_test_target_type = str(extra.get("close_test_target_type") or "")
+        rescue_target_type = str(extra.get("rescue_target_type") or "")
         gap_context = extra.get("gap_context") if isinstance(extra.get("gap_context"), dict) else {}
         stairs_pattern = bool(gap_context.get("stairs_pattern", False))
         exhaustion_detected = bool(gap_context.get("exhaustion_detected", False))
@@ -2663,6 +3264,13 @@ class BacktestRunner:
         setup_first_pullback_shape = bool(extra.get("setup_first_pullback_shape", True))
         setup_still_trend_side = bool(extra.get("setup_still_trend_side", False))
         setup_pullback_depth_ratio = float(extra.get("setup_pullback_depth_ratio", 0.0) or 0.0)
+        management_template = str(extra.get("management_template", "") or "").strip().lower()
+        is_ema_gap_family = signal_type in {"20均线缺口", "MAG 20/20 Setup", "第一均线缺口"} or management_template in {
+            "ema_gap_continuation",
+            "ema_gap_test",
+            "ema_gap_mag_final_leg",
+            "first_ema_gap_reentry",
+        }
         setup_pullback_overlap_ratio = float(extra.get("setup_pullback_overlap_ratio", 0.0) or 0.0)
         first_target_distance_r = float(extra.get("first_target_distance_r", 0.0) or 0.0)
         target_buffer = float(extra.get("target_buffer", 0.0) or 0.0)
@@ -3007,12 +3615,22 @@ class BacktestRunner:
             "LOY突破",
         }
         if (
-            signal_type in {"高1", "低1", "高2", "低2", "20均线缺口", "第一均线缺口", "突破回调"}
+            signal_type in {"高1", "低1", "高2", "低2", "突破回调"}
             and endless_pullback_context
             and not endless_pullback_ready
         ):
             return block("candidate", "endless PB 里的趋势恢复单先等 BO+FT 或收回前收盘")
-        if signal_type in trend_breakout_setups and not target_path_clear:
+        gap_target_test_ok = bool(
+            is_ema_gap_family
+            and blocking_magnet_kind == "prior_level"
+            and (
+                effective_target_type in {"prior_high", "prior_low", "highest_close", "lowest_close"}
+                or first_target_type in {"prior_high", "prior_low", "highest_close", "lowest_close"}
+                or close_test_target_type in {"prior_high", "prior_low"}
+                or rescue_target_type in {"highest_close", "lowest_close"}
+            )
+        )
+        if signal_type in trend_breakout_setups and not target_path_clear and not gap_target_test_ok:
             if blocking_magnet_structural and (magnet_cluster_count >= 1 or magnet_cluster_strength >= 3.0):
                 return block("candidate", f"目标路径在结构磁体受阻 ({blocking_magnet_kind or 'cluster'})")
             if magnet_cluster_count >= 3 or magnet_cluster_strength >= 5.5:
