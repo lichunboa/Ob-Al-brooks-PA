@@ -734,6 +734,125 @@ def _merge_symbol_payload(base: Any, overlay: Any) -> dict[str, Any]:
             merged[key] = value
     return merged
 
+
+def _merge_symbol_timeframes_from_analysis(analysis: Any) -> dict[str, Any]:
+    """把 analysis_board 里的 live/ab 周期信息合并成可直接喂给 symbol patch 的结构。"""
+    board = analysis if isinstance(analysis, dict) else {}
+    live_timeframes = board.get("live_timeframes") if isinstance(board.get("live_timeframes"), dict) else {}
+    ab_context = board.get("ab_context") if isinstance(board.get("ab_context"), dict) else {}
+    ab_timeframes = ab_context.get("timeframes") if isinstance(ab_context.get("timeframes"), dict) else {}
+    merged: dict[str, Any] = {}
+    timeframe_keys = set(live_timeframes.keys()) | set(ab_timeframes.keys())
+    for tf in sorted(timeframe_keys):
+        live_tf = live_timeframes.get(tf) if isinstance(live_timeframes.get(tf), dict) else {}
+        ab_tf = ab_timeframes.get(tf) if isinstance(ab_timeframes.get(tf), dict) else {}
+        combined = _merge_symbol_payload(ab_tf, live_tf)
+        latest_bar = combined.get("latest_bar") if isinstance(combined.get("latest_bar"), dict) else {}
+        close_price = (
+            safe_float(latest_bar.get("C"), 0.0)
+            or safe_float(latest_bar.get("close"), 0.0)
+            or safe_float(combined.get("price"), 0.0)
+            or safe_float(combined.get("current_price"), 0.0)
+            or safe_float(combined.get("last_close"), 0.0)
+        )
+        if close_price > 0:
+            combined.setdefault("price", close_price)
+            combined.setdefault("current_price", close_price)
+            combined.setdefault("last_close", close_price)
+        if isinstance(live_tf.get("summary"), str) and str(live_tf.get("summary")).strip():
+            combined.setdefault("summary", str(live_tf.get("summary")).strip())
+        merged[tf] = combined
+    return merged
+
+
+def _preferred_symbol_timeframe(payload: Any, frames: dict[str, Any]) -> str:
+    """优先按策略声明周期选择 reference timeframe。"""
+    patch = payload if isinstance(payload, dict) else {}
+    planned_trade = patch.get("planned_trade") if isinstance(patch.get("planned_trade"), dict) else {}
+    pre_signal = patch.get("pre_signal") if isinstance(patch.get("pre_signal"), dict) else {}
+    for candidate in (
+        planned_trade.get("timeframe"),
+        pre_signal.get("timeframe"),
+        patch.get("timeframe"),
+        "15m",
+        "5m",
+        "1h",
+    ):
+        timeframe = str(candidate or "").strip().lower()
+        if timeframe and isinstance(frames.get(timeframe), dict):
+            return timeframe
+    for fallback in frames.keys():
+        return str(fallback)
+    return ""
+
+
+def _hydrate_symbol_payload_from_analysis(payload: Any, analysis: Any) -> dict[str, Any]:
+    """把 analysis_board 的 live 行情注入 symbol payload，避免 live 展示态缺价格/ATR。"""
+    base = dict(payload) if isinstance(payload, dict) else {}
+    merged_frames = _merge_symbol_timeframes_from_analysis(analysis)
+    if merged_frames:
+        base["timeframes"] = _merge_symbol_payload(base.get("timeframes"), merged_frames)
+
+    preferred_tf = _preferred_symbol_timeframe(base, merged_frames)
+
+    def _frame_price(frame_payload: Any) -> float:
+        frame = frame_payload if isinstance(frame_payload, dict) else {}
+        latest_bar = frame.get("latest_bar") if isinstance(frame.get("latest_bar"), dict) else {}
+        return (
+            safe_float(frame.get("price"), 0.0)
+            or safe_float(frame.get("current_price"), 0.0)
+            or safe_float(frame.get("last_close"), 0.0)
+            or safe_float(latest_bar.get("C"), 0.0)
+            or safe_float(latest_bar.get("close"), 0.0)
+        )
+
+    preferred_frame = merged_frames.get(preferred_tf) if isinstance(merged_frames.get(preferred_tf), dict) else {}
+    current_price = (
+        safe_float(base.get("current_price"), 0.0)
+        or safe_float(base.get("last_price"), 0.0)
+        or _frame_price(preferred_frame)
+        or _frame_price(merged_frames.get("15m"))
+        or _frame_price(merged_frames.get("5m"))
+        or _frame_price(merged_frames.get("1h"))
+    )
+    if current_price > 0:
+        base["current_price"] = current_price
+        base["last_price"] = current_price
+
+    atr14 = (
+        safe_float(base.get("atr14"), 0.0)
+        or safe_float(preferred_frame.get("atr14"), 0.0)
+        or safe_float((merged_frames.get("15m") or {}).get("atr14"), 0.0)
+        or safe_float((merged_frames.get("5m") or {}).get("atr14"), 0.0)
+        or safe_float((merged_frames.get("1h") or {}).get("atr14"), 0.0)
+    )
+    if atr14 > 0:
+        base["atr14"] = atr14
+
+    ema20 = (
+        safe_float(base.get("ema20"), 0.0)
+        or safe_float(preferred_frame.get("ema20"), 0.0)
+        or safe_float((merged_frames.get("15m") or {}).get("ema20"), 0.0)
+        or safe_float((merged_frames.get("5m") or {}).get("ema20"), 0.0)
+        or safe_float((merged_frames.get("1h") or {}).get("ema20"), 0.0)
+    )
+    if ema20 > 0:
+        base["ema20"] = ema20
+
+    summary = (
+        str(base.get("market_state_detail") or "").strip()
+        or str(base.get("structure_summary") or "").strip()
+        or str(preferred_frame.get("summary") or "").strip()
+        or str((merged_frames.get("15m") or {}).get("summary") or "").strip()
+        or str((merged_frames.get("5m") or {}).get("summary") or "").strip()
+        or str((merged_frames.get("1h") or {}).get("summary") or "").strip()
+    )
+    if summary:
+        base.setdefault("market_state_detail", summary)
+        base.setdefault("structure_summary", summary)
+
+    return base
+
 # 2026-03-09: 导入优化模块（7 个核心优化）
 try:
     from pa_runtime_optimizations import (
@@ -4193,19 +4312,19 @@ class PatrolRuntime(
         for symbol in focus_symbols:
             cached_raw = symbol_cache.get(symbol) if isinstance(symbol_cache.get(symbol), dict) else {}
             analysis = analysis_board.get(symbol) if isinstance(analysis_board.get(symbol), dict) else {}
-            ab_context = analysis.get("ab_context") if isinstance(analysis.get("ab_context"), dict) else {}
-            frames = ab_context.get("timeframes") if isinstance(ab_context.get("timeframes"), dict) else {}
+            hydrated_raw = _hydrate_symbol_payload_from_analysis(cached_raw, analysis)
+            frames = hydrated_raw.get("timeframes") if isinstance(hydrated_raw.get("timeframes"), dict) else {}
             normalized_symbol_cache[symbol] = _merge_symbol_patch_with_mag_bridge(
-                self._clear_expired_live_symbol_state(build_runtime_symbol_patch(cached_raw)),
+                self._clear_expired_live_symbol_state(build_runtime_symbol_patch(hydrated_raw)),
                 frames,
             )
         for symbol, payload in symbol_cache.items():
             if symbol not in normalized_symbol_cache and isinstance(payload, dict):
                 analysis = analysis_board.get(symbol) if isinstance(analysis_board.get(symbol), dict) else {}
-                ab_context = analysis.get("ab_context") if isinstance(analysis.get("ab_context"), dict) else {}
-                frames = ab_context.get("timeframes") if isinstance(ab_context.get("timeframes"), dict) else {}
+                hydrated_payload = _hydrate_symbol_payload_from_analysis(payload, analysis)
+                frames = hydrated_payload.get("timeframes") if isinstance(hydrated_payload.get("timeframes"), dict) else {}
                 normalized_symbol_cache[symbol] = _merge_symbol_patch_with_mag_bridge(
-                    self._clear_expired_live_symbol_state(build_runtime_symbol_patch(payload)),
+                    self._clear_expired_live_symbol_state(build_runtime_symbol_patch(hydrated_payload)),
                     frames,
                 )
         symbol_cache = normalized_symbol_cache

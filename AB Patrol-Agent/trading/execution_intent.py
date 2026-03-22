@@ -209,14 +209,30 @@ def _extract_market_price(patch: dict[str, Any], planned_trade: dict[str, Any]) 
     followup_seed = _as_dict(patch.get("followup_seed"))
     timeframe = _infer_reference_timeframe(planned_trade, timeframes)
     frame = _as_dict(timeframes.get(timeframe))
+    latest_bar = _as_dict(frame.get("latest_bar"))
+
+    def _frame_price(frame_payload: dict[str, Any]) -> float | None:
+        latest = _as_dict(frame_payload.get("latest_bar"))
+        return _first_price(
+            frame_payload.get("price"),
+            frame_payload.get("current_price"),
+            frame_payload.get("last_close"),
+            latest.get("C"),
+            latest.get("close"),
+        )
+
     return _first_price(
         patch.get("current_price"),
         patch.get("last_price"),
         followup_seed.get("entry_price"),
         frame.get("price"),
-        _as_dict(timeframes.get("15m")).get("price"),
-        _as_dict(timeframes.get("5m")).get("price"),
-        _as_dict(timeframes.get("1h")).get("price"),
+        frame.get("current_price"),
+        frame.get("last_close"),
+        latest_bar.get("C"),
+        latest_bar.get("close"),
+        _frame_price(_as_dict(timeframes.get("15m"))),
+        _frame_price(_as_dict(timeframes.get("5m"))),
+        _frame_price(_as_dict(timeframes.get("1h"))),
     )
 
 
@@ -320,6 +336,19 @@ def _synthesize_limit_plan_exact_entry(patch: dict[str, Any]) -> dict[str, Any]:
         or pre_signal.get("side")
         or pre_signal.get("direction")
     )
+    if side not in {"BUY", "SELL"}:
+        signal_blob = (
+            planned_trade.get("signal_type"),
+            patch.get("signal_type"),
+            patch.get("signal"),
+            pre_signal.get("type"),
+            pre_signal.get("condition"),
+        )
+        signal_text = " ".join(str(item or "") for item in signal_blob).upper()
+        if any(token in signal_text for token in ("H1", "H2", "高1", "高2")):
+            side = "BUY"
+        elif any(token in signal_text for token in ("L1", "L2", "低1", "低2")):
+            side = "SELL"
     current_price = _extract_market_price(patch, planned_trade)
     if side not in {"BUY", "SELL"} or current_price is None or current_price <= 0:
         return patch
