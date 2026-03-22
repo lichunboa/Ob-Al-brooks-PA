@@ -532,7 +532,7 @@ class BrooksFilterMixin:
         base = self._seed_live_trade_bridge(base, filter_meta, events)
         current_status = str(base.get("status") or "watching")
         target_status = str(filter_meta.get("max_status") or current_status).strip().lower() or current_status
-        if current_status in {"watching", "cooldown"} and target_status in {"pre_signal", "entry_ready", "entry_ready_blocked"}:
+        if current_status in {"watching", "cooldown", "pre_signal"} and target_status in {"pre_signal", "entry_ready", "entry_ready_blocked"}:
             base["status"] = target_status
         else:
             base["status"] = cap_status(current_status, target_status)
