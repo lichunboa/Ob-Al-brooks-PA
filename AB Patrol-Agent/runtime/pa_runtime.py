@@ -704,6 +704,36 @@ def _merge_symbol_patch_with_mag_bridge(
 
     return merged
 
+
+def _has_meaningful_symbol_value(value: Any) -> bool:
+    """判断 symbol patch 字段是否值得覆盖已有值。"""
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return str(value).strip() != ""
+    if isinstance(value, dict):
+        return bool(value)
+    if isinstance(value, list):
+        return bool(value)
+    return True
+
+
+def _merge_symbol_payload(base: Any, overlay: Any) -> dict[str, Any]:
+    """合并 market/runtime symbol patch，避免空值把价格和 ATR 冲掉。"""
+    merged = dict(base) if isinstance(base, dict) else {}
+    if not isinstance(overlay, dict):
+        return merged
+
+    for key, value in overlay.items():
+        if not _has_meaningful_symbol_value(value):
+            continue
+        existing = merged.get(key)
+        if isinstance(existing, dict) and isinstance(value, dict):
+            merged[key] = _merge_symbol_payload(existing, value)
+        else:
+            merged[key] = value
+    return merged
+
 # 2026-03-09: 导入优化模块（7 个核心优化）
 try:
     from pa_runtime_optimizations import (
@@ -2552,11 +2582,14 @@ class PatrolRuntime(
             )
         }
         for symbol in all_runtime_symbols:
-            merged_patch = dict(base_symbol_state.get(symbol) or {}) if isinstance(base_symbol_state.get(symbol), dict) else {}
-            if isinstance(decision_symbols.get(symbol), dict):
-                merged_patch.update(decision_symbols.get(symbol) or {})
-            if isinstance(decision_symbol_updates.get(symbol), dict):
-                merged_patch.update(decision_symbol_updates.get(symbol) or {})
+            merged_patch = _merge_symbol_payload(
+                base_symbol_state.get(symbol),
+                decision_symbols.get(symbol),
+            )
+            merged_patch = _merge_symbol_payload(
+                merged_patch,
+                decision_symbol_updates.get(symbol),
+            )
             normalized_family = str(
                 merged_patch.get("latest_strategy_family")
                 or merged_patch.get("strategy_family")
@@ -4139,10 +4172,22 @@ class PatrolRuntime(
         from trading.position_management import manage_position
 
         positions = self._tracked_bot_positions(execution)
-        # 优先从 runtime.symbols 读取（包含完整的 pre_signal 数据），fallback 到 market_cache
-        symbol_cache = runtime.get("symbols") if isinstance(runtime.get("symbols"), dict) else {}
-        if not symbol_cache:
-            symbol_cache = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
+        # 使用 market_cache 作为底座，再叠加 runtime 展示态里的有效字段，避免空值冲掉价格/ATR。
+        runtime_symbol_cache = runtime.get("symbols") if isinstance(runtime.get("symbols"), dict) else {}
+        market_symbol_cache = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
+        symbol_cache: dict[str, Any] = {}
+        all_symbol_keys = {
+            str(symbol).upper()
+            for symbol in (
+                list(market_symbol_cache.keys())
+                + list(runtime_symbol_cache.keys())
+            )
+        }
+        for symbol in all_symbol_keys:
+            symbol_cache[symbol] = _merge_symbol_payload(
+                market_symbol_cache.get(symbol),
+                runtime_symbol_cache.get(symbol),
+            )
         focus_symbols = phase_plan.get("focus_symbols") or []
         normalized_symbol_cache: dict[str, Any] = {}
         for symbol in focus_symbols:
@@ -4804,11 +4849,14 @@ class PatrolRuntime(
                 )
             }
             for symbol in all_symbols:
-                merged_patch = dict(base_symbol_cache.get(symbol) or {}) if isinstance(base_symbol_cache.get(symbol), dict) else {}
-                if isinstance(decision_symbols.get(symbol), dict):
-                    merged_patch.update(decision_symbols.get(symbol) or {})
-                if isinstance(decision_symbol_updates.get(symbol), dict):
-                    merged_patch.update(decision_symbol_updates.get(symbol) or {})
+                merged_patch = _merge_symbol_payload(
+                    base_symbol_cache.get(symbol),
+                    decision_symbols.get(symbol),
+                )
+                merged_patch = _merge_symbol_payload(
+                    merged_patch,
+                    decision_symbol_updates.get(symbol),
+                )
                 symbol_cache_for_rules[symbol] = merged_patch
             try:
                 executable_trades = get_executable_trades(symbol_cache_for_rules)
