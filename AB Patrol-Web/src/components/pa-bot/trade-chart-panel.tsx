@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CandlestickSeries,
   ColorType,
@@ -77,6 +77,7 @@ type TradeChartPanelProps = {
   onRefresh?: () => void;
   refreshDisabled?: boolean;
   refreshLabel?: string;
+  chartHeight?: number;
 };
 
 function labelForMeta(key: string): string {
@@ -102,6 +103,20 @@ function labelForMeta(key: string): string {
     eventPrice: '事件价格',
     orderClass: '订单类',
     protectionKind: '保护类型',
+    background: '背景',
+    keyArea: '关键位置',
+    setupPremise: 'Setup 前提',
+    signalBarType: 'Signal Bar',
+    entryTrigger: '入场触发',
+    triggerInvalidation: '触发失效',
+    initialStopType: '初始止损类型',
+    actualRiskPct: '实际风险%',
+    positionLeverage: '仓位与杠杆',
+    firstTarget: '第一目标',
+    managementMode: 'Partial / Scalp / Swing',
+    beCondition: 'BE 条件',
+    earlyExit: '提前离场',
+    reentryAddOn: 'Re-entry / Add-on',
   };
   return mapping[key] || key;
 }
@@ -118,7 +133,15 @@ function formatMetaValue(value: unknown): string {
   return String(value);
 }
 
-function InteractiveTradeChart({ chart }: { chart: TradeChartPayload }) {
+function InteractiveTradeChart({
+  chart,
+  height,
+  onRenderError,
+}: {
+  chart: TradeChartPayload;
+  height: number;
+  onRenderError?: (message: string) => void;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -127,104 +150,118 @@ function InteractiveTradeChart({ chart }: { chart: TradeChartPayload }) {
     }
 
     const container = containerRef.current;
-    const chartApi = createChart(container, {
-      width: container.clientWidth || 960,
-      height: 420,
-      layout: {
-        background: { type: ColorType.Solid, color: '#080d14' },
-        textColor: '#cbd5e1',
-        attributionLogo: false,
-      },
-      grid: {
-        vertLines: { color: '#1f2937' },
-        horzLines: { color: '#1f2937' },
-      },
-      crosshair: {
-        mode: CrosshairMode.Magnet,
-      },
-      rightPriceScale: {
-        borderColor: '#243040',
-      },
-      timeScale: {
-        borderColor: '#243040',
-        timeVisible: true,
-        secondsVisible: false,
-      },
-    });
+    let chartApi: ReturnType<typeof createChart> | null = null;
+    let observer: ResizeObserver | null = null;
 
-    const candleSeries = chartApi.addSeries(CandlestickSeries, {
-      upColor: '#22c55e',
-      downColor: '#f97316',
-      borderVisible: false,
-      wickUpColor: '#22c55e',
-      wickDownColor: '#f97316',
-    });
-    candleSeries.setData(chart.candles.map((item) => ({ ...item, time: item.time as Time })));
-
-    const emaSeries = chartApi.addSeries(LineSeries, {
-      color: '#2dd4bf',
-      lineWidth: 2,
-      priceLineVisible: false,
-      lastValueVisible: false,
-    });
-    emaSeries.setData(chart.ema20.map((item) => ({ ...item, time: item.time as Time })));
-
-    if (chart.volume?.length) {
-      const volumeSeries = chartApi.addSeries(HistogramSeries, {
-        priceFormat: { type: 'volume' },
-        priceScaleId: 'volume',
-        lastValueVisible: false,
-        priceLineVisible: false,
-      });
-      volumeSeries.setData(chart.volume.map((item) => ({ ...item, time: item.time as Time })));
-      chartApi.priceScale('volume').applyOptions({
-        scaleMargins: {
-          top: 0.78,
-          bottom: 0,
+    try {
+      chartApi = createChart(container, {
+        width: container.clientWidth || 960,
+        height,
+        layout: {
+          background: { type: ColorType.Solid, color: '#080d14' },
+          textColor: '#cbd5e1',
+          attributionLogo: false,
+        },
+        grid: {
+          vertLines: { color: '#1f2937' },
+          horzLines: { color: '#1f2937' },
+        },
+        crosshair: {
+          mode: CrosshairMode.Magnet,
+        },
+        rightPriceScale: {
+          borderColor: '#243040',
+        },
+        timeScale: {
+          borderColor: '#243040',
+          timeVisible: true,
+          secondsVisible: false,
         },
       });
-    }
 
-    if (chart.markers?.length) {
-      createSeriesMarkers(
-        candleSeries,
-        chart.markers.map((marker) => ({
-          ...marker,
-          time: marker.time as Time,
-          size: 1,
-        })),
-      );
-    }
-
-    for (const line of chart.priceLines || []) {
-      candleSeries.createPriceLine({
-        price: line.price,
-        color: line.color,
-        title: line.title,
-        lineWidth: 1,
-        lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
+      const candleSeries = chartApi.addSeries(CandlestickSeries, {
+        upColor: '#22c55e',
+        downColor: '#f97316',
+        borderVisible: false,
+        wickUpColor: '#22c55e',
+        wickDownColor: '#f97316',
       });
-    }
+      candleSeries.setData(chart.candles.map((item) => ({ ...item, time: item.time as Time })));
 
-    chartApi.timeScale().fitContent();
+      const emaSeries = chartApi.addSeries(LineSeries, {
+        color: '#2dd4bf',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      emaSeries.setData(chart.ema20.map((item) => ({ ...item, time: item.time as Time })));
 
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (!entry) return;
-      const width = Math.max(320, Math.floor(entry.contentRect.width));
-      chartApi.applyOptions({ width });
+      if (chart.volume?.length) {
+        const volumeSeries = chartApi.addSeries(HistogramSeries, {
+          priceFormat: { type: 'volume' },
+          priceScaleId: 'volume',
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        volumeSeries.setData(chart.volume.map((item) => ({ ...item, time: item.time as Time })));
+        chartApi.priceScale('volume').applyOptions({
+          scaleMargins: {
+            top: 0.78,
+            bottom: 0,
+          },
+        });
+      }
+
+      if (chart.markers?.length) {
+        createSeriesMarkers(
+          candleSeries,
+          chart.markers.map((marker) => ({
+            ...marker,
+            time: marker.time as Time,
+            size: 1,
+          })),
+        );
+      }
+
+      for (const line of chart.priceLines || []) {
+        candleSeries.createPriceLine({
+          price: line.price,
+          color: line.color,
+          title: line.title,
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: true,
+        });
+      }
+
       chartApi.timeScale().fitContent();
-    });
-    observer.observe(container);
+      onRenderError?.('');
+
+      observer = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry || !chartApi) return;
+        const width = Math.max(320, Math.floor(entry.contentRect.width));
+        chartApi.applyOptions({ width, height });
+        chartApi.timeScale().fitContent();
+      });
+      observer.observe(container);
+    } catch (error) {
+      onRenderError?.(error instanceof Error ? error.message : '图表渲染失败');
+    }
 
     return () => {
-      observer.disconnect();
-      chartApi.remove();
+      observer?.disconnect();
+      chartApi?.remove();
     };
-  }, [chart]);
+  }, [chart, height, onRenderError]);
 
-  return <div ref={containerRef} className="h-[420px] w-full overflow-hidden rounded-[14px] border border-white/[0.08] bg-black/20" />;
+  return (
+    <div
+      ref={containerRef}
+      className="w-full overflow-hidden rounded-[14px] border border-white/[0.08] bg-black/20"
+      style={{ height }}
+    />
+  );
 }
 
 export function TradeChartPanel({
@@ -239,7 +276,9 @@ export function TradeChartPanel({
   onRefresh,
   refreshDisabled,
   refreshLabel = '生成图表',
+  chartHeight = 700,
 }: TradeChartPanelProps) {
+  const [renderError, setRenderError] = useState('');
   const metaEntries = useMemo(
     () =>
       Object.entries(chart?.focusMeta || {}).filter(([, value]) => value !== null && value !== undefined && value !== ''),
@@ -272,15 +311,17 @@ export function TradeChartPanel({
         </div>
       </div>
       <div className="space-y-3 p-4">
-        {error ? (
-          <div className="rounded-[14px] border border-rose-400/18 bg-rose-400/8 px-4 py-3 text-sm text-rose-100">{error}</div>
+        {error || renderError ? (
+          <div className="rounded-[14px] border border-rose-400/18 bg-rose-400/8 px-4 py-3 text-sm text-rose-100">
+            {error || renderError}
+          </div>
         ) : null}
         {chart?.candles?.length ? (
           <>
-            <InteractiveTradeChart chart={chart} />
+            <InteractiveTradeChart chart={chart} height={chartHeight} onRenderError={setRenderError} />
             <div className="text-xs text-slate-500">{chart.focusTitle}</div>
             {metaEntries.length ? (
-              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {metaEntries.map(([key, value]) => (
                   <div key={key} className="rounded-[12px] border border-white/[0.08] bg-white/[0.02] px-3 py-2">
                     <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">{labelForMeta(key)}</div>
