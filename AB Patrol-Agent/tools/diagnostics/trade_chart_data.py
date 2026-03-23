@@ -92,6 +92,17 @@ def _safe_float(value: Any) -> float | None:
     return parsed
 
 
+def _flatten_template14(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    payload: dict[str, Any] = {}
+    for key, item in value.items():
+        if item in (None, "", []):
+            continue
+        payload[str(key)] = item
+    return payload
+
+
 def _normalize_trade_items(trades: list[dict[str, Any]]) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
     for trade in trades:
@@ -250,7 +261,7 @@ def _backtest_chart_payload(symbol: str, timeframe: str, trades: list[dict[str, 
     anchors = [item["entry_time"] for item in normalized] + [item["exit_time"] for item in normalized]
     window_start, window_end = _resolve_window(anchors, timeframe, selected["entry_time"])
     bars = _load_backtest_bars(symbol, timeframe, window_start, window_end)
-    window_trades = [item for item in normalized if item["entry_time"] <= bars["timestamp"].iloc[-1] and item["exit_time"] >= bars["timestamp"].iloc[0]] or normalized
+    window_trades = [selected]
     timestamps = pd.DatetimeIndex(bars["timestamp"])
 
     markers: list[dict[str, Any]] = []
@@ -328,6 +339,84 @@ def _event_type_label(event: dict[str, Any]) -> str:
     return str(event.get("type") or event.get("status") or "EVENT")
 
 
+def _pick_live_focus_events(events: list[dict[str, Any]], selected: dict[str, Any]) -> list[dict[str, Any]]:
+    """只保留单笔主事件链，避免把同品种历史动作全部挤在一张图里。"""
+    ordered = sorted(events, key=lambda item: item["logged_at"])
+    selected_order_id = str(selected.get("orderId") or "").strip()
+    if selected_order_id:
+        ordered = [item for item in ordered if str(item.get("orderId") or "").strip() == selected_order_id] or ordered
+    else:
+        ordered = [selected]
+
+    selected_time = selected["logged_at"]
+    selected_type = str(selected.get("type") or "").upper()
+    chosen: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+
+    def push(item: dict[str, Any] | None) -> None:
+        if not item:
+            return
+        signature = (
+            str(item.get("type") or "").upper(),
+            str(item.get("status") or "").upper(),
+            item["logged_at"].isoformat(),
+        )
+        if signature in seen:
+            return
+        chosen.append(item)
+        seen.add(signature)
+
+    entry_candidate = next(
+        (
+            item
+            for item in reversed(ordered)
+            if item["logged_at"] <= selected_time and str(item.get("type") or "").upper() == "OPEN_ORDER"
+        ),
+        None,
+    )
+    if selected_type != "OPEN_ORDER":
+        push(entry_candidate)
+
+    push(selected)
+
+    if selected_order_id:
+        if selected_type in {"MODIFY_STOP_LOSS", "MODIFY_TAKE_PROFIT"}:
+            entry_candidate = next(
+                (
+                    item
+                    for item in reversed(ordered)
+                    if item["logged_at"] <= selected_time and str(item.get("type") or "").upper() == "OPEN_ORDER"
+                ),
+                None,
+            )
+            if entry_candidate is not None:
+                chosen = [entry_candidate, selected]
+                seen = {
+                    (
+                        str(entry_candidate.get("type") or "").upper(),
+                        str(entry_candidate.get("status") or "").upper(),
+                        entry_candidate["logged_at"].isoformat(),
+                    ),
+                    (
+                        str(selected.get("type") or "").upper(),
+                        str(selected.get("status") or "").upper(),
+                        selected["logged_at"].isoformat(),
+                    ),
+                }
+        exit_candidate = next(
+            (
+                item
+                for item in ordered
+                if item["logged_at"] >= selected_time
+                and str(item.get("type") or "").upper() in {"CLOSE_POSITION", "PARTIAL_CLOSE", "REDUCE_POSITION"}
+            ),
+            None,
+        )
+        push(exit_candidate)
+
+    return chosen or [selected]
+
+
 def _live_chart_payload(symbol: str, timeframe: str, events: list[dict[str, Any]], selected_index: int | None, base_url: str) -> dict[str, Any]:
     normalized = _normalize_event_items(events)
     if not normalized:
@@ -337,13 +426,34 @@ def _live_chart_payload(symbol: str, timeframe: str, events: list[dict[str, Any]
     window_start, window_end = _resolve_window(anchors, timeframe, selected["logged_at"])
     date_text = selected["logged_at"].strftime("%Y-%m-%d")
     bars = _load_live_bars(symbol, timeframe, date_text, window_start, window_end, base_url)
-    window_events = [item for item in normalized if bars["timestamp"].iloc[0] <= item["logged_at"] <= bars["timestamp"].iloc[-1]] or normalized[-12:]
+    selected_order_id = str(selected.get("orderId") or "").strip()
+    if selected_order_id:
+        focused = [
+            item
+            for item in normalized
+            if str(item.get("orderId") or "").strip() == selected_order_id
+        ]
+    else:
+        focused = [
+            item
+            for item in normalized
+            if item["logged_at"] == selected["logged_at"]
+            and str(item.get("type") or "") == str(selected.get("type") or "")
+            and str(item.get("strategy") or "") == str(selected.get("strategy") or "")
+        ]
+    narrowed = _pick_live_focus_events(focused or [selected], selected)
+    window_events = [item for item in narrowed if bars["timestamp"].iloc[0] <= item["logged_at"] <= bars["timestamp"].iloc[-1]] or narrowed
     timestamps = pd.DatetimeIndex(bars["timestamp"])
 
     markers: list[dict[str, Any]] = []
     for item in window_events:
         event_type = str(item.get("type") or "").upper()
         side = str(item.get("side") or "").upper()
+        is_focus = (
+            item["logged_at"] == selected["logged_at"]
+            and str(item.get("type") or "") == str(selected.get("type") or "")
+            and str(item.get("orderId") or "") == str(selected.get("orderId") or "")
+        )
         event_price = _safe_float(item.get("eventPrice")) or _safe_float(item.get("entryPrice"))
         if event_price is None:
             event_price = float(bars.iloc[_nearest_index(timestamps, item["logged_at"])]["close"])
@@ -365,7 +475,13 @@ def _live_chart_payload(symbol: str, timeframe: str, events: list[dict[str, Any]
                 "position": position,
                 "shape": shape,
                 "color": color,
-                "text": f"{_event_type_label(item)} {item.get('strategy') or item.get('playbookId') or ''}".strip(),
+                "text": (
+                    f"{_event_type_label(item)} {item.get('strategy') or item.get('playbookId') or ''}".strip()
+                    if is_focus
+                    else "退出"
+                    if event_type in {"CLOSE_POSITION", "PARTIAL_CLOSE", "REDUCE_POSITION"}
+                    else ""
+                ),
                 "price": event_price,
             }
         )
@@ -410,6 +526,7 @@ def _live_chart_payload(symbol: str, timeframe: str, events: list[dict[str, Any]
             "takeProfit": _safe_float(selected.get("takeProfit")),
             "orderClass": selected.get("orderClass"),
             "protectionKind": selected.get("protectionKind"),
+            **_flatten_template14(selected.get("template14")),
         },
     }
 

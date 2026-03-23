@@ -1928,6 +1928,19 @@ class PatrolRuntime(
         normalized_strategy_key = self._canonical_live_strategy_key(strategy_key) or str(strategy_key or "").strip().upper()
         return normalized_symbol, normalized_strategy_key
 
+    @staticmethod
+    def _live_side_conflicts(requested_side: str, existing_side: str) -> bool:
+        """只把同方向暴露视为首仓冲突，避免反向信号被过宽拦截。"""
+        requested = str(requested_side or "").strip().upper()
+        existing = str(existing_side or "").strip().upper()
+        if not requested or not existing:
+            return True
+        if requested == "BUY":
+            return existing in {"BUY", "LONG"}
+        if requested == "SELL":
+            return existing in {"SELL", "SHORT"}
+        return True
+
     def _collect_pending_open_keys(self, actions: list[dict[str, Any]]) -> set[tuple[str, str]]:
         """从当前 decision.actions 收集已经排队的 OPEN_ORDER 键。"""
         pending_keys: set[tuple[str, str]] = set()
@@ -2015,7 +2028,14 @@ class PatrolRuntime(
 
         return snapshot, meta
 
-    def _live_entry_conflict(self, symbol: str, strategy_key: str, execution: dict[str, Any]) -> tuple[bool, str]:
+    def _live_entry_conflict(
+        self,
+        symbol: str,
+        strategy_key: str,
+        execution: dict[str, Any],
+        *,
+        side: str = "",
+    ) -> tuple[bool, str]:
         """检测同品种同策略是否已有 live 暴露，不同策略允许并行首仓。"""
         normalized_symbol = self._normalize_live_symbol(symbol)
         if not normalized_symbol:
@@ -2030,12 +2050,14 @@ class PatrolRuntime(
                     continue
                 if not existing_strategy_key:
                     continue
-            side = str(
+            existing_side = str(
                 item.get("side")
                 or item.get("direction")
                 or item.get("position_side")
                 or "-"
             ).upper()
+            if not self._live_side_conflicts(side, existing_side):
+                continue
             quantity = (
                 safe_float(item.get("quantity"))
                 or safe_float(item.get("contracts"))
@@ -2043,7 +2065,7 @@ class PatrolRuntime(
                 or 0.0
             )
             strategy_hint = existing_strategy_key or strategy_key or "未知策略"
-            return True, f"当前已有同品种同策略持仓（{strategy_hint} | {side} {quantity:g}），先走持仓管理链"
+            return True, f"当前已有同品种同策略持仓（{strategy_hint} | {existing_side} {quantity:g}），先走持仓管理链"
 
         for item in self._tracked_bot_orders(execution):
             if self._normalize_live_symbol(item.get("symbol")) != normalized_symbol:
@@ -2054,10 +2076,12 @@ class PatrolRuntime(
                     continue
                 if not existing_strategy_key:
                     continue
-            side = str(item.get("side") or "-").upper()
+            existing_side = str(item.get("side") or "-").upper()
+            if not self._live_side_conflicts(side, existing_side):
+                continue
             order_type = str(item.get("order_type") or item.get("type") or "-").upper()
             strategy_hint = existing_strategy_key or strategy_key or "未知策略"
-            return True, f"当前已有同品种同策略活动挂单（{strategy_hint} | {side} {order_type}），避免重复首仓"
+            return True, f"当前已有同品种同策略活动挂单（{strategy_hint} | {existing_side} {order_type}），避免重复首仓"
 
         return False, ""
 
@@ -2256,7 +2280,12 @@ class PatrolRuntime(
                         matching_trade.get("playbook_id"),
                         patch.get("ema_gap_variant"),
                     )
-                    entry_blocked, entry_block_reason = self._live_entry_conflict(symbol, strategy_key, execution)
+                    entry_blocked, entry_block_reason = self._live_entry_conflict(
+                        symbol,
+                        strategy_key,
+                        execution,
+                        side=str(matching_trade.get("side") or ""),
+                    )
                     if entry_blocked:
                         actions.append(
                             {
@@ -2301,7 +2330,12 @@ class PatrolRuntime(
                     pending_open_keys.add(cycle_key)
             elif planned_trade_action:
                 strategy_key = self._live_strategy_key_from_action(planned_trade_action)
-                entry_blocked, entry_block_reason = self._live_entry_conflict(symbol, strategy_key, execution)
+                entry_blocked, entry_block_reason = self._live_entry_conflict(
+                    symbol,
+                    strategy_key,
+                    execution,
+                    side=str(planned_trade_action.get("side") or ""),
+                )
                 if entry_blocked:
                     actions.append(
                         {

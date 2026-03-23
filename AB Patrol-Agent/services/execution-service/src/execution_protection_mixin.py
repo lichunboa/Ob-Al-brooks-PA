@@ -20,6 +20,61 @@ class ExecutionProtectionMixin:
     """执行服务保护单协调能力混入。"""
 
     @staticmethod
+    def _is_max_stop_order_limit_error(exc: Exception | str) -> bool:
+        """判断是否命中交易所保护单数量上限。"""
+        return "Reach max stop order limit" in str(exc)
+
+    def _place_reduce_only_take_profit_limit(
+        self,
+        symbol: str,
+        *,
+        side: OrderSide,
+        quantity: float,
+        target_price: float,
+        current_price: float | None = None,
+        bot_id: str | None,
+        strategy: str,
+    ) -> tuple[str | None, str]:
+        """当 TP 市价单会立即触发时，回退成 reduce-only LIMIT。"""
+        ccxt_symbol = self._normalize_symbol_for_ccxt(symbol)
+        effective_target = float(target_price or 0.0)
+        tick_size = max(0.0, float(self.get_symbol_info(symbol).get("tick_size") or 0.0))
+        current = max(0.0, float(current_price or 0.0))
+        if current > 0:
+            safety_gap = tick_size if tick_size > 0 else max(current * 0.0005, 1e-8)
+            if side == OrderSide.SELL:
+                effective_target = max(effective_target, current + safety_gap)
+            else:
+                effective_target = min(effective_target, current - safety_gap) if effective_target > 0 else max(current - safety_gap, safety_gap)
+        effective_target = self.snap_price_to_symbol(symbol, effective_target, side=side.value)
+        tp_order = self._call_with_time_sync(
+            "create_take_profit_limit_fallback",
+            self.exchange.create_order,
+            symbol=ccxt_symbol,
+            type="limit",
+            side=side.value.lower(),
+            amount=quantity,
+            price=effective_target,
+            params={"reduceOnly": True},
+        )
+        tp_id = str(tp_order.get("id") or "")
+        effective_bot = bot_id or self.get_position_bot_id(symbol)
+        if effective_bot:
+            self._register_order(tp_id, effective_bot, ccxt_symbol, strategy=strategy)
+        self._register_protection_order(
+            tp_id,
+            effective_bot,
+            symbol,
+            strategy=strategy,
+            order_type="LIMIT",
+            side=side.value,
+            quantity=quantity,
+            stop_price=effective_target,
+        )
+        logger.info("止盈市价单回退为 reduce-only LIMIT: %s tp=%s qty=%s", symbol, effective_target, quantity)
+        return tp_id, "TAKE_PROFIT_LIMIT_FALLBACK"
+
+    @staticmethod
     def _clear_software_stop_record(symbol: str) -> None:
         """清理软件止损回退记录。"""
         try:
@@ -442,9 +497,10 @@ class ExecutionProtectionMixin:
         current_price = float(pos.mark_price or pos.entry_price or 0.0)
         if current_price <= 0 or target_price <= 0:
             return False
+        tolerance = max(current_price * 0.0005, 1e-8)
         if pos.side == PositionSide.LONG:
-            return current_price >= target_price
-        return current_price <= target_price
+            return current_price + tolerance >= target_price
+        return current_price - tolerance <= target_price
 
     async def _rebuild_reduce_only_protection_orders(
         self,
@@ -473,23 +529,43 @@ class ExecutionProtectionMixin:
                 logger.warning("部分平仓后取消旧保护单失败 %s: %s", order.order_id, cancel_exc)
 
         self._drop_registered_protection_orders_by_symbol(pos_symbol)
+        if cancelled:
+            await asyncio.sleep(0.4)
         created: dict[str, str | None] = {"stop_loss_order_id": None, "take_profit_order_id": None}
         effective_bot = bot_id or self.get_position_bot_id(pos_symbol)
 
         if pos.stop_loss is not None:
             sl_side = OrderSide.SELL if pos.side == PositionSide.LONG else OrderSide.BUY
-            sl_order = self._call_with_time_sync(
-                "rebuild_stop_loss_after_partial_close",
-                self.exchange.create_order,
-                symbol=ccxt_symbol,
-                type="stop_market",
-                side=sl_side.value.lower(),
-                amount=remaining_quantity,
-                params={
-                    "stopPrice": pos.stop_loss,
-                    "reduceOnly": True,
-                },
-            )
+            try:
+                sl_order = self._call_with_time_sync(
+                    "rebuild_stop_loss_after_partial_close",
+                    self.exchange.create_order,
+                    symbol=ccxt_symbol,
+                    type="stop_market",
+                    side=sl_side.value.lower(),
+                    amount=remaining_quantity,
+                    params={
+                        "stopPrice": pos.stop_loss,
+                        "reduceOnly": True,
+                    },
+                )
+            except Exception as sl_exc:
+                if not self._is_max_stop_order_limit_error(sl_exc):
+                    raise
+                logger.warning("部分平仓后重建止损命中保护单上限，等待后重试: %s", pos_symbol)
+                await asyncio.sleep(0.8)
+                sl_order = self._call_with_time_sync(
+                    "rebuild_stop_loss_after_partial_close_retry",
+                    self.exchange.create_order,
+                    symbol=ccxt_symbol,
+                    type="stop_market",
+                    side=sl_side.value.lower(),
+                    amount=remaining_quantity,
+                    params={
+                        "stopPrice": pos.stop_loss,
+                        "reduceOnly": True,
+                    },
+                )
             sl_id = str(sl_order.get("id") or "")
             if sl_id:
                 created["stop_loss_order_id"] = sl_id
@@ -510,24 +586,42 @@ class ExecutionProtectionMixin:
             if self._would_take_profit_trigger_immediately(pos, float(pos.take_profit)):
                 return {
                     "success": True,
-                    "recreated": bool(created["stop_loss_order_id"]),
+                    "recreated": bool(created["stop_loss_order_id"] or created["take_profit_order_id"]),
                     "cancelled_order_ids": cancelled,
                     **created,
-                    "take_profit_skipped": "TAKE_PROFIT_WOULD_TRIGGER_IMMEDIATELY",
+                    "take_profit_fallback": "TAKE_PROFIT_WOULD_TRIGGER_IMMEDIATELY",
                 }
             tp_side = OrderSide.SELL if pos.side == PositionSide.LONG else OrderSide.BUY
-            tp_order = self._call_with_time_sync(
-                "rebuild_take_profit_after_partial_close",
-                self.exchange.create_order,
-                symbol=ccxt_symbol,
-                type="take_profit_market",
-                side=tp_side.value.lower(),
-                amount=remaining_quantity,
-                params={
-                    "stopPrice": pos.take_profit,
-                    "reduceOnly": True,
-                },
-            )
+            try:
+                tp_order = self._call_with_time_sync(
+                    "rebuild_take_profit_after_partial_close",
+                    self.exchange.create_order,
+                    symbol=ccxt_symbol,
+                    type="take_profit_market",
+                    side=tp_side.value.lower(),
+                    amount=remaining_quantity,
+                    params={
+                        "stopPrice": pos.take_profit,
+                        "reduceOnly": True,
+                    },
+                )
+            except Exception as tp_exc:
+                if not self._is_max_stop_order_limit_error(tp_exc):
+                    raise
+                logger.warning("部分平仓后重建止盈命中保护单上限，等待后重试: %s", pos_symbol)
+                await asyncio.sleep(0.8)
+                tp_order = self._call_with_time_sync(
+                    "rebuild_take_profit_after_partial_close_retry",
+                    self.exchange.create_order,
+                    symbol=ccxt_symbol,
+                    type="take_profit_market",
+                    side=tp_side.value.lower(),
+                    amount=remaining_quantity,
+                    params={
+                        "stopPrice": pos.take_profit,
+                        "reduceOnly": True,
+                    },
+                )
             tp_id = str(tp_order.get("id") or "")
             if tp_id:
                 created["take_profit_order_id"] = tp_id
