@@ -4,25 +4,15 @@ import path from 'path';
 import { NextResponse } from 'next/server';
 import { AGENT_ROOT } from '../../../../lib/pa-bot/live-monitoring';
 import {
-  buildRuntimeExecutionContext,
-} from '../../../../lib/pa-bot/runtime-execution-context';
-import {
-  buildCapacitySummary as buildRuntimeCapacitySummary,
-} from '../../../../lib/pa-bot/runtime-capacity';
-import { normalizeSymbolKey } from '../../../../lib/pa-bot/runtime-symbols';
-import {
   hasRuntimeData,
   latestCycle,
   latestCycleFileStamp,
   readJson,
-  readJsonlRecent,
   readJsonlTail,
   readText,
-  recentCyclePayloads,
   recentCycles,
   runtimeFiles,
   safeStatMtimeMs,
-  type RuntimeFiles,
 } from '../../../../lib/pa-bot/runtime-files';
 import {
   buildExecutionFallbackCached,
@@ -33,15 +23,27 @@ import {
 import { buildAuditSummary } from '../../../../lib/pa-bot/runtime-route-audit';
 import { normalizePayload } from '../../../../lib/pa-bot/runtime-route-normalizer';
 import {
+  buildCapacitySummaryCached,
+  buildExecutionContextCached,
+} from '../../../../lib/pa-bot/runtime-route-cache';
+import {
+  capacityDetailLevel,
+  normalizeRuntimeView,
+  runtimeViewCacheTtlMs,
+  shouldIncludeAudit,
+  shouldIncludeCapacity,
+  shouldIncludeExecutionHistory,
+  shouldIncludeExposure,
+  shouldIncludeSymbols,
+  shouldIncludeSystemHistory,
+  type CapacityDetailLevel,
+} from '../../../../lib/pa-bot/runtime-route-policy';
+import {
   asArray,
-  asBoolean,
   asNumber,
   asRecord,
   asString,
-  asStringArray,
-  hasContent,
   isRecord,
-  summarizeValue,
   type UnknownRecord,
 } from '../../../../lib/pa-bot/runtime-route-shared';
 
@@ -63,8 +65,6 @@ type RuntimeRoutePayload = {
   runtimes: UnknownRecord[];
 };
 
-type CapacityDetailLevel = 'summary' | 'full';
-
 const RUNTIME_CONFIGS: RuntimeConfig[] = [
   {
     key: 'primary',
@@ -79,9 +79,6 @@ const RUNTIME_CONFIGS: RuntimeConfig[] = [
 
 const runtimeRouteCache = new Map<string, { expiresAt: number; payload: RuntimeRoutePayload }>();
 const runtimeRouteInFlight = new Map<string, Promise<RuntimeRoutePayload>>();
-const executionContextCache = new Map<string, { expiresAt: number; payload: ReturnType<typeof buildRuntimeExecutionContext> }>();
-const capacitySummaryCache = new Map<string, { expiresAt: number; payload: UnknownRecord }>();
-
 function parseElapsedToSeconds(value: string): number | null {
   const text = value.trim();
   if (!text) return null;
@@ -120,59 +117,6 @@ function readProcessUptimeSeconds(pidFilePath: string): number | null {
   }
 }
 
-function normalizeRuntimeView(value: string | null): RuntimeView {
-  if (
-    value === 'overview' ||
-    value === 'accounts' ||
-    value === 'orders' ||
-    value === 'audit' ||
-    value === 'review' ||
-    value === 'system' ||
-    value === 'settings' ||
-    value === 'full'
-  ) {
-    return value;
-  }
-  return 'overview';
-}
-
-function shouldIncludeAudit(view: RuntimeView): boolean {
-  return view === 'audit' || view === 'full';
-}
-
-function shouldIncludeSymbols(view: RuntimeView): boolean {
-  return view === 'overview' || view === 'accounts' || view === 'audit' || view === 'review' || view === 'full';
-}
-
-function shouldIncludeExposure(view: RuntimeView): boolean {
-  return view === 'overview' || view === 'orders' || view === 'review' || view === 'full';
-}
-
-function shouldIncludeExecutionHistory(view: RuntimeView): boolean {
-  return view === 'orders' || view === 'review' || view === 'full';
-}
-
-function shouldIncludeCapacity(view: RuntimeView): boolean {
-  return view === 'overview' || view === 'orders' || view === 'review' || view === 'full';
-}
-
-function capacityDetailLevel(view: RuntimeView): CapacityDetailLevel {
-  return view === 'orders' || view === 'review' || view === 'full' ? 'full' : 'summary';
-}
-
-function shouldIncludeSystemHistory(view: RuntimeView): boolean {
-  return view === 'system' || view === 'full';
-}
-
-function runtimeViewCacheTtlMs(view: RuntimeView): number {
-  if (view === 'orders' || view === 'review') return 3000;
-  if (view === 'overview') return 8000;
-  if (view === 'accounts' || view === 'system') return 8000;
-  if (view === 'settings') return 12000;
-  if (view === 'audit') return 15000;
-  return 5000;
-}
-
 function runtimeViewCacheStamp(view: RuntimeView): string {
   return RUNTIME_CONFIGS.map((runtimeConfig) => {
     const files = runtimeFiles(runtimeConfig.dataRoot);
@@ -188,139 +132,6 @@ function runtimeViewCacheStamp(view: RuntimeView): string {
     ].join('::');
   }).join('||');
 }
-
-function executionContextCacheTtlMs() {
-  return 6000;
-}
-
-function readExecutionHistoryResetMs(): number {
-  try {
-    if (!fs.existsSync(EXECUTION_HISTORY_RESET_FILE)) return 0;
-    const payload = JSON.parse(fs.readFileSync(EXECUTION_HISTORY_RESET_FILE, 'utf-8')) as UnknownRecord;
-    const text = asString(payload.reset_at || payload.resetAt || payload.cutoff_at || payload.cutoffAt);
-    if (!text) return 0;
-    const parsed = Date.parse(text);
-    return Number.isFinite(parsed) ? parsed : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function filterExecutionRowsAfterReset(rows: UnknownRecord[]): UnknownRecord[] {
-  const cutoffMs = readExecutionHistoryResetMs();
-  if (!cutoffMs) return rows;
-  return rows.filter((row) => {
-    const loggedAt = asString(row.logged_at) || asString(row.timestamp);
-    if (!loggedAt) return false;
-    const parsed = Date.parse(loggedAt);
-    if (!Number.isFinite(parsed)) return false;
-    return parsed >= cutoffMs;
-  });
-}
-
-function capacitySummaryCacheTtlMs() {
-  return 6000;
-}
-
-function positionsFingerprint(positions: UnknownRecord[]): string {
-  return positions
-    .map((item) => {
-      const record = asRecord(item);
-      return [
-        normalizeSymbolKey(asString(record.symbol)),
-        asString(record.exchange).toUpperCase(),
-        asString(record.side).toUpperCase(),
-        asNumber(record.quantity) ?? asNumber(record.contracts) ?? asNumber(record.size) ?? 0,
-      ].join(':');
-    })
-    .sort()
-    .join('|');
-}
-
-function ordersFingerprint(orders: UnknownRecord[]): string {
-  return orders
-    .map((item) => {
-      const record = asRecord(item);
-      return [
-        normalizeSymbolKey(asString(record.symbol)),
-        asString(record.exchange).toUpperCase(),
-        asString(record.orderId || record.order_id || record.id),
-        asString(record.orderType || record.order_type).toUpperCase(),
-        asNumber(record.quantity) ?? 0,
-        asNumber(record.stopPrice || record.stop_price) ?? 0,
-      ].join(':');
-    })
-    .sort()
-    .join('|');
-}
-
-function trackedSymbolsFingerprint(symbols: string[]): string {
-  return symbols.map((item) => asString(item).trim().toUpperCase()).filter(Boolean).sort().join('|');
-}
-
-function buildExecutionContextCached(
-  files: RuntimeFiles,
-  openPositions: UnknownRecord[],
-  openOrders: UnknownRecord[],
-): ReturnType<typeof buildRuntimeExecutionContext> {
-  const cacheKey = [
-    files.executionLog,
-    safeStatMtimeMs(files.executionLog),
-    latestCycleFileStamp(files),
-    positionsFingerprint(openPositions),
-    ordersFingerprint(openOrders),
-    safeStatMtimeMs(EXECUTION_HISTORY_RESET_FILE),
-  ].join('||');
-  const cached = executionContextCache.get(cacheKey);
-  const now = Date.now();
-  if (cached && cached.expiresAt > now) {
-    return cached.payload;
-  }
-
-  const payload = buildRuntimeExecutionContext({
-    cycles: recentCyclePayloads(files, 160),
-    executionRows: filterExecutionRowsAfterReset(readJsonlRecent(files.executionLog, 5000)),
-    openPositions,
-    openOrders,
-  });
-  executionContextCache.set(cacheKey, {
-    expiresAt: Date.now() + executionContextCacheTtlMs(),
-    payload,
-  });
-  return payload;
-}
-
-function buildCapacitySummaryCached(
-  files: RuntimeFiles,
-  execution: UnknownRecord,
-  positions: UnknownRecord[],
-  orders: UnknownRecord[],
-  trackedSymbols: string[],
-  detailLevel: CapacityDetailLevel,
-) {
-  const cacheKey = [
-    files.executionLog,
-    safeStatMtimeMs(files.executionLog),
-    positionsFingerprint(positions),
-    ordersFingerprint(orders),
-    trackedSymbolsFingerprint(trackedSymbols),
-    asString(asRecord(asRecord(execution.bot_summary).config).max_positions),
-    detailLevel,
-  ].join('||');
-  const cached = capacitySummaryCache.get(cacheKey);
-  const now = Date.now();
-  if (cached && cached.expiresAt > now) {
-    return cached.payload;
-  }
-
-  const payload = buildRuntimeCapacitySummary(files, execution, positions, orders, trackedSymbols, detailLevel);
-  capacitySummaryCache.set(cacheKey, {
-    expiresAt: Date.now() + capacitySummaryCacheTtlMs(),
-    payload,
-  });
-  return payload;
-}
-
 
 async function buildFallbackPayload(
   runtimeConfig: RuntimeConfig,
@@ -415,6 +226,11 @@ async function buildFallbackPayload(
 }
 
 async function buildRuntimeRoutePayload(view: RuntimeView): Promise<RuntimeRoutePayload> {
+  const buildExecutionContext = (
+    files: ReturnType<typeof runtimeFiles>,
+    openPositions: UnknownRecord[],
+    openOrders: UnknownRecord[],
+  ) => buildExecutionContextCached(files, openPositions, openOrders, EXECUTION_HISTORY_RESET_FILE);
   const runtimeResults = await Promise.all(
     RUNTIME_CONFIGS.map(async (runtimeConfig) => {
       const files = runtimeFiles(runtimeConfig.dataRoot);
@@ -437,7 +253,7 @@ async function buildRuntimeRoutePayload(view: RuntimeView): Promise<RuntimeRoute
         if (isRecord(remote) && isRecord(remote.snapshot)) {
           return normalizePayload(remote, 'query-service', queryUrl, runtimeConfig, view, {
             readProcessUptimeSeconds,
-            buildExecutionContextCached,
+            buildExecutionContextCached: buildExecutionContext,
             buildCapacitySummaryCached,
             shouldIncludeAudit,
             shouldIncludeSymbols,
@@ -454,7 +270,7 @@ async function buildRuntimeRoutePayload(view: RuntimeView): Promise<RuntimeRoute
       const fallback = await buildFallbackPayload(runtimeConfig, configuredQueryBase, view);
       return normalizePayload(fallback, 'fallback', queryUrl, runtimeConfig, view, {
         readProcessUptimeSeconds,
-        buildExecutionContextCached,
+        buildExecutionContextCached: buildExecutionContext,
         buildCapacitySummaryCached,
         shouldIncludeAudit,
         shouldIncludeSymbols,
@@ -491,7 +307,7 @@ export async function GET(request: Request) {
   if (!runtimeRouteInFlight.has(cacheKey)) {
     runtimeRouteInFlight.set(cacheKey, buildRuntimeRoutePayload(view)
       .then((payload) => {
-        runtimeRouteCache.set(cacheKey, {
+      runtimeRouteCache.set(cacheKey, {
           expiresAt: Date.now() + runtimeViewCacheTtlMs(view),
           payload,
         });
