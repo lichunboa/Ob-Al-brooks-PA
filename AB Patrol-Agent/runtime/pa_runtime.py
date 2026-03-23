@@ -2399,8 +2399,21 @@ class PatrolRuntime(
         phase_plan = self.select_phase_plan(runtime, market_cache, execution, trigger)
         mark_stage("sync_followup_phase_plan_ms", stage_started)
 
+        # LLM 不能成为实盘链硬依赖；未显式开启时直接退回规则引擎。
+        llm_runtime_enabled = not (
+            str(self.config.decision_provider).lower() in {"openclaw", "openclaw_oauth", "llm_gateway", "llm"}
+            and os.getenv(
+                "AB_PATROL_ENABLE_LLM_RUNTIME",
+                os.getenv("AB_PATROL_ENABLE_OPENCLAW_RUNTIME", "0"),
+            )
+            != "1"
+        )
+
         stage_started = time.perf_counter()
-        prepared = self.prepare_prompt_context(runtime, market_cache, execution, trigger, phase_plan)
+        if llm_runtime_enabled:
+            prepared = self.prepare_prompt_context(runtime, market_cache, execution, trigger, phase_plan)
+        else:
+            prepared = self.prepare_rule_engine_context(runtime, market_cache, execution, trigger, phase_plan)
         mark_stage("prepare_prompt_context_ms", stage_started)
         prepared_profile = prepared.get("profile") if isinstance(prepared.get("profile"), dict) else {}
         for name, value in prepared_profile.items():
@@ -2424,7 +2437,7 @@ class PatrolRuntime(
         fast_lane_candidates = []
         from llm_trigger_integration import should_use_fast_lane
 
-        if should_use_fast_lane() and not execution.get("positions") and phase_plan["phase"] in {"SCAN", "ENTRY_READY"}:
+        if llm_runtime_enabled and should_use_fast_lane() and not execution.get("positions") and phase_plan["phase"] in {"SCAN", "ENTRY_READY"}:
             fast_lane_candidates = self.scalp_fast_candidates(
                 phase_plan,
                 symbol_cache,
@@ -2436,15 +2449,6 @@ class PatrolRuntime(
         ref_names = []
         knowledge_meta = {}
         stage_started = time.perf_counter()
-        # LLM 不能成为实盘链硬依赖；未显式开启时直接退回规则引擎。
-        llm_runtime_enabled = not (
-            str(self.config.decision_provider).lower() in {"openclaw", "openclaw_oauth", "llm_gateway", "llm"}
-            and os.getenv(
-                "AB_PATROL_ENABLE_LLM_RUNTIME",
-                os.getenv("AB_PATROL_ENABLE_OPENCLAW_RUNTIME", "0"),
-            )
-            != "1"
-        )
 
         if fast_lane_candidates and llm_runtime_enabled:
             scalp_symbol = fast_lane_candidates[0]
