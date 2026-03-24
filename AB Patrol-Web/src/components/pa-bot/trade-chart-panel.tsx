@@ -276,7 +276,7 @@ export function TradeChartPanel({
   onRefresh,
   refreshDisabled,
   refreshLabel = '生成图表',
-  chartHeight = 700,
+  chartHeight = 820,
 }: TradeChartPanelProps) {
   const [renderError, setRenderError] = useState('');
   const metaEntries = useMemo(
