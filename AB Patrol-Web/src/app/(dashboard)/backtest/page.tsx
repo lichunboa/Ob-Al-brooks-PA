@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { config } from '@/lib/config';
 import { TrainingTab } from '@/components/backtest/TrainingTab';
+import { TradeChartPanel, type TradeChartPayload } from '@/components/pa-bot/trade-chart-panel';
 
 /* ============================================================
  * 类型定义
@@ -1439,6 +1440,64 @@ function MatrixTab() {
 function ResultPanel({ result, config: cfg }: { result: NonNullable<JobDetail['result']>; config: BacktestConfig }) {
   const s = result.summary;
   const sig = result.signals;
+  const chartTimeframe = cfg.timeframes?.[0] || '5m';
+  const [selectedTradeIndex, setSelectedTradeIndex] = useState(0);
+  const [chart, setChart] = useState<TradeChartPayload | null>(null);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [chartError, setChartError] = useState('');
+
+  useEffect(() => {
+    if (!result.trades?.length) {
+      setSelectedTradeIndex(0);
+      setChart(null);
+      setChartError('');
+      return;
+    }
+    if (selectedTradeIndex >= result.trades.length) {
+      setSelectedTradeIndex(0);
+    }
+  }, [result.trades, selectedTradeIndex]);
+
+  async function generateBacktestChart(tradeIndex: number) {
+    if (!result.trades?.length) {
+      setChart(null);
+      setChartError('');
+      return;
+    }
+    setChartLoading(true);
+    setChartError('');
+    try {
+      const response = await fetch('/api/backtest/chart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          symbol: result.symbol,
+          timeframe: chartTimeframe,
+          trades: result.trades,
+          tradeIndex,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || `HTTP ${response.status}`);
+      }
+      setChart(payload.chart as TradeChartPayload);
+    } catch (error) {
+      setChart(null);
+      setChartError(error instanceof Error ? error.message : '回测图表生成失败');
+    } finally {
+      setChartLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!result.trades?.length) {
+      return;
+    }
+    void generateBacktestChart(selectedTradeIndex);
+  }, [selectedTradeIndex, result.symbol, chartTimeframe, result.trades]);
+
+  const selectedTrade = result.trades?.[selectedTradeIndex] || null;
 
   return (
     <div className="space-y-4">
@@ -1507,43 +1566,76 @@ function ResultPanel({ result, config: cfg }: { result: NonNullable<JobDetail['r
 
       {/* 交易列表 */}
       {result.trades && result.trades.length > 0 && (
-        <div className="bg-slate-900 rounded-lg border border-slate-800 p-4">
-          <h3 className="text-sm font-medium text-white mb-3">交易记录 ({result.trades.length}笔)</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-slate-500 border-b border-slate-800">
-                  <th className="text-left py-2 pr-2">时间</th>
-                  <th className="text-left py-2 pr-2">策略</th>
-                  <th className="text-left py-2 pr-2">方向</th>
-                  <th className="text-right py-2 pr-2">入场</th>
-                  <th className="text-right py-2 pr-2">出场</th>
-                  <th className="text-right py-2 pr-2">PnL</th>
-                  <th className="text-right py-2 pr-2">评分</th>
-                  <th className="text-left py-2">原因</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.trades.map((t, i) => (
-                  <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/30">
-                    <td className="py-1.5 pr-2 text-slate-400">{t.entry_time?.slice(0, 16)}</td>
-                    <td className="py-1.5 pr-2 text-white">{t.strategy}</td>
-                    <td className="py-1.5 pr-2">
-                      <span className={t.direction === 'BUY' ? 'text-green-400' : 'text-red-400'}>
-                        {t.direction === 'BUY' ? '多' : '空'}
-                      </span>
-                    </td>
-                    <td className="py-1.5 pr-2 text-right text-slate-300">{t.entry_price.toFixed(2)}</td>
-                    <td className="py-1.5 pr-2 text-right text-slate-300">{t.exit_price.toFixed(2)}</td>
-                    <td className={`py-1.5 pr-2 text-right font-medium ${t.pnl_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {t.pnl_pct >= 0 ? '+' : ''}{t.pnl_pct.toFixed(2)}%
-                    </td>
-                    <td className="py-1.5 pr-2 text-right text-slate-400">{t.score}</td>
-                    <td className="py-1.5 text-slate-500">{t.exit_reason}</td>
+        <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_0.95fr] gap-4">
+          <TradeChartPanel
+            eyebrow="回测逐笔图"
+            title={
+              selectedTrade
+                ? `${result.symbol} · ${selectedTrade.strategy} · ${selectedTrade.direction === 'BUY' ? '多' : '空'}`
+                : `${result.symbol} · 回测图表`
+            }
+            badgeText={chartTimeframe}
+            helperText="回测完成后自动聚焦单笔交易，保留入场、止损、止盈、平仓与退出原因。"
+            chart={chart}
+            loading={chartLoading}
+            error={chartError}
+            emptyText="运行回测后，这里会生成逐笔交互式 K 线图。"
+            onRefresh={() => void generateBacktestChart(selectedTradeIndex)}
+            refreshDisabled={chartLoading}
+            refreshLabel="重新生成图表"
+            chartHeight={1040}
+          />
+          <div className="bg-slate-900 rounded-lg border border-slate-800 p-4">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 className="text-sm font-medium text-white">交易记录 ({result.trades.length}笔)</h3>
+              {selectedTrade ? (
+                <div className="text-[11px] text-slate-400">
+                  当前聚焦: {selectedTrade.entry_time?.slice(5, 16)} · {selectedTrade.exit_reason}
+                </div>
+              ) : null}
+            </div>
+            <div className="overflow-x-auto max-h-[1040px] overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-slate-900 z-10">
+                  <tr className="text-slate-500 border-b border-slate-800">
+                    <th className="text-left py-2 pr-2">时间</th>
+                    <th className="text-left py-2 pr-2">策略</th>
+                    <th className="text-left py-2 pr-2">方向</th>
+                    <th className="text-right py-2 pr-2">入场</th>
+                    <th className="text-right py-2 pr-2">出场</th>
+                    <th className="text-right py-2 pr-2">PnL</th>
+                    <th className="text-right py-2 pr-2">评分</th>
+                    <th className="text-left py-2">原因</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {result.trades.map((t, i) => (
+                    <tr
+                      key={`${t.entry_time}-${t.exit_time}-${i}`}
+                      className={`border-b border-slate-800/50 hover:bg-slate-800/30 cursor-pointer ${
+                        i === selectedTradeIndex ? 'bg-purple-900/20' : ''
+                      }`}
+                      onClick={() => setSelectedTradeIndex(i)}
+                    >
+                      <td className="py-1.5 pr-2 text-slate-400">{t.entry_time?.slice(0, 16)}</td>
+                      <td className="py-1.5 pr-2 text-white">{t.strategy}</td>
+                      <td className="py-1.5 pr-2">
+                        <span className={t.direction === 'BUY' ? 'text-green-400' : 'text-red-400'}>
+                          {t.direction === 'BUY' ? '多' : '空'}
+                        </span>
+                      </td>
+                      <td className="py-1.5 pr-2 text-right text-slate-300">{t.entry_price.toFixed(2)}</td>
+                      <td className="py-1.5 pr-2 text-right text-slate-300">{t.exit_price.toFixed(2)}</td>
+                      <td className={`py-1.5 pr-2 text-right font-medium ${t.pnl_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {t.pnl_pct >= 0 ? '+' : ''}{t.pnl_pct.toFixed(2)}%
+                      </td>
+                      <td className="py-1.5 pr-2 text-right text-slate-400">{t.score}</td>
+                      <td className="py-1.5 text-slate-500">{t.exit_reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
