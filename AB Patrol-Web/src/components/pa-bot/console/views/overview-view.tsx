@@ -109,15 +109,20 @@ export function OverviewView({
     bestCandidateCard?.primary_chart_api_path
       ? bestCandidateCard
       : focusCards.find((item) => item.primary_chart_api_path) || bestCandidateCard;
-  const previewEvents = useMemo(
-    () =>
-      previewCard
-        ? [...runtimeData.recentExecutions, ...runtimeData.historicalOrders, ...runtimeData.managementActions].filter(
-            (item) => item.symbol === previewCard.symbol,
-          )
-        : [],
-    [previewCard, runtimeData.historicalOrders, runtimeData.managementActions, runtimeData.recentExecutions],
-  );
+  const previewEvents = useMemo(() => {
+    if (!previewCard) return [];
+    const symbolEvents = [...runtimeData.recentExecutions, ...runtimeData.historicalOrders, ...runtimeData.managementActions]
+      .filter((item) => item.symbol === previewCard.symbol)
+      .sort((left, right) => String(left.loggedAt || '').localeCompare(String(right.loggedAt || '')));
+    const preferred = [...symbolEvents]
+      .reverse()
+      .find((item) => {
+        const status = String(item.status || '').toUpperCase();
+        const orderClass = String(item.orderClass || '').toUpperCase();
+        return !['LOG_ONLY', 'LIVE_ENTRY_CONFLICT', 'DUPLICATE_SKIPPED'].includes(status) && orderClass !== 'MANAGEMENT';
+      });
+    return preferred ? [preferred] : symbolEvents.slice(-1);
+  }, [previewCard, runtimeData.historicalOrders, runtimeData.managementActions, runtimeData.recentExecutions]);
   const previewTimeframe = useMemo(
     () => inferPreviewTimeframe(previewEvents.flatMap((item) => item.timeframeSignals || [])),
     [previewEvents],
@@ -223,7 +228,7 @@ export function OverviewView({
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_300px]">
+      <div className="grid gap-6 xl:grid-cols-1 2xl:grid-cols-[minmax(0,1.45fr)_minmax(520px,1fr)]">
         <div className="space-y-6">
           <Section title="本轮判断" icon={ShieldCheck} subtitle="当前结论。">
             <div className="grid gap-4 xl:grid-cols-[1.12fr_0.88fr]">
@@ -299,15 +304,16 @@ export function OverviewView({
                     eyebrow="实时图表"
                     title={`${previewCard.symbol} · ${previewTimeframe}`}
                     badgeText="Live"
-                    helperText={previewCard.chart_note || '当前焦点品种的最新执行与管理事件会直接叠加到 K 线上。'}
+                    helperText={previewCard.chart_note || '当前仅聚焦最新一笔主事件，避免多笔订单同时挤在一张图里。'}
                     chart={livePreviewChart}
                     loading={livePreviewLoading}
-                    error={livePreviewError}
-                    emptyText="当前焦点品种还没有可用于绘图的执行事件。"
-                    refreshLabel="刷新图表"
-                    onRefresh={() => {
-                      setPreviewRefreshNonce((current) => current + 1);
-                    }}
+                  error={livePreviewError}
+                  emptyText="当前焦点品种还没有可用于绘图的执行事件。"
+                  refreshLabel="刷新图表"
+                  chartHeight={1120}
+                  onRefresh={() => {
+                    setPreviewRefreshNonce((current) => current + 1);
+                  }}
                   />
                   <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
                     <div className="min-w-0 flex-1 truncate">
