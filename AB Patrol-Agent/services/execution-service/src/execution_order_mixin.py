@@ -84,11 +84,31 @@ class ExecutionOrderMixin:
         reference_price = float(request.price or 0.0)
         if reference_price <= 0 and self.exchange_name == "ctrader":
             reference_price = float(self.exchange.get_market_price(symbol) or 0.0)
+        if reference_price <= 0 and hasattr(self.exchange, "fetch_ticker"):
+            try:
+                ticker = self.exchange.fetch_ticker(symbol)
+                reference_price = float((ticker or {}).get("last") or 0.0)
+            except Exception:
+                reference_price = 0.0
         symbol_constraints = self.get_symbol_constraints(symbol)
         min_notional = float(symbol_constraints.get("min_notional") or 0.0)
         if min_notional > 0 and reference_price > 0:
             snapped_notional = self.quantity_to_account_notional(symbol, snapped_quantity, reference_price)
             if snapped_notional + 1e-9 < min_notional:
+                if self._reload_symbol_market_constraints(symbol):
+                    snapped_quantity = self.snap_quantity_to_symbol(symbol, float(request.quantity or 0.0))
+                    symbol_constraints = self.get_symbol_constraints(symbol)
+                    min_notional = float(symbol_constraints.get("min_notional") or 0.0)
+                    snapped_notional = self.quantity_to_account_notional(symbol, snapped_quantity, reference_price)
+                if snapped_quantity <= 0:
+                    return OrderResponse(
+                        success=False,
+                        symbol=symbol,
+                        side=request.side.value,
+                        quantity=0.0,
+                        status="SIZE_FAILED",
+                        message="刷新市场约束后仍达不到最小下单单位",
+                    )
                 return OrderResponse(
                     success=False,
                     symbol=symbol,

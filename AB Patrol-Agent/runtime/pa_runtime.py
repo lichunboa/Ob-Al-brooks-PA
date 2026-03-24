@@ -2064,11 +2064,38 @@ class PatrolRuntime(
                 or safe_float(item.get("size"))
                 or 0.0
             )
+            if quantity <= 0:
+                continue
             strategy_hint = existing_strategy_key or strategy_key or "未知策略"
             return True, f"当前已有同品种同策略持仓（{strategy_hint} | {existing_side} {quantity:g}），先走持仓管理链"
 
         for item in self._tracked_bot_orders(execution):
             if self._normalize_live_symbol(item.get("symbol")) != normalized_symbol:
+                continue
+            order_class = str(item.get("order_class") or item.get("orderClass") or "").strip().upper()
+            protection_kind = str(item.get("protection_kind") or item.get("protectionKind") or "").strip().upper()
+            entry_intent = str(
+                item.get("entry_intent")
+                or item.get("intent")
+                or item.get("order_intent")
+                or ""
+            ).strip().upper()
+            reduce_only = bool(item.get("reduce_only") or item.get("reduceOnly"))
+            if reduce_only:
+                continue
+            if order_class in {"PROTECTION", "MANAGEMENT"}:
+                continue
+            if protection_kind in {"STOP_LOSS", "TAKE_PROFIT"}:
+                continue
+            if entry_intent in {
+                "MANAGEMENT",
+                "PROTECTION",
+                "STOP_LOSS",
+                "TAKE_PROFIT",
+                "CLOSE",
+                "REDUCE",
+                "PARTIAL_CLOSE",
+            }:
                 continue
             existing_strategy_key = self._live_strategy_key_from_execution_item(item)
             if strategy_key:
