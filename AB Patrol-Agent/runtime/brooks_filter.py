@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from utils import (
@@ -19,9 +20,15 @@ from utils import (
     infer_order_type_from_refs,
     infer_trade_style_from_refs,
     normalize_refs,
+    normalize_trade_side,
     order_type_cn,
     signal_event_ranks,
     structured_trade_semantics,
+)
+
+HL_SIGNAL_PRICE_RE = re.compile(
+    r"(?<![A-Z0-9])(H1|H2|L1|L2|高1|高2|低1|低2)\s*@\s*(-?\d+(?:\.\d+)?)",
+    re.IGNORECASE,
 )
 
 
@@ -44,6 +51,169 @@ class BrooksFilterMixin:
             if isinstance(frame, dict) and frame.get("state"):
                 return str(frame.get("state"))
         return str(cached.get("market_state") or "")
+
+    def _extract_signal_entries(self, *values: Any) -> list[tuple[str, float]]:
+        """从 live patch 中抽取 H1/H2/L1/L2 对应价位。"""
+        alias_map = {"高1": "H1", "高2": "H2", "低1": "L1", "低2": "L2"}
+        entries: list[tuple[str, float]] = []
+        for value in values:
+            if isinstance(value, dict):
+                entries.extend(self._extract_signal_entries(*value.values()))
+                continue
+            if isinstance(value, list):
+                entries.extend(self._extract_signal_entries(*value))
+                continue
+            text = str(value or "")
+            if not text:
+                continue
+            for raw_token, raw_price in HL_SIGNAL_PRICE_RE.findall(text):
+                token = alias_map.get(str(raw_token).upper(), str(raw_token).upper())
+                try:
+                    price = float(raw_price)
+                except (TypeError, ValueError):
+                    continue
+                if price > 0:
+                    entries.append((token, price))
+        return entries
+
+    def _infer_live_side(self, base: dict[str, Any], events: list[str]) -> str:
+        """从信号文本和事件中推断 live 方向。"""
+        planned_trade = base.get("planned_trade") if isinstance(base.get("planned_trade"), dict) else {}
+        entry_idea = base.get("entry_idea") if isinstance(base.get("entry_idea"), dict) else {}
+        pre_signal = base.get("pre_signal") if isinstance(base.get("pre_signal"), dict) else {}
+        side = normalize_trade_side(
+            planned_trade.get("side")
+            or entry_idea.get("side")
+            or pre_signal.get("side")
+            or pre_signal.get("direction")
+        )
+        if side in {"BUY", "SELL"}:
+            return side
+        entries = self._extract_signal_entries(
+            base.get("signal"),
+            base.get("stage"),
+            base.get("thesis"),
+            base.get("timeframes"),
+        )
+        for token, _ in entries:
+            if token in {"H1", "H2"}:
+                return "BUY"
+            if token in {"L1", "L2"}:
+                return "SELL"
+        for event in events:
+            text = str(event or "").strip().upper()
+            if text.startswith(("HL_SIGNAL:H", "SIGNAL_TRIGGER:H")):
+                return "BUY"
+            if text.startswith(("HL_SIGNAL:L", "SIGNAL_TRIGGER:L")):
+                return "SELL"
+        return ""
+
+    def _limit_plan_requires_explicit_trigger(
+        self,
+        filter_meta: dict[str, Any],
+        planned_trade: dict[str, Any],
+    ) -> bool:
+        """TR/逆势限价环境必须使用显式触发价或区域，不能回退到形态价位。"""
+        category = str(filter_meta.get("category") or "").strip()
+        preferred_order_type = str(
+            filter_meta.get("preferred_order_type")
+            or planned_trade.get("order_type")
+            or ""
+        ).strip().upper()
+        execution_mode = str(planned_trade.get("execution_mode") or "").strip().upper()
+        candidate_stage = str(planned_trade.get("candidate_stage") or "").strip().upper()
+        return (
+            category in {"tr_edge_limit_only", "broad_channel_countertrend_limit", "tr_edge_limit_wait_second_signal"}
+            or preferred_order_type == "LIMIT"
+            or execution_mode == "LIMIT_PLAN"
+            or candidate_stage == "EXECUTABLE_LIMIT"
+        )
+
+    def _seed_live_trade_bridge(self, base: dict[str, Any], filter_meta: dict[str, Any], events: list[str]) -> dict[str, Any]:
+        """为实盘桥接层补齐最小候选计划，避免信号只有 token 没有计划对象。"""
+        if str(base.get("last_pass_reason") or "").strip().upper() == "PRE_SIGNAL_EXPIRED":
+            return base
+        if bool(base.get("stale_model_timeout")):
+            return base
+        should_seed = bool(filter_meta.get("allow_executable")) or str(filter_meta.get("max_status") or "").strip().lower() in {
+            "pre_signal",
+            "entry_ready",
+            "entry_ready_blocked",
+        }
+        if not should_seed:
+            return base
+
+        planned_trade = base.get("planned_trade") if isinstance(base.get("planned_trade"), dict) else {}
+        pre_signal = base.get("pre_signal") if isinstance(base.get("pre_signal"), dict) else {}
+        entry_idea = base.get("entry_idea") if isinstance(base.get("entry_idea"), dict) else {}
+        trigger_price = pre_signal.get("trigger_price") if isinstance(pre_signal.get("trigger_price"), dict) else {}
+        signal_entries = self._extract_signal_entries(
+            base.get("signal"),
+            base.get("stage"),
+            base.get("thesis"),
+            base.get("timeframes"),
+        )
+        limit_plan_requires_explicit_trigger = self._limit_plan_requires_explicit_trigger(filter_meta, planned_trade)
+        side = self._infer_live_side(base, events)
+        entry_price = (
+            first_float(planned_trade.get("entry_price"))
+            or first_float(trigger_price.get("entry"))
+            or first_float(trigger_price.get("breakout"))
+            or first_float(trigger_price.get("breakdown"))
+        )
+        if entry_price is None and not limit_plan_requires_explicit_trigger:
+            for _, price in signal_entries:
+                if price > 0:
+                    entry_price = price
+                    break
+
+        if side in {"BUY", "SELL"} and str(entry_idea.get("side") or "").strip().upper() in {"", "WAIT", "WATCH"}:
+            entry_idea["side"] = side
+        if filter_meta.get("preferred_style") and not entry_idea.get("style"):
+            entry_idea["style"] = filter_meta.get("preferred_style")
+
+        if side in {"BUY", "SELL"} and not pre_signal:
+            trigger_payload = {
+                "stop_loss": first_float(planned_trade.get("stop_loss")),
+                "take_profit": first_float(planned_trade.get("take_profit")),
+            }
+            if entry_price is not None:
+                trigger_payload["entry"] = entry_price
+            pre_signal = {
+                "active": True,
+                "side": side,
+                "direction": "long" if side == "BUY" else "short",
+                "condition": str(filter_meta.get("summary") or filter_meta.get("label") or "").strip(),
+                "invalid_if": str(planned_trade.get("invalid_if") or "").strip(),
+                "trigger_price": trigger_payload,
+            }
+            base["pre_signal"] = pre_signal
+            trigger_price = pre_signal.get("trigger_price") if isinstance(pre_signal.get("trigger_price"), dict) else {}
+
+        if not planned_trade:
+            planned_trade = {}
+        if side in {"BUY", "SELL"} and not planned_trade.get("side"):
+            planned_trade["side"] = side
+        if entry_price is not None and planned_trade.get("entry_price") in (None, "", [], {}):
+            planned_trade["entry_price"] = entry_price
+        if filter_meta.get("preferred_style") and not planned_trade.get("style"):
+            planned_trade["style"] = filter_meta.get("preferred_style")
+        if filter_meta.get("preferred_order_type") and not planned_trade.get("order_type"):
+            planned_trade["order_type"] = filter_meta.get("preferred_order_type")
+        if filter_meta.get("label") and not planned_trade.get("brooks_label"):
+            planned_trade["brooks_label"] = filter_meta.get("label")
+        if filter_meta.get("upgrade_condition") and not planned_trade.get("upgrade_condition"):
+            planned_trade["upgrade_condition"] = filter_meta.get("upgrade_condition")
+        if filter_meta.get("brooks_rule") and not planned_trade.get("brooks_rule"):
+            planned_trade["brooks_rule"] = filter_meta.get("brooks_rule")
+        if filter_meta.get("source_refs") and not planned_trade.get("source_refs"):
+            planned_trade["source_refs"] = normalize_refs(filter_meta.get("source_refs"))
+        if trigger_price and not planned_trade.get("entry_zone") and trigger_price.get("entry_zone") not in (None, "", [], {}):
+            planned_trade["entry_zone"] = trigger_price.get("entry_zone")
+        if planned_trade:
+            base["planned_trade"] = planned_trade
+        base["entry_idea"] = entry_idea
+        return base
 
     def classify_brooks_filter(self, base: dict[str, Any], events: list[str]) -> dict[str, Any]:
         state_upper = str(base.get("market_state") or "").strip().upper()
@@ -213,12 +383,14 @@ class BrooksFilterMixin:
             broad_channel_reversal_ready = has_second_signal or acceptance_ready or (
                 has_signal_trigger and (failed_breakout_context or has_tr_edge)
             )
+            # live 桥现在可以在执行前动态补齐精确 limit entry，不应再要求上游先写死 entry/stop/tp。
+            broad_channel_limit_executable = has_tr_edge and broad_channel_reversal_ready
             return {
                 "category": "broad_channel_countertrend_limit",
                 "label": "宽通道逆势先限价",
                 "summary": "宽通道更接近交易区间，逆势反转优先在边缘做 limit scalp，不直接追价做 swing。",
-                "max_status": "entry_ready" if (has_plan and has_tr_edge and broad_channel_reversal_ready) else "pre_signal",
-                "allow_executable": bool(has_plan and has_tr_edge and broad_channel_reversal_ready),
+                "max_status": "entry_ready" if broad_channel_limit_executable else "pre_signal",
+                "allow_executable": bool(broad_channel_limit_executable),
                 "stage_family": "limit_edge",
                 "preferred_style": "反转试探" if not broad_channel_reversal_ready else inferred_style or "Scalp",
                 "preferred_order_type": "LIMIT",
@@ -255,6 +427,11 @@ class BrooksFilterMixin:
             }
 
         if limit_order_environment and has_tr_edge:
+            # 和文案保持一致：TR 边缘第一次信号只要已经有触发与接受，就允许 live 先升级，
+            # 精确 entry 由执行桥按实时价格动态补齐。
+            tr_edge_limit_ready = has_second_signal or (
+                has_signal_trigger and acceptance_ready
+            )
             if not has_second_signal and not has_signal_trigger:
                 return {
                     "category": "tr_edge_limit_wait_second_signal",
@@ -279,16 +456,16 @@ class BrooksFilterMixin:
                 "category": "tr_edge_limit_only",
                 "label": "TR 边缘限价单环境",
                 "summary": "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。",
-                "max_status": "entry_ready" if ((has_second_signal or has_signal_trigger) and has_plan) else "pre_signal",
-                "allow_executable": bool((has_second_signal or (has_signal_trigger and signal_rank == 0)) and has_plan),
+                "max_status": "entry_ready" if tr_edge_limit_ready else "pre_signal",
+                "allow_executable": bool(tr_edge_limit_ready),
                 "stage_family": "limit_edge",
                 "preferred_style": inferred_style or "Scalp",
                 "preferred_order_type": "LIMIT",
-                "upgrade_condition": "边缘 + 二次信号/清晰 signal bar 同时出现时，才升级成可执行限价单。",
+                "upgrade_condition": "边缘 + 二次信号优先；如果第一次信号已经出现明确接受且触发价有效，也允许升级成可执行限价单。",
                 "brooks_rule": "TR 做法是 Buy Low Sell High，优先在上/下三分之一边缘用限价单处理。",
                 "source_refs": ["S4-strategy-match.md", "S6-tr.md", "S5-evaluation.md"],
                 "signal_rank": signal_rank,
-                "requires_second_entry": True,
+                "requires_second_entry": bool(has_first_signal and not tr_edge_limit_ready),
                 "has_signal_trigger": has_signal_trigger,
                 "acceptance_ready": acceptance_ready,
             }
@@ -317,7 +494,7 @@ class BrooksFilterMixin:
                 "category": "trend_continuation_candidate",
                 "label": "顺势候选",
                 "summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-                "max_status": "entry_ready" if has_plan else str(base.get("status") or "pre_signal"),
+                "max_status": "entry_ready" if has_plan else "pre_signal",
                 "allow_executable": True,
                 "stage_family": "normal_candidate",
                 "preferred_style": inferred_style,
@@ -352,8 +529,13 @@ class BrooksFilterMixin:
     def apply_brooks_filter_to_patch(self, base: dict[str, Any], events: list[str]) -> dict[str, Any]:
         filter_meta = self.classify_brooks_filter(base, events)
         base["brooks_filter"] = filter_meta
+        base = self._seed_live_trade_bridge(base, filter_meta, events)
         current_status = str(base.get("status") or "watching")
-        base["status"] = cap_status(current_status, str(filter_meta.get("max_status") or current_status))
+        target_status = str(filter_meta.get("max_status") or current_status).strip().lower() or current_status
+        if current_status in {"watching", "cooldown", "pre_signal"} and target_status in {"pre_signal", "entry_ready", "entry_ready_blocked"}:
+            base["status"] = target_status
+        else:
+            base["status"] = cap_status(current_status, target_status)
 
         entry_idea = base.get("entry_idea") if isinstance(base.get("entry_idea"), dict) else {}
         if filter_meta.get("preferred_style"):

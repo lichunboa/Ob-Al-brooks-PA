@@ -580,6 +580,7 @@ class AllocationUpdate(BaseModel):
     # V3.0 新增 — 名义价值控制
     max_notional_per_position: Optional[float] = None
     max_cost_pct_per_order: Optional[float] = None
+    max_margin_pct_per_order: Optional[float] = None
 
 
 @app.get("/trading/status")
@@ -662,9 +663,13 @@ async def allocate_funds(bot_id: str, request: AllocationUpdate):
     if not trading_state:
         raise HTTPException(status_code=503, detail="服务未就绪")
 
+    payload = request.model_dump(exclude_none=True)
+    if payload.get("max_margin_pct_per_order") is not None and payload.get("max_cost_pct_per_order") is None:
+        payload["max_cost_pct_per_order"] = payload["max_margin_pct_per_order"]
+
     success = trading_state.update_allocation(
         bot_id,
-        **request.model_dump(exclude_none=True),
+        **payload,
     )
 
     if not success:
@@ -760,6 +765,9 @@ async def calculate_position_size(
     quantity = float(details.get("quantity") or 0.0)
     effective_notional = float(details.get("effective_notional") or 0.0)
     max_cost = float(details.get("max_cost") or 0.0)
+    max_margin_cost = float(details.get("max_margin_cost") or max_cost)
+    max_margin_notional = float(details.get("max_margin_notional") or details.get("max_cost_notional") or 0.0)
+    max_margin_pct_per_order = float(details.get("max_margin_pct_per_order") or 0.0)
     leverage = max(1.0, float(details.get("leverage") or 1.0))
     margin_cost = effective_notional / leverage if leverage > 0 else effective_notional
     explanation = str(details.get("explanation") or "")
@@ -787,11 +795,11 @@ async def calculate_position_size(
                 entry_price,
             )
             snapped_margin_cost = snapped_notional / leverage if leverage > 0 else snapped_notional
-            if max_cost > 0 and snapped_margin_cost - max_cost > 1e-9:
+            if max_margin_cost > 0 and snapped_margin_cost - max_margin_cost > 1e-9:
                 quantity = 0.0
                 effective_notional = 0.0
                 margin_cost = 0.0
-                explanation = f"{explanation} | 最小下单单位的保证金成本 ${snapped_margin_cost:.2f} 超过上限 ${max_cost:.2f}"
+                explanation = f"{explanation} | 最小下单单位的保证金成本 ${snapped_margin_cost:.2f} 超过上限 ${max_margin_cost:.2f}"
             else:
                 quantity = snapped_quantity
                 effective_notional = snapped_notional
@@ -814,6 +822,9 @@ async def calculate_position_size(
         "effective_notional": effective_notional,
         "margin_cost": margin_cost,
         "max_cost": max_cost,
+        "max_margin_cost": max_margin_cost,
+        "max_margin_notional": max_margin_notional,
+        "max_margin_pct_per_order": max_margin_pct_per_order,
         "leverage": leverage,
         "symbol_risk_total": float(details.get("symbol_risk_total") or 0.0),
         "symbol_risk_used": float(details.get("symbol_risk_used") or 0.0),
@@ -1081,7 +1092,7 @@ async def get_bot_summary(bot_id: str):
     max_positions = alloc.get("max_positions", 3)
     if max_notional <= 0:
         max_notional = (alloc.get("allocated_usdt", 0) / max_positions) * leverage
-    max_cost, max_cost_notional = trading_state.get_per_order_cost_limit(bot_id)
+    max_cost, max_cost_notional = trading_state.get_per_order_margin_limit(bot_id)
     effective_notional = min(max_notional, max_cost_notional) if max_cost_notional > 0 else max_notional
 
     # V3.7: 计算当前相关性暴露（供 signal-router 预检）
@@ -1129,7 +1140,10 @@ async def get_bot_summary(bot_id: str):
             "total_capacity": effective_notional * max_positions,
             "leverage": leverage,
             "max_cost_per_order": max_cost,
+            "max_margin_cost_per_order": max_cost,
+            "max_margin_notional_per_order": max_cost_notional,
             "max_cost_pct_per_order": float(alloc.get("max_cost_pct_per_order", 1.0) or 0.0),
+            "max_margin_pct_per_order": float(alloc.get("max_cost_pct_per_order", 1.0) or 0.0),
         },
     }
 

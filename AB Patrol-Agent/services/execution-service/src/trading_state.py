@@ -54,7 +54,7 @@ class BotAllocation:
     max_hold_hours: int = 48               # 最大持仓时间
     cooldown_minutes: int = 30             # 同品种冷却期(分钟)
     allocation_pct: float = 0.0            # 占总余额的百分比（>0 时启用动态分配）
-    max_cost_pct_per_order: float = 1.0    # 单笔最大成本占账户总额百分比
+    max_cost_pct_per_order: float = 1.0    # 兼容旧字段名：单笔最大保证金占用占账户总额百分比
 
 
 @dataclass
@@ -271,11 +271,26 @@ class TradingStateManager:
 
     def get_allocation(self, bot_id: str) -> Optional[dict]:
         """获取机器人分配"""
-        return self.state.allocations.get(bot_id)
+        alloc = self.state.allocations.get(bot_id)
+        if not alloc:
+            return None
+        return self._allocation_with_margin_aliases(alloc)
 
     def get_all_allocations(self) -> Dict[str, dict]:
         """获取所有分配"""
-        return self.state.allocations
+        return {
+            bot_id: self._allocation_with_margin_aliases(alloc)
+            for bot_id, alloc in self.state.allocations.items()
+        }
+
+    @staticmethod
+    def _allocation_with_margin_aliases(alloc: dict) -> dict:
+        """给旧字段补一层“保证金占用”别名，避免接口语义继续误导。"""
+        cloned = dict(alloc)
+        margin_pct = float(cloned.get("max_cost_pct_per_order", 1.0) or 0.0)
+        cloned["max_margin_pct_per_order"] = margin_pct
+        cloned["max_cost_pct_per_order_note"] = "兼容旧字段名；真实语义是单笔最大保证金占用占账户总额百分比"
+        return cloned
 
     def update_allocation(
         self,
@@ -300,6 +315,10 @@ class TradingStateManager:
             "max_notional_per_position",
             "max_cost_pct_per_order",
         }
+
+        margin_pct = kwargs.pop("max_margin_pct_per_order", None)
+        if margin_pct is not None and kwargs.get("max_cost_pct_per_order") is None:
+            kwargs["max_cost_pct_per_order"] = margin_pct
 
         for key, val in kwargs.items():
             if key in updatable and val is not None:
@@ -420,16 +439,20 @@ class TradingStateManager:
         )
 
     def get_per_order_cost_limit(self, bot_id: str) -> tuple[float, float]:
-        """返回单笔成本上限与按杠杆折算后的名义上限。"""
+        """兼容旧方法名：返回单笔保证金占用上限与按杠杆折算后的名义上限。"""
+        return self.get_per_order_margin_limit(bot_id)
+
+    def get_per_order_margin_limit(self, bot_id: str) -> tuple[float, float]:
+        """返回单笔保证金占用上限与按杠杆折算后的名义上限。"""
         alloc = self.state.allocations.get(bot_id)
         if not alloc:
             return 0.0, 0.0
         account_balance = self.get_account_balance()
         cost_pct = float(alloc.get("max_cost_pct_per_order", 1.0) or 0.0)
         leverage = max(1, int(alloc.get("max_leverage", 1) or 1))
-        max_cost = account_balance * cost_pct / 100 if cost_pct > 0 and account_balance > 0 else 0.0
-        max_notional = max_cost * leverage if max_cost > 0 else 0.0
-        return max_cost, max_notional
+        max_margin_cost = account_balance * cost_pct / 100 if cost_pct > 0 and account_balance > 0 else 0.0
+        max_margin_notional = max_margin_cost * leverage if max_margin_cost > 0 else 0.0
+        return max_margin_cost, max_margin_notional
 
     @staticmethod
     def _normalize_symbol(symbol: str) -> str:
@@ -542,6 +565,9 @@ class TradingStateManager:
                 "risk_amount": 0.0,
                 "max_cost": 0.0,
                 "max_cost_notional": 0.0,
+                "max_margin_cost": 0.0,
+                "max_margin_notional": 0.0,
+                "max_margin_pct_per_order": 0.0,
                 "configured_max_notional": 0.0,
                 "max_position": 0.0,
                 "effective_notional": 0.0,
@@ -559,6 +585,9 @@ class TradingStateManager:
                 "risk_amount": 0.0,
                 "max_cost": 0.0,
                 "max_cost_notional": 0.0,
+                "max_margin_cost": 0.0,
+                "max_margin_notional": 0.0,
+                "max_margin_pct_per_order": 0.0,
                 "configured_max_notional": 0.0,
                 "max_position": 0.0,
                 "effective_notional": 0.0,
@@ -576,6 +605,9 @@ class TradingStateManager:
                 "risk_amount": 0.0,
                 "max_cost": 0.0,
                 "max_cost_notional": 0.0,
+                "max_margin_cost": 0.0,
+                "max_margin_notional": 0.0,
+                "max_margin_pct_per_order": 0.0,
                 "configured_max_notional": 0.0,
                 "max_position": 0.0,
                 "effective_notional": 0.0,
@@ -601,6 +633,9 @@ class TradingStateManager:
                 "risk_amount": 0.0,
                 "max_cost": 0.0,
                 "max_cost_notional": 0.0,
+                "max_margin_cost": 0.0,
+                "max_margin_notional": 0.0,
+                "max_margin_pct_per_order": 0.0,
                 "configured_max_notional": 0.0,
                 "max_position": 0.0,
                 "effective_notional": 0.0,
@@ -621,13 +656,13 @@ class TradingStateManager:
             max_positions = max(1, int(alloc.get("max_positions", 3) or 1))
             configured_max_notional = (available / max_positions) * leverage
 
-        max_cost, max_cost_notional = self.get_per_order_cost_limit(bot_id)
+        max_cost, max_cost_notional = self.get_per_order_margin_limit(bot_id)
         effective_notional = min(position_value, max_position, configured_max_notional)
         if max_cost_notional > 0:
             effective_notional = min(effective_notional, max_cost_notional)
 
         explanation = (
-            f"风险 ${risk_amount:.2f} ({actual_risk:.2f}%), 成本上限 ${max_cost:.2f}, "
+            f"风险 ${risk_amount:.2f} ({actual_risk:.2f}%), 保证金占用上限 ${max_cost:.2f}, "
             f"名义上限 ${effective_notional:.2f} "
             f"(配置上限 ${configured_max_notional:.2f})"
         )
@@ -642,6 +677,9 @@ class TradingStateManager:
             "risk_amount": risk_amount,
             "max_cost": max_cost,
             "max_cost_notional": max_cost_notional,
+            "max_margin_cost": max_cost,
+            "max_margin_notional": max_cost_notional,
+            "max_margin_pct_per_order": float(alloc.get("max_cost_pct_per_order", 1.0) or 0.0),
             "configured_max_notional": configured_max_notional,
             "max_position": max_position,
             "effective_notional": effective_notional,
@@ -681,7 +719,10 @@ class TradingStateManager:
             "total_allocated": total_allocated,
             "total_used": total_used,
             "total_positions": total_positions,
-            "allocations": self.state.allocations,
+            "allocations": {
+                bot_id: self._allocation_with_margin_aliases(alloc)
+                for bot_id, alloc in self.state.allocations.items()
+            },
         }
 
 

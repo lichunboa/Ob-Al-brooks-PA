@@ -42,6 +42,7 @@ from trading.market.playbook_router import (
     infer_htf_sr_bias,
     resolve_playbook_context,
 )
+from trading.market.timeframe_roles import resolve_timeframe_roles
 
 from .base import BaseEngine
 from .pa.analysis import (
@@ -53,6 +54,11 @@ from .pa.analysis import (
     calculate_atr,
     calculate_ema,
 )
+from .pa.breakout_pullback_template import BreakoutPullbackTemplateMixin
+from .pa.ema_context import project_higher_timeframe_ema
+from .pa.ema_gap_template import EMAGapTemplateMixin
+from .pa.h1_l1_template import H1L1TemplateMixin
+from .pa.h2_l2_template import H2L2TemplateMixin
 from .pa.models import Candle, MarketState, PASignal
 from .pa.risk import BREAKOUT_CHASE_SIGNALS, TR_LIMIT_FRIENDLY_SIGNALS, RiskManager
 from .pa.strategy_advanced import AdvancedStrategyDetectorMixin
@@ -156,7 +162,13 @@ BROOKS_REVERSAL_SIGNALS = {
 
 # ============ 策略检测器 ============
 
-class StrategyDetector(AdvancedStrategyDetectorMixin):
+class StrategyDetector(
+    H1L1TemplateMixin,
+    H2L2TemplateMixin,
+    BreakoutPullbackTemplateMixin,
+    EMAGapTemplateMixin,
+    AdvancedStrategyDetectorMixin,
+):
     """11 策略检测器"""
 
     def __init__(self):
@@ -179,6 +191,45 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         recent = candles[-10:] if len(candles) >= 10 else candles
         avg_range = sum(float(candle.high) - float(candle.low) for candle in recent) / max(len(recent), 1)
         return max(avg_range * 1.2, abs(reference_price) * 0.001)
+
+    @staticmethod
+    def _minimum_price_increment(candles: list[Candle], reference_price: float) -> float:
+        """从最近 K 线推断最小波动单位，用于 stop 触发价外一跳。"""
+        values: list[float] = []
+        recent = candles[-12:] if len(candles) >= 12 else candles
+        for candle in recent:
+            values.extend([
+                float(candle.open),
+                float(candle.high),
+                float(candle.low),
+                float(candle.close),
+            ])
+        unique_values = sorted({round(v, 10) for v in values if v > 0})
+        min_diff = 0.0
+        for idx in range(1, len(unique_values)):
+            diff = unique_values[idx] - unique_values[idx - 1]
+            if diff <= 0:
+                continue
+            min_diff = diff if min_diff <= 0 else min(min_diff, diff)
+        if min_diff > 0:
+            return min_diff
+        return max(abs(reference_price) * 0.0001, 1e-9)
+
+    def _stop_entry_trigger(self, signal_bar: Candle, direction: str, candles: list[Candle]) -> float:
+        """按 Brooks 的 stop 单语义，在 signal bar 外一跳触发。"""
+        increment = self._minimum_price_increment(candles, float(signal_bar.close))
+        if direction == "BUY":
+            return float(signal_bar.high) + increment
+        return float(signal_bar.low) - increment
+
+    def _stop_entry_reached(self, current_bar: Candle, signal_bar: Candle, direction: str, candles: list[Candle]) -> bool:
+        """当前 K 线是否已经真实触发了 stop 入场。"""
+        entry_trigger = self._stop_entry_trigger(signal_bar, direction, candles)
+        if direction == "BUY":
+            return float(current_bar.high) >= entry_trigger
+        return float(current_bar.low) <= entry_trigger
+
+    # H1/L1 通用模板逻辑已拆到 H1L1TemplateMixin。
 
     # === 急速方案 ===
 
@@ -293,63 +344,47 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 return None  # 回调棒不应是强阳线
             # 优选阴线作为回调棒
             pullback_is_bear = CandlePatterns.is_bear(prev)
-
-            # --- 3. 信号棒（当前K线）突破回调棒高点 ---
-            if curr.close <= prev.high:
+            signal_profile = self._h1_l1_signal_bar_profile(prev, prev2, ema20[-2], "BUY")
+            if not bool(signal_profile["valid_signal_bar"]):
                 return None
-            # 信号棒应该是阳线且有力
-            if not CandlePatterns.is_bull(curr):
+
+            # --- 3. 当前 K 线只要真实触发了 stop 单即可 ---
+            if not self._stop_entry_reached(curr, prev, "BUY", candles):
                 return None
             sig_quality = CandlePatterns.signal_bar_quality(
                 curr, candles[-6:-1], "BUY")
-            # Al Brooks: 信号棒只需收在回调高点之上。阈值0.65过严
-            # 很多有效H1信号棒实体比例50%、有小上影线，但总分只有0.60-0.64
-            if sig_quality < 0.55:
-                return None
 
             # --- 4. Higher Low 结构验证 ---
-            # 用 3-bar swing low 找回调前的真实 swing low
-            pre_pullback = candles[-20:-3] if len(candles) >= 23 else candles[:-3]
-            swings = CycleIdentifier._find_swings(pre_pullback)
-            swing_lows = [s for s in swings if s["type"] == "low"]
-            if not swing_lows:
-                return None  # 没有结构性 swing low，无法确认 Higher Low
-            prev_swing_low = swing_lows[-1]["price"]
-            pullback_low = min(prev.low, prev2.low)
-            if pullback_low <= prev_swing_low:
-                return None  # 不是 Higher Low
-
-            # --- 5. 止损和目标 ---
-            # Al Brooks: 止损应放到结构位外，而不是 ATR 倍数缓冲。
-            stop = build_trend_pullback_stop("BUY", candles, curr.high, min(prev.low, prev2.low), atr)
-            risk = curr.close - stop
-            if risk <= 0:
+            # 不再死卡“最后一个 swing low”，而是检查：
+            # 是否先有清晰多头腿，再出现第一次像样回调。
+            setup_profile = self._h1_l1_setup_profile(candles, ema20, "BUY", cycle)
+            if not bool(setup_profile.get("valid_setup")):
                 return None
-            target = curr.close + risk * 2.0
 
             strength = 78  # V2: 75→78，高1是趋势回调核心策略，基础强度提升
             if pullback_is_bear:
                 strength += 5
             if sig_quality >= 0.65:
                 strength += 5
+            if float(setup_profile.get("pullback_depth_ratio") or 1.0) <= 0.55:
+                strength += 3
+            if int(setup_profile.get("pullback_bars") or 0) <= 3:
+                strength += 2
 
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="高1",
-                direction="BUY",
-                strength=min(95, strength),
-                message="趋势多中 Higher Low 回调 EMA20 后反弹",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.60,
+            signal = self._build_h1_l1_signal(
+                curr=curr,
+                prev=prev,
+                candles=candles,
                 cycle=cycle,
-                timeframe=curr.timeframe,
-                extra={
-                    "signal_bar_quality": sig_quality,
-                    "signal_rank": 1,
-                },
+                direction="BUY",
+                strength=strength,
+                probability=0.60,
+                message="趋势多中 Higher Low 回调 EMA20 后反弹",
+                signal_profile=signal_profile,
+                sig_quality=sig_quality,
+                atr=atr,
             )
+            return self._attach_h1_l1_setup_extra(signal, setup_profile)
 
         elif cycle == "趋势空":
             # Al Brooks: L1 = 趋势空中第一次反弹后的空点
@@ -359,58 +394,44 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if CandlePatterns.is_strong_bear(prev):
                 return None
             pullback_is_bull = CandlePatterns.is_bull(prev)
-
-            if curr.close >= prev.low:
+            signal_profile = self._h1_l1_signal_bar_profile(prev, prev2, ema20[-2], "SELL")
+            if not bool(signal_profile["valid_signal_bar"]):
                 return None
-            if not CandlePatterns.is_bear(curr):
+
+            if not self._stop_entry_reached(curr, prev, "SELL", candles):
                 return None
             sig_quality = CandlePatterns.signal_bar_quality(
                 curr, candles[-6:-1], "SELL")
-            # Al Brooks: 低1信号棒只需收在反弹低点之下，阈值0.65过严
-            if sig_quality < 0.55:
-                return None
 
-            # Lower High 结构验证 — 用 3-bar swing high
-            pre_pullback = candles[-20:-3] if len(candles) >= 23 else candles[:-3]
-            swings = CycleIdentifier._find_swings(pre_pullback)
-            swing_highs = [s for s in swings if s["type"] == "high"]
-            if not swing_highs:
-                return None  # 没有结构性 swing high，无法确认 Lower High
-            prev_swing_high = swing_highs[-1]["price"]
-            pullback_high = max(prev.high, prev2.high)
-            if pullback_high >= prev_swing_high:
-                return None  # 不是 Lower High
-
-            # Al Brooks: 止损应放到结构位外，而不是 ATR 倍数缓冲。
-            stop = build_trend_pullback_stop("SELL", candles, max(prev.high, prev2.high), curr.low, atr)
-            risk = stop - curr.close
-            if risk <= 0:
+            # Lower High 结构验证：同样只确认“清晰空头腿 + 第一次像样反弹”
+            setup_profile = self._h1_l1_setup_profile(candles, ema20, "SELL", cycle)
+            if not bool(setup_profile.get("valid_setup")):
                 return None
-            target = curr.close - risk * 2.0
 
             strength = 78  # V2: 75→78，低1是趋势回落核心策略，基础强度提升
             if pullback_is_bull:
                 strength += 5
             if sig_quality >= 0.65:
                 strength += 5
+            if float(setup_profile.get("pullback_depth_ratio") or 1.0) <= 0.55:
+                strength += 3
+            if int(setup_profile.get("pullback_bars") or 0) <= 3:
+                strength += 2
 
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="低1",
-                direction="SELL",
-                strength=min(95, strength),
-                message="趋势空中 Lower High 反弹 EMA20 后回落",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.60,
+            signal = self._build_h1_l1_signal(
+                curr=curr,
+                prev=prev,
+                candles=candles,
                 cycle=cycle,
-                timeframe=curr.timeframe,
-                extra={
-                    "signal_bar_quality": sig_quality,
-                    "signal_rank": 1,
-                },
+                direction="SELL",
+                strength=strength,
+                probability=0.60,
+                message="趋势空中 Lower High 反弹 EMA20 后回落",
+                signal_profile=signal_profile,
+                sig_quality=sig_quality,
+                atr=atr,
             )
+            return self._attach_h1_l1_setup_extra(signal, setup_profile)
 
         elif cycle == "急速多":
             # Al Brooks: 急速拉升后的第一次回调买点（急速H1）
@@ -423,22 +444,14 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if CandlePatterns.is_strong_bull(prev):
                 return None
             pullback_is_bear = CandlePatterns.is_bear(prev)
-
-            # 2. 信号棒突破回调棒高点，且收盘有力
-            if curr.close <= prev.high:
+            signal_profile = self._h1_l1_signal_bar_profile(prev, prev2, ema20[-2], "BUY")
+            if not bool(signal_profile["valid_signal_bar"]):
                 return None
-            if not CandlePatterns.is_bull(curr):
+
+            # 2. 当前 K 线只要真实触发了 stop 单即可
+            if not self._stop_entry_reached(curr, prev, "BUY", candles):
                 return None
             sig_quality = CandlePatterns.signal_bar_quality(curr, candles[-6:-1], "BUY")
-            if sig_quality < 0.55:
-                return None
-
-            # 3. 止损和目标（与趋势H1相同逻辑）
-            stop = build_trend_pullback_stop("BUY", candles, curr.high, min(prev.low, prev2.low), atr)
-            risk = curr.close - stop
-            if risk <= 0:
-                return None
-            target = curr.close + risk * 2.0
 
             # 急速H1基础强度76（比趋势H1的78低2分：急速波动大，风险稍高）
             strength = 76
@@ -447,23 +460,21 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if sig_quality >= 0.65:
                 strength += 5  # 高质量信号棒 +5
 
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="高1",
-                direction="BUY",
-                strength=min(95, strength),
-                message="急速多后微回调再入场（急速H1）",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.55,
+            setup_profile = self._h1_l1_setup_profile(candles, ema20, "BUY", cycle)
+            signal = self._build_h1_l1_signal(
+                curr=curr,
+                prev=prev,
+                candles=candles,
                 cycle=cycle,
-                timeframe=curr.timeframe,
-                extra={
-                    "signal_bar_quality": sig_quality,
-                    "signal_rank": 1,
-                },
+                direction="BUY",
+                strength=strength,
+                probability=0.55,
+                message="急速多后微回调再入场（急速H1）",
+                signal_profile=signal_profile,
+                sig_quality=sig_quality,
+                atr=atr,
             )
+            return self._attach_h1_l1_setup_extra(signal, setup_profile)
 
         elif cycle == "急速空":
             # Al Brooks: 急速下冲后的第一次反弹空点（急速L1）
@@ -474,22 +485,14 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if CandlePatterns.is_strong_bear(prev):
                 return None
             pullback_is_bull = CandlePatterns.is_bull(prev)
-
-            # 2. 信号棒跌破反弹棒低点，且收盘有力（阴线）
-            if curr.close >= prev.low:
+            signal_profile = self._h1_l1_signal_bar_profile(prev, prev2, ema20[-2], "SELL")
+            if not bool(signal_profile["valid_signal_bar"]):
                 return None
-            if not CandlePatterns.is_bear(curr):
+
+            # 2. 当前 K 线只要真实触发了 stop 单即可
+            if not self._stop_entry_reached(curr, prev, "SELL", candles):
                 return None
             sig_quality = CandlePatterns.signal_bar_quality(curr, candles[-6:-1], "SELL")
-            if sig_quality < 0.55:
-                return None
-
-            # 3. 止损和目标
-            stop = build_trend_pullback_stop("SELL", candles, max(prev.high, prev2.high), curr.low, atr)
-            risk = stop - curr.close
-            if risk <= 0:
-                return None
-            target = curr.close - risk * 2.0
 
             strength = 76
             if pullback_is_bull:
@@ -497,23 +500,21 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if sig_quality >= 0.65:
                 strength += 5
 
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="低1",
-                direction="SELL",
-                strength=min(95, strength),
-                message="急速空后微反弹再空（急速L1）",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.55,
+            setup_profile = self._h1_l1_setup_profile(candles, ema20, "SELL", cycle)
+            signal = self._build_h1_l1_signal(
+                curr=curr,
+                prev=prev,
+                candles=candles,
                 cycle=cycle,
-                timeframe=curr.timeframe,
-                extra={
-                    "signal_bar_quality": sig_quality,
-                    "signal_rank": 1,
-                },
+                direction="SELL",
+                strength=strength,
+                probability=0.55,
+                message="急速空后微反弹再空（急速L1）",
+                signal_profile=signal_profile,
+                sig_quality=sig_quality,
+                atr=atr,
             )
+            return self._attach_h1_l1_setup_extra(signal, setup_profile)
 
         elif cycle == "区间":
             # Al Brooks: 区间中顺大趋势方向的H1
@@ -530,19 +531,13 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 if CandlePatterns.is_strong_bull(prev):
                     return None
                 pullback_is_bear = CandlePatterns.is_bear(prev)
-                if curr.close <= prev.high:
+                signal_profile = self._h1_l1_signal_bar_profile(prev, prev2, ema20[-2], "BUY")
+                if not bool(signal_profile["valid_signal_bar"]):
                     return None
-                if not CandlePatterns.is_bull(curr):
+                if not self._stop_entry_reached(curr, prev, "BUY", candles):
                     return None
                 sig_quality = CandlePatterns.signal_bar_quality(
                     curr, candles[-6:-1], "BUY")
-                if sig_quality < 0.55:
-                    return None
-                stop = min(prev.low, prev2.low)
-                risk = curr.close - stop
-                if risk <= 0:
-                    return None
-                target = curr.close + risk * 2.0
                 # 区间H1基础强度78（需要两个加成才能过评分80）
                 # 评分: trend=12, 加成后strength=88→quality=17+match=22+rr=16+risk=15=82 ✓
                 # Al Brooks: 区间H1要求EMA方向+回调棒+高质量信号棒三个条件同时满足
@@ -551,65 +546,55 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                     strength += 5
                 if sig_quality >= 0.65:
                     strength += 5
-                return PASignal(
-                    symbol=curr.symbol,
-                    signal_type="高1",
-                    direction="BUY",
-                    strength=min(95, strength),
-                    message="区间整理中顺EMA方向回调买入（区间H1）",
-                    price=curr.close,
-                    stop_loss=stop,
-                    take_profit=target,
-                    probability=0.50,
+                setup_profile = self._h1_l1_setup_profile(candles, ema20, "BUY", cycle)
+                signal = self._build_h1_l1_signal(
+                    curr=curr,
+                    prev=prev,
+                    candles=candles,
                     cycle=cycle,
-                    timeframe=curr.timeframe,
-                    extra={
-                        "signal_bar_quality": sig_quality,
-                        "signal_rank": 1,
-                    },
+                    direction="BUY",
+                    strength=strength,
+                    probability=0.50,
+                    message="区间整理中顺EMA方向回调买入（区间H1）",
+                    signal_profile=signal_profile,
+                    sig_quality=sig_quality,
+                    atr=atr,
                 )
+                return self._attach_h1_l1_setup_extra(signal, setup_profile)
 
             elif ema_slope_dn:
                 # 区间内偏空 → 做L1 SELL
                 if CandlePatterns.is_strong_bear(prev):
                     return None
                 pullback_is_bull = CandlePatterns.is_bull(prev)
-                if curr.close >= prev.low:
+                signal_profile = self._h1_l1_signal_bar_profile(prev, prev2, ema20[-2], "SELL")
+                if not bool(signal_profile["valid_signal_bar"]):
                     return None
-                if not CandlePatterns.is_bear(curr):
+                if not self._stop_entry_reached(curr, prev, "SELL", candles):
                     return None
                 sig_quality = CandlePatterns.signal_bar_quality(
                     curr, candles[-6:-1], "SELL")
-                if sig_quality < 0.55:
-                    return None
-                stop = max(prev.high, prev2.high)
-                risk = stop - curr.close
-                if risk <= 0:
-                    return None
-                target = curr.close - risk * 2.0
                 # 区间L1基础强度78（对称）
                 strength = 78
                 if pullback_is_bull:
                     strength += 5
                 if sig_quality >= 0.65:
                     strength += 5
-                return PASignal(
-                    symbol=curr.symbol,
-                    signal_type="低1",
-                    direction="SELL",
-                    strength=min(95, strength),
-                    message="区间整理中顺EMA方向反弹做空（区间L1）",
-                    price=curr.close,
-                    stop_loss=stop,
-                    take_profit=target,
-                    probability=0.50,
+                setup_profile = self._h1_l1_setup_profile(candles, ema20, "SELL", cycle)
+                signal = self._build_h1_l1_signal(
+                    curr=curr,
+                    prev=prev,
+                    candles=candles,
                     cycle=cycle,
-                    timeframe=curr.timeframe,
-                    extra={
-                        "signal_bar_quality": sig_quality,
-                        "signal_rank": 1,
-                    },
+                    direction="SELL",
+                    strength=strength,
+                    probability=0.50,
+                    message="区间整理中顺EMA方向反弹做空（区间L1）",
+                    signal_profile=signal_profile,
+                    sig_quality=sig_quality,
+                    atr=atr,
                 )
+                return self._attach_h1_l1_setup_extra(signal, setup_profile)
 
         return None
 
@@ -639,10 +624,11 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         if cycle == "趋势多":
             # === H2 BUY — 双底结构 ===
 
-            # 入场条件: 当前棒阳线且突破前棒高点
+            # 入场条件: 当前棒阳线且结构恢复
             if not CandlePatterns.is_bull(curr):
                 return None
-            if curr.close <= prev.high:
+            signal_profile = self._h1_l1_signal_bar_profile(curr, prev, ema20[-1], "BUY")
+            if not bool(signal_profile["valid_signal_bar"]):
                 return None
 
             # 信号棒质量
@@ -688,33 +674,6 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             # 在强趋势（Spike/TightChannel）中，回调可能远未触及EMA仍是有效H2
             # 原来的 near_ema 条件在强牛市中会杀死几乎所有H2信号
 
-            # 止损和目标
-            # Brooks 更看重结构止损，而不是只放在 signal bar 下方。
-            recent_pullback_low = min(c.low for c in candles[-6:])
-            recent_overlap = CycleIdentifier._overlap_ratio(candles[-10:])
-            stop_anchor = min(sl1["price"], sl2["price"], recent_pullback_low)
-            if recent_overlap >= 0.38:
-                stop = build_channel_recovery_stop(
-                    "BUY",
-                    candles,
-                    curr.high,
-                    stop_anchor,
-                    atr,
-                )
-            else:
-                stop = build_trend_pullback_stop(
-                    "BUY",
-                    candles,
-                    curr.high,
-                    stop_anchor,
-                    atr,
-                )
-            risk = curr.close - stop
-            if risk <= 0:
-                return None
-            # Al Brooks: H2是最高概率入场，设3R目标（反转如果成功空间大）
-            target = curr.close + risk * 3.0
-
             # 强度: H2 基础分更高
             strength = 82
             if sig_quality >= 0.65:
@@ -726,31 +685,36 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if sl2["price"] > sl1["price"]:
                 strength += 3
 
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="高2",
-                direction="BUY",
-                strength=min(95, strength),
-                message=f"趋势多双底H2: 两次回调低点{sl1['price']:.1f}/{sl2['price']:.1f}确认支撑",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.65,
+            signal = self._build_h2_l2_signal(
+                curr=curr,
+                candles=candles,
                 cycle=cycle,
-                timeframe=curr.timeframe,
-                extra={
-                    "signal_bar_quality": sig_quality,
-                    "signal_rank": 2,
-                },
+                direction="BUY",
+                strength=strength,
+                probability=0.65,
+                message=f"趋势多双底H2: 两次回调低点{sl1['price']:.1f}/{sl2['price']:.1f}确认支撑",
+                signal_profile=signal_profile,
+                sig_quality=sig_quality,
+                atr=atr,
             )
+            if signal is not None:
+                signal.extra.update(
+                    {
+                        "signal_rank": 2,
+                        "double_bottom_tolerance": float(tolerance),
+                        "double_bottom_gap_bars": int(bar_gap),
+                    }
+                )
+            return signal
 
         elif cycle == "趋势空":
             # === L2 SELL — 双顶结构 ===
 
-            # 入场条件: 当前棒阴线且跌破前棒低点
+            # 入场条件: 当前棒阴线且结构恢复
             if not CandlePatterns.is_bear(curr):
                 return None
-            if curr.close >= prev.low:
+            signal_profile = self._h1_l1_signal_bar_profile(curr, prev, ema20[-1], "SELL")
+            if not bool(signal_profile["valid_signal_bar"]):
                 return None
 
             # 信号棒质量
@@ -793,33 +757,6 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             # Al Brooks: L2 = 趋势空中的第二次反弹，跟EMA距离没有硬性关系
             # 在强空头趋势中，反弹可能远未触及EMA仍是有效L2
 
-            # 止损和目标
-            # L2 也使用 swing stop，让回调腿有足够呼吸空间。
-            recent_pullback_high = max(c.high for c in candles[-6:])
-            recent_overlap = CycleIdentifier._overlap_ratio(candles[-10:])
-            stop_anchor = max(sh1["price"], sh2["price"], recent_pullback_high)
-            if recent_overlap >= 0.38:
-                stop = build_channel_recovery_stop(
-                    "SELL",
-                    candles,
-                    stop_anchor,
-                    curr.low,
-                    atr,
-                )
-            else:
-                stop = build_trend_pullback_stop(
-                    "SELL",
-                    candles,
-                    stop_anchor,
-                    curr.low,
-                    atr,
-                )
-            risk = stop - curr.close
-            if risk <= 0:
-                return None
-            # Al Brooks: L2是最高概率做空入场，设3R目标
-            target = curr.close - risk * 3.0
-
             strength = 82
             if sig_quality >= 0.65:
                 strength += 5
@@ -828,23 +765,27 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
             if sh2["price"] < sh1["price"]:
                 strength += 3  # Lower High 加分
 
-            return PASignal(
-                symbol=curr.symbol,
-                signal_type="低2",
-                direction="SELL",
-                strength=min(95, strength),
-                message=f"趋势空双顶L2: 两次回调高点{sh1['price']:.1f}/{sh2['price']:.1f}确认阻力",
-                price=curr.close,
-                stop_loss=stop,
-                take_profit=target,
-                probability=0.65,
+            signal = self._build_h2_l2_signal(
+                curr=curr,
+                candles=candles,
                 cycle=cycle,
-                timeframe=curr.timeframe,
-                extra={
-                    "signal_bar_quality": sig_quality,
-                    "signal_rank": 2,
-                },
+                direction="SELL",
+                strength=strength,
+                probability=0.65,
+                message=f"趋势空双顶L2: 两次回调高点{sh1['price']:.1f}/{sh2['price']:.1f}确认阻力",
+                signal_profile=signal_profile,
+                sig_quality=sig_quality,
+                atr=atr,
             )
+            if signal is not None:
+                signal.extra.update(
+                    {
+                        "signal_rank": 2,
+                        "double_top_tolerance": float(tolerance),
+                        "double_top_gap_bars": int(bar_gap),
+                    }
+                )
+            return signal
 
         return None
 
@@ -1266,88 +1207,47 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
 
         return None
 
-    def detect_ema_gap(self, candles: list[Candle], ema20: list[float], cycle: str, atr: float = 0.0) -> Optional[PASignal]:
+    def detect_ema_gap(
+        self,
+        candles: list[Candle],
+        ema20: list[float],
+        cycle: str,
+        atr: float = 0.0,
+        *,
+        gap_context_candles: Optional[list[Candle]] = None,
+        gap_context_ema20: Optional[list[float]] = None,
+        gap_context_timeframe: str = "",
+    ) -> Optional[PASignal]:
         """
-        20均线缺口 / MAG (MA Gap Bar) — Al Brooks 定义
-        - EMA触及 (7-14根远离): 普通均线回测，strength=80
-        - MAG 20/20 Setup (15+根远离): Al Brooks原版定义，Final Trend Leg后触及，strength=85（scalp优先）
-        条件：趋势中价格连续在EMA单侧后首次触及EMA20
+        20均线缺口 / MAG 20/20 Setup 统一模板。
         """
-        if not cycle.startswith("趋势") or len(candles) < 25 or len(ema20) < 25:
+        if len(candles) < 25 or len(ema20) < 25:
             return None
-
         curr = candles[-1]
+        if cycle in {"趋势多", "急速多"}:
+            directions = ("BUY",)
+        elif cycle in {"趋势空", "急速空"}:
+            directions = ("SELL",)
+        else:
+            directions = ("BUY", "SELL")
 
-        # 检查之前连续远离 EMA 的根数（最多回看 22 根，覆盖真正 MAG 的 20 根）
-        bars_away = 0
-        for i in range(-2, -23, -1):
-            if abs(i) > len(candles) or abs(i) > len(ema20):
-                break
-            if cycle == "趋势多":
-                if candles[i].low > ema20[i] * 1.005:  # 价格持续高于 EMA
-                    bars_away += 1
-                else:
-                    break  # 连续性中断即停止计数
-            else:
-                if candles[i].high < ema20[i] * 0.995:
-                    bars_away += 1
-                else:
-                    break
-
-        if bars_away < 7:  # 少于 7 根：EMA 未真正拉开，跳过
-            return None
-
-        # 是否为真正的 MAG (15+根 = Al Brooks 20/20 Setup)
-        is_mag = bars_away >= 15
-        strength = 85 if is_mag else 80
-        label = "MAG 20/20 Setup" if is_mag else "20均线缺口"
-        prob = 0.72 if is_mag else 0.65
-        # MAG 是 scalp 优先，止盈目标收窄至 1.5R
-        rr_mult = 1.5 if is_mag else 2.0
-
-        # 首次触及 EMA
-        if cycle == "趋势多":
-            if curr.low <= ema20[-1] * 1.003 and curr.close > ema20[-1]:
-                # EMA gap 用 pullback 结构低点做 swing stop，而不是只贴当前 signal bar。
-                pullback_low = min(c.low for c in candles[-5:])
-                stop = build_channel_recovery_stop("BUY", candles, curr.high, pullback_low, atr)
-                target = curr.close + (curr.close - stop) * rr_mult
-
-                return PASignal(
-                    symbol=curr.symbol,
-                    signal_type=label,
-                    direction="BUY",
-                    strength=strength,
-                    message=f"{'MAG: 20+根远离后' if is_mag else '均线缺口'}触及 EMA20（{bars_away}根），scalp多",
-                    price=curr.close,
-                    stop_loss=stop,
-                    take_profit=target,
-                    probability=prob,
-                    cycle=cycle,
-                    timeframe=curr.timeframe,
-                )
-
-        elif cycle == "趋势空":
-            if curr.high >= ema20[-1] * 0.997 and curr.close < ema20[-1]:
-                pullback_high = max(c.high for c in candles[-5:])
-                stop = build_channel_recovery_stop("SELL", candles, pullback_high, curr.low, atr)
-                target = curr.close - (stop - curr.close) * rr_mult
-
-                return PASignal(
-                    symbol=curr.symbol,
-                    signal_type=label,
-                    direction="SELL",
-                    strength=strength,
-                    message=f"{'MAG: 20+根远离后' if is_mag else '均线缺口'}触及 EMA20（{bars_away}根），scalp空",
-                    price=curr.close,
-                    stop_loss=stop,
-                    take_profit=target,
-                    probability=prob,
-                    cycle=cycle,
-                    timeframe=curr.timeframe,
-                )
-
-        return None
+        candidates: list[PASignal] = []
+        for direction in directions:
+            sig = self._build_ema_gap_signal(
+                curr=curr,
+                candles=candles,
+                ema20=ema20,
+                cycle=cycle,
+                direction=direction,
+                first_reentry=False,
+                atr=atr,
+                gap_context_candles=gap_context_candles,
+                gap_context_ema20=gap_context_ema20,
+                gap_context_timeframe=gap_context_timeframe,
+            )
+            if sig:
+                candidates.append(sig)
+        return self._select_best_ema_gap_signal(candidates)
 
     # === 反转方案 ===
 
@@ -1978,10 +1878,9 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
         if broke_up and cycle == "趋势多":
             # 当前回调到突破点附近
             if curr.low <= range_high * 1.005 and curr.close > range_high:
-                # 信号棒质量检查
-                sbq = CandlePatterns.signal_bar_quality(
-                    curr, candles[-6:-1], "BUY")
-                if sbq < 0.45:
+                signal_profile = self._h1_l1_signal_bar_profile(curr, recent[-2], ema20[-1], "BUY")
+                sbq = CandlePatterns.signal_bar_quality(curr, candles[-6:-1], "BUY")
+                if sbq < 0.45 or not bool(signal_profile["valid_signal_bar"]):
                     return None
                 # 回调幅度检查
                 highest_after_breakout = max(c.high for c in recent)
@@ -1989,63 +1888,66 @@ class StrategyDetector(AdvancedStrategyDetectorMixin):
                 breakout_height = highest_after_breakout - range_high
 
                 if breakout_height > 0 and pullback_depth < breakout_height * 0.5:
-                    stop = build_channel_recovery_stop("BUY", candles, curr.high, curr.low, atr)
-                    target = curr.close + (curr.close - stop) * 2
-
-                    return PASignal(
-                        symbol=curr.symbol,
-                        signal_type="突破回调",
-                        direction="BUY",
-                        strength=85, # 顺势高分
-                        message="突破区间后回调至突破点，继续做多",
-                        price=curr.close,
-                        stop_loss=stop,
-                        take_profit=target,
-                        probability=0.65,
+                    signal = self._build_breakout_pullback_signal(
+                        curr=curr,
+                        candles=candles,
                         cycle=cycle,
-                        timeframe=curr.timeframe,
-                        signal_bar_high=curr.high,
-                        signal_bar_low=curr.low,
-                        entry_trigger=curr.high,
-                        entry_type="STOP",
-                        confirmation_needed=True,
+                        direction="BUY",
+                        strength=85,
+                        probability=0.65,
+                        message="突破区间后回调至突破点，继续做多",
+                        signal_profile=signal_profile,
+                        breakout_level=float(range_high),
+                        breakout_extreme=float(highest_after_breakout),
+                        atr=atr,
                     )
+                    if signal is not None:
+                        signal.extra.update(
+                            {
+                                "signal_bar_quality": sbq,
+                                "pullback_depth_ratio": float(pullback_depth / breakout_height),
+                                "breakout_level": float(range_high),
+                                "breakout_extreme": float(highest_after_breakout),
+                            }
+                        )
+                    return signal
 
         # 检测向下突破后的回调（只在确认趋势中）
         broke_down = any(c.close < range_low for c in recent[:-2])
         if broke_down and cycle == "趋势空":
             if curr.high >= range_low * 0.995 and curr.close < range_low:
-                # 信号棒质量检查
-                sbq = CandlePatterns.signal_bar_quality(
-                    curr, candles[-6:-1], "SELL")
-                if sbq < 0.45:
+                signal_profile = self._h1_l1_signal_bar_profile(curr, recent[-2], ema20[-1], "SELL")
+                sbq = CandlePatterns.signal_bar_quality(curr, candles[-6:-1], "SELL")
+                if sbq < 0.45 or not bool(signal_profile["valid_signal_bar"]):
                     return None
                 lowest_after_breakout = min(c.low for c in recent)
                 pullback_depth = curr.high - lowest_after_breakout
                 breakout_height = range_low - lowest_after_breakout
 
                 if breakout_height > 0 and pullback_depth < breakout_height * 0.5:
-                    stop = build_channel_recovery_stop("SELL", candles, curr.high, curr.low, atr)
-                    target = curr.close - (stop - curr.close) * 2
-
-                    return PASignal(
-                        symbol=curr.symbol,
-                        signal_type="突破回调",
-                        direction="SELL",
-                        strength=85, # 顺势高分
-                        message="突破区间后回调至突破点，继续做空",
-                        price=curr.close,
-                        stop_loss=stop,
-                        take_profit=target,
-                        probability=0.65,
+                    signal = self._build_breakout_pullback_signal(
+                        curr=curr,
+                        candles=candles,
                         cycle=cycle,
-                        timeframe=curr.timeframe,
-                        signal_bar_high=curr.high,
-                        signal_bar_low=curr.low,
-                        entry_trigger=curr.low,
-                        entry_type="STOP",
-                        confirmation_needed=True,
+                        direction="SELL",
+                        strength=85,
+                        probability=0.65,
+                        message="突破区间后回调至突破点，继续做空",
+                        signal_profile=signal_profile,
+                        breakout_level=float(range_low),
+                        breakout_extreme=float(lowest_after_breakout),
+                        atr=atr,
                     )
+                    if signal is not None:
+                        signal.extra.update(
+                            {
+                                "signal_bar_quality": sbq,
+                                "pullback_depth_ratio": float(pullback_depth / breakout_height),
+                                "breakout_level": float(range_low),
+                                "breakout_extreme": float(lowest_after_breakout),
+                            }
+                        )
+                    return signal
 
         return None
 
@@ -2375,19 +2277,19 @@ class PASignalEngine(BaseEngine):
         current_price = float(candles[-1].close)
         signal_time = candles[-1].timestamp
         context: dict[str, float | str | int | bool] = {"signal_timeframe": timeframe}
+        roles = resolve_timeframe_roles(timeframe)
+        context["structure_timeframe"] = roles.structure
+        context["main_context_timeframe"] = roles.context
+        context["anchor_timeframe"] = roles.anchor
+        # 兼容旧字段：higher_timeframe 统一视为“主背景周期”
+        context["higher_timeframe"] = roles.context
 
         daily_candles = self._fetch_candles(symbol, "1d", limit=8)
         daily_context = build_daily_playbook_context(daily_candles, current_price, signal_time, timeframe)
         if daily_context:
             context.update(daily_context)
 
-        higher_tf = {
-            "1m": "15m",
-            "5m": "1h",
-            "15m": "4h",
-            "30m": "4h",
-            "1h": "1d",
-        }.get(timeframe, "")
+        higher_tf = roles.context
         if not higher_tf:
             return context
 
@@ -2415,6 +2317,18 @@ class PASignalEngine(BaseEngine):
             context["htf_support_level"] = nearest_support
         if nearest_resistance > 0:
             context["htf_resistance_level"] = nearest_resistance
+
+        anchor_tf = roles.anchor
+        if anchor_tf and anchor_tf not in {higher_tf, "1d"}:
+            anchor_candles = self._fetch_candles(symbol, anchor_tf, limit=40)
+            if len(anchor_candles) >= 3:
+                anchor_window = anchor_candles[-30:] if len(anchor_candles) >= 30 else anchor_candles
+                anchor_swings = CycleIdentifier._find_swings(anchor_window)
+                anchor_support, anchor_resistance = self._nearest_levels_from_swings(current_price, anchor_swings)
+                if anchor_support > 0:
+                    context["anchor_support_level"] = anchor_support
+                if anchor_resistance > 0:
+                    context["anchor_resistance_level"] = anchor_resistance
 
         return context
 
@@ -3003,6 +2917,29 @@ class PASignalEngine(BaseEngine):
         market_state = CycleIdentifier.identify(candles, ema20)
         cycle = market_state.cycle  # 向后兼容的字符串
 
+        # EMA gap 族按 Brooks 的多周期 EMA 语义独立建模：
+        # 小周期执行图上，可以参考更大一级背景 EMA，而不是只看本周期 EMA。
+        gap_roles = resolve_timeframe_roles(timeframe)
+        gap_context_tf = gap_roles.context if gap_roles.context else timeframe
+        gap_context_candles = self._fetch_candles(symbol, gap_context_tf, limit=60) if gap_context_tf != timeframe else candles
+        gap_ema20 = (
+            project_higher_timeframe_ema(candles, gap_context_candles, period=20)
+            if gap_context_tf != timeframe
+            else ema20
+        )
+        if not gap_ema20 or len(gap_ema20) != len(candles):
+            gap_ema20 = ema20
+            gap_context_tf = timeframe
+            gap_context_candles = candles
+        gap_context_closes = [candle.close for candle in gap_context_candles]
+        gap_context_ema20 = calculate_ema(gap_context_closes, 20)
+        if gap_context_ema20:
+            gap_market_state = CycleIdentifier.identify(gap_context_candles, gap_context_ema20)
+        else:
+            gap_market_state = CycleIdentifier.identify(candles, gap_ema20)
+        gap_cycle = gap_market_state.cycle
+        gap_ch_type = gap_market_state.channel_type
+
         # V5.0: 八状态分类
         from engines.market_state_engine import classify_market_state
         v5_market_state = classify_market_state(market_state)
@@ -3075,16 +3012,6 @@ class PASignalEngine(BaseEngine):
                 if sig:
                     sig.timeframe = timeframe
                     signals.append(sig)
-            if is_allowed("20均线缺口"):
-                sig = self.detector.detect_ema_gap(candles, ema20, cycle, atr)
-                if sig:
-                    sig.timeframe = timeframe
-                    signals.append(sig)
-            if is_allowed("首次均线缺口"):
-                sig = self.detector.detect_first_ema_gap(candles, ema20, cycle, atr)
-                if sig:
-                    sig.timeframe = timeframe
-                    signals.append(sig)
             if is_allowed("市价追进"):
                 sig = self.detector.detect_buy_now(candles, ema20, atr)
                 if sig:
@@ -3099,16 +3026,6 @@ class PASignalEngine(BaseEngine):
         if cycle.startswith("趋势") and ch_type == "broad":
             if is_allowed("高2低2"):
                 sig = self.detector.detect_h2_l2(candles, ema20, cycle, atr)
-                if sig:
-                    sig.timeframe = timeframe
-                    signals.append(sig)
-            if is_allowed("20均线缺口"):
-                sig = self.detector.detect_ema_gap(candles, ema20, cycle, atr)
-                if sig:
-                    sig.timeframe = timeframe
-                    signals.append(sig)
-            if is_allowed("首次均线缺口"):
-                sig = self.detector.detect_first_ema_gap(candles, ema20, cycle, atr)
                 if sig:
                     sig.timeframe = timeframe
                     signals.append(sig)
@@ -3158,6 +3075,49 @@ class PASignalEngine(BaseEngine):
                 sig = self.detector.detect_fade_breakout(candles, ema20, cycle, atr)
                 if sig:
                     sig.timeframe = timeframe
+                    signals.append(sig)
+
+        # --- EMA gap 族：单独使用 gap 专属背景 EMA 角色，不再混用执行周期自身 EMA ---
+        if (
+            gap_cycle == "区间"
+            or (gap_cycle.startswith("趋势") and gap_ch_type in {"tight", "broad"})
+            or gap_cycle.startswith("急速")
+        ):
+            if is_allowed("20均线缺口"):
+                sig = self.detector.detect_ema_gap(
+                    candles,
+                    gap_ema20,
+                    gap_cycle,
+                    atr,
+                    gap_context_candles=gap_context_candles,
+                    gap_context_ema20=gap_context_ema20,
+                    gap_context_timeframe=gap_context_tf,
+                )
+                if sig:
+                    sig.timeframe = timeframe
+                    extra = dict(getattr(sig, "extra", {}) or {})
+                    extra["gap_reference_timeframe"] = gap_context_tf
+                    extra["gap_reference_cycle"] = gap_cycle
+                    extra["gap_reference_channel_type"] = gap_ch_type
+                    sig.extra = extra
+                    signals.append(sig)
+            if is_allowed("首次均线缺口"):
+                sig = self.detector.detect_first_ema_gap(
+                    candles,
+                    gap_ema20,
+                    gap_cycle,
+                    atr,
+                    gap_context_candles=gap_context_candles,
+                    gap_context_ema20=gap_context_ema20,
+                    gap_context_timeframe=gap_context_tf,
+                )
+                if sig:
+                    sig.timeframe = timeframe
+                    extra = dict(getattr(sig, "extra", {}) or {})
+                    extra["gap_reference_timeframe"] = gap_context_tf
+                    extra["gap_reference_cycle"] = gap_cycle
+                    extra["gap_reference_channel_type"] = gap_ch_type
+                    sig.extra = extra
                     signals.append(sig)
             if is_allowed("双重顶底"):
                 sig = self.detector.detect_double_top_bottom(candles, ema20, atr)

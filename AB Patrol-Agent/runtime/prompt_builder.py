@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import re
+import time
 from datetime import datetime, timezone
 from typing import Any
 
@@ -61,6 +63,134 @@ def frame_summary_text(frame: dict[str, Any]) -> str:
 class PromptBuilderMixin:
     """封装多品种 Prompt、知识引用与快通道构建。"""
 
+    def _append_quick_scan_event(self, event_map: dict[str, list[str]], timeframe: str, event: str) -> None:
+        """向快扫事件图里追加事件，自动去重。"""
+        normalized_timeframe = str(timeframe or "5m").strip().lower() or "5m"
+        normalized_event = str(event or "").strip()
+        if not normalized_event:
+            return
+        bucket = event_map.setdefault(normalized_timeframe, [])
+        if normalized_event not in bucket:
+            bucket.append(normalized_event)
+
+    def _signal_events_from_text(self, signal_text: str) -> list[str]:
+        """从缓存信号文本里提取 H/L 结构事件。"""
+        normalized = str(signal_text or "").upper()
+        events: list[str] = []
+        for token in re.findall(r"\b(H[1-4]|L[1-4])\b", normalized):
+            prefix = "signal_trigger" if token in {"H1", "L1"} else "hl_signal"
+            event = f"{prefix}:{token}"
+            if event not in events:
+                events.append(event)
+        return events
+
+    def build_quick_scan_event_map(
+        self,
+        symbol: str,
+        cached: dict[str, Any],
+        live: dict[str, Any],
+        trigger: dict[str, Any] | None,
+    ) -> dict[str, list[str]]:
+        """用缓存字段和轻量行情构建快扫事件，避免全量 AB 深分析。"""
+        event_map: dict[str, list[str]] = {}
+        state = self.current_market_state(cached, {})
+        if state:
+            self._append_quick_scan_event(event_map, "5m", f"state:{state}")
+
+        signal_text = " ".join(
+            str(part).strip()
+            for part in (
+                cached.get("signal"),
+                cached.get("pre_signal"),
+                (cached.get("trade") or {}).get("signal"),
+                (cached.get("planned_trade") or {}).get("signal"),
+            )
+            if str(part or "").strip()
+        )
+        for event in self._signal_events_from_text(signal_text):
+            self._append_quick_scan_event(event_map, "5m", event)
+
+        if cached.get("pre_signal"):
+            self._append_quick_scan_event(event_map, "5m", "cached_pre_signal")
+        if int(cached.get("consecutive_watching") or 0) >= 6:
+            self._append_quick_scan_event(event_map, "5m", "stale:consecutive_watching")
+
+        planned_trade = cached.get("planned_trade") if isinstance(cached.get("planned_trade"), dict) else {}
+        if planned_trade.get("entry_price") or planned_trade.get("entry_zone"):
+            self._append_quick_scan_event(event_map, "5m", "signal_trigger:planned_trade")
+
+        if state == "TR":
+            key_levels = cached.get("key_levels") if isinstance(cached.get("key_levels"), dict) else {}
+            if key_levels.get("support") or key_levels.get("resistance"):
+                self._append_quick_scan_event(event_map, "5m", "tr_edge:cached")
+
+        heuristic_text = " ".join(
+            str(part or "")
+            for part in (
+                cached.get("market_state_detail"),
+                cached.get("structure_summary"),
+                cached.get("thesis"),
+                cached.get("running_narrative"),
+                cached.get("pre_signal"),
+                (cached.get("entry_idea") or {}).get("filter_summary"),
+                (cached.get("entry_idea") or {}).get("upgrade_condition"),
+                (cached.get("evaluation") or {}).get("risk"),
+                (cached.get("evaluation") or {}).get("execution_decision"),
+                (cached.get("trade") or {}).get("reason"),
+            )
+        ).lower()
+
+        if any(token in heuristic_text for token in ("wedge", "楔", "mtr", "双顶", "双底", "反转", "reversal")):
+            self._append_quick_scan_event(event_map, "5m", "wedge_or_mtr")
+        if any(token in heuristic_text for token in ("momentum fading", "动能衰竭", "动能减弱", "衰竭")):
+            self._append_quick_scan_event(event_map, "5m", "momentum_fading")
+        if any(token in heuristic_text for token in ("climax", "高潮", "过热")):
+            self._append_quick_scan_event(event_map, "5m", "climax_suspected")
+        if any(token in heuristic_text for token in ("ema", "回踩", "pullback", "首回调", "first pullback")):
+            self._append_quick_scan_event(event_map, "5m", "ema_touch")
+        if any(token in heuristic_text for token in ("first pullback", "首回调")):
+            self._append_quick_scan_event(event_map, "5m", "first_pb:cached")
+
+        live_5m = live.get("5m") if isinstance(live.get("5m"), dict) else {}
+        live_15m = live.get("15m") if isinstance(live.get("15m"), dict) else {}
+        for timeframe, block in (("5m", live_5m), ("15m", live_15m)):
+            summary_text = frame_summary_text(block).lower()
+            if "always in" in summary_text and state in {"BO", "TC", "BC", "SC"}:
+                self._append_quick_scan_event(event_map, timeframe, f"state:{state}")
+            if any(token in summary_text for token in ("回调至 ema", "touch ema", "ema 上方", "ema 下方")):
+                self._append_quick_scan_event(event_map, timeframe, "ema_touch")
+            if "first pullback" in summary_text:
+                self._append_quick_scan_event(event_map, timeframe, f"first_pb:{timeframe}")
+
+        if trigger and str(trigger.get("symbol") or "").upper() == symbol:
+            trigger_interval = str(trigger.get("interval") or "5m").lower()
+            self._append_quick_scan_event(
+                event_map,
+                trigger_interval,
+                f"trigger:{trigger.get('trigger_type')}",
+            )
+
+        return event_map
+
+    def should_build_chart_context(
+        self,
+        symbol: str,
+        phase_plan: dict[str, Any],
+        symbol_cache: dict[str, Any],
+        quick_scan_events: dict[str, Any],
+        trigger: dict[str, Any] | None,
+    ) -> bool:
+        """只给临近交易或需要管理的品种生成图表上下文。"""
+        cached = symbol_cache.get(symbol, {}) if isinstance(symbol_cache.get(symbol), dict) else {}
+        status = str(cached.get("status") or "").lower()
+        if status in {"pre_signal", "entry_ready", "entry_ready_blocked", "in_trade", "manage"}:
+            return True
+        if trigger and str(trigger.get("symbol") or "").upper() == symbol:
+            return True
+        if symbol in {str(item).upper() for item in (phase_plan.get("manage_symbols") or []) if item}:
+            return True
+        return False
+
     def _symbol_prompt_context(
         self,
         symbol: str,
@@ -78,6 +208,7 @@ class PromptBuilderMixin:
             "close_read_target_bars": 20,
         }
         detail_limits = {
+            "1m": 10,
             "5m": 8,
             "15m": 6,
             "30m": 4,
@@ -89,7 +220,7 @@ class PromptBuilderMixin:
             if str(timeframe).lower() in detail_limits
         }
         detail_timeframes = event_timeframes or ({"5m", "15m"} if deep_analysis else set())
-        for timeframe in ("5m", "15m", "30m", "1h", "4h", "1d"):
+        for timeframe in ("1m", "5m", "15m", "30m", "1h", "4h", "1d"):
             block = live.get(timeframe) if isinstance(live, dict) else {}
             if not isinstance(block, dict):
                 continue
@@ -100,7 +231,7 @@ class PromptBuilderMixin:
                 "summary": frame_summary_text(block),
                 "bar_count_total": len(bars),
             }
-            if timeframe in {"5m", "15m", "1h"}:
+            if timeframe in {"1m", "5m", "15m", "1h"}:
                 frame_payload["ema20"] = block.get("ema20")
                 frame_payload["atr14"] = block.get("atr14")
                 frame_payload["price_vs_ema"] = block.get("price_vs_ema")
@@ -120,7 +251,10 @@ class PromptBuilderMixin:
             "cached_state": prompt_cached_state(cached),
             "live_timeframes": frames,
             "ab_context": self.prompt_ab_context(ab_context),
-            "quick_scan": shrink_prompt_value(ab_context.get("quick_scan") if isinstance(ab_context, dict) else {}),
+            "quick_scan": shrink_prompt_value(
+                (ab_context.get("quick_scan") if isinstance(ab_context, dict) else {})
+                or (event_map if isinstance(event_map, dict) else {})
+            ),
         }
 
     def _recent_trade_context(self) -> dict[str, Any]:
@@ -338,7 +472,8 @@ class PromptBuilderMixin:
         execution: dict[str, Any],
     ) -> tuple[str, dict[str, str], dict[str, Any]]:
         positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
-        budget_chars = 65000 if self.config.decision_provider == "openclaw" else 100000
+        provider_name = str(self.config.decision_provider or "").strip().lower()
+        budget_chars = 65000 if provider_name in {"openclaw", "openclaw_oauth", "llm_gateway", "llm"} else 100000
         if positions:
             budget_chars += 12000
         if phase_plan.get("full_refresh"):
@@ -376,51 +511,56 @@ class PromptBuilderMixin:
         execution: dict[str, Any],
         trigger: dict[str, Any] | None,
         phase_plan: dict[str, Any],
-    ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+    ) -> dict[str, Any]:
         symbol_cache = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
+        focus_symbols = [str(symbol).upper() for symbol in (phase_plan.get("focus_symbols") or []) if str(symbol).strip()]
+        profile: dict[str, float] = {}
 
+        def mark_stage(name: str, started_at: float) -> None:
+            profile[name] = round((time.perf_counter() - started_at) * 1000, 2)
+
+        stage_started = time.perf_counter()
         market_live: dict[str, Any] = {}
-        ab_context_by_symbol: dict[str, Any] = {}
-        for symbol in phase_plan["focus_symbols"]:
-            live = self.fetch_symbol_market(symbol)
-            market_live[symbol] = live
-            ab_context = self.build_ab_context(symbol)
-            ab_context_by_symbol[symbol] = ab_context
+        if focus_symbols:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(focus_symbols))) as pool:
+                future_map = {
+                    symbol: pool.submit(self.fetch_symbol_market, symbol, include_context_frames=False)
+                    for symbol in focus_symbols
+                }
+                for symbol, future in future_map.items():
+                    try:
+                        live = future.result()
+                    except Exception as exc:
+                        live = {"_error": str(exc)}
+                    market_live[symbol] = live if isinstance(live, dict) else {}
+        mark_stage("prepare_fetch_base_market_ms", stage_started)
 
         quick_scan_events: dict[str, Any] = {}
-        for symbol in phase_plan["focus_symbols"]:
+        stage_started = time.perf_counter()
+        for symbol in focus_symbols:
             cached = symbol_cache.get(symbol, {})
-            ab_context = ab_context_by_symbol.get(symbol, {})
-            event_map = dict(ab_context.get("quick_scan") or {}) if isinstance(ab_context, dict) else {}
-            primary_state = self.current_market_state(cached, ab_context)
-            cached_state = str(cached.get("market_state") or "")
-            if primary_state:
-                event_map.setdefault("5m", [])
-                if f"state:{primary_state}" not in event_map["5m"]:
-                    event_map["5m"].append(f"state:{primary_state}")
-            if cached_state and primary_state and cached_state != primary_state:
-                event_map.setdefault("5m", []).append(f"state_change:{cached_state}->{primary_state}")
-            if cached.get("pre_signal"):
-                event_map.setdefault("5m", []).append("cached_pre_signal")
-            if int(cached.get("consecutive_watching") or 0) >= 6:
-                event_map.setdefault("5m", []).append("stale:consecutive_watching")
-            if trigger and trigger.get("symbol") == symbol:
-                event_map.setdefault(str(trigger.get("interval") or "5m"), []).append(f"trigger:{trigger.get('trigger_type')}")
+            live = market_live.get(symbol, {})
+            event_map = self.build_quick_scan_event_map(symbol, cached, live, trigger)
             if event_map:
                 quick_scan_events[symbol] = event_map
+        mark_stage("prepare_quick_scan_ms", stage_started)
 
+        stage_started = time.perf_counter()
+        deep_budget = 5 if phase_plan.get("full_refresh") else 3
+        deep_budget += 1 if trigger and trigger.get("symbol") else 0
+        deep_budget = min(len(focus_symbols), max(deep_budget, len(phase_plan.get("manage_symbols") or [])))
         ranked_deep_candidates = self.ranked_eventful_symbols(
             phase_plan,
             symbol_cache,
             quick_scan_events,
-            limit=len(phase_plan["focus_symbols"]),
-            min_score=1,
+            limit=deep_budget,
+            min_score=35,
         )
 
         deep_symbols: set[str] = set()
         deep_symbols.update(str(item).upper() for item in (phase_plan.get("manage_symbols") or []) if item)
         deep_symbols.update(ranked_deep_candidates)
-        for symbol in phase_plan["focus_symbols"]:
+        for symbol in focus_symbols:
             cached = symbol_cache.get(symbol, {})
             status = str(cached.get("status") or "").lower()
             if status in {"pre_signal", "entry_ready", "entry_ready_blocked", "in_trade", "manage"}:
@@ -428,8 +568,56 @@ class PromptBuilderMixin:
             if trigger and str(trigger.get("symbol") or "").upper() == symbol:
                 deep_symbols.add(symbol)
 
+        ab_context_by_symbol: dict[str, Any] = {symbol: {} for symbol in focus_symbols}
+        deep_context_symbols = [symbol for symbol in focus_symbols if symbol in deep_symbols]
+        if deep_context_symbols:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(deep_context_symbols) * 2)) as pool:
+                live_futures = {
+                    symbol: pool.submit(self.fetch_symbol_market, symbol, include_context_frames=True)
+                    for symbol in deep_context_symbols
+                }
+                ab_futures = {
+                    symbol: pool.submit(self.build_ab_context, symbol)
+                    for symbol in deep_context_symbols
+                }
+                for symbol, future in live_futures.items():
+                    try:
+                        live = future.result()
+                    except Exception as exc:
+                        live = {"_error": str(exc)}
+                    market_live[symbol] = live if isinstance(live, dict) else market_live.get(symbol, {})
+                for symbol, future in ab_futures.items():
+                    try:
+                        ab_context = future.result()
+                    except Exception as exc:
+                        ab_context = {"_error": str(exc)}
+                    ab_context_by_symbol[symbol] = ab_context if isinstance(ab_context, dict) else {}
+        mark_stage("prepare_deep_context_ms", stage_started)
+
         analysis_board: dict[str, Any] = {}
-        for symbol in phase_plan["focus_symbols"]:
+        chart_symbols = [
+            symbol
+            for symbol in deep_context_symbols
+            if self.should_build_chart_context(symbol, phase_plan, symbol_cache, quick_scan_events, trigger)
+        ]
+        chart_contexts: dict[str, Any] = {}
+        stage_started = time.perf_counter()
+        if chart_symbols:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(2, len(chart_symbols))) as pool:
+                future_map = {
+                    symbol: pool.submit(self.build_chart_context, symbol, market_live.get(symbol, {}))
+                    for symbol in chart_symbols
+                }
+                for symbol, future in future_map.items():
+                    try:
+                        context = future.result()
+                    except Exception as exc:
+                        context = {"chart_note": f"图表上下文构建失败: {exc}"}
+                    chart_contexts[symbol] = context if isinstance(context, dict) else {}
+        mark_stage("prepare_chart_context_ms", stage_started)
+
+        stage_started = time.perf_counter()
+        for symbol in focus_symbols:
             live = market_live.get(symbol, {})
             event_map = quick_scan_events.get(symbol) if isinstance(quick_scan_events.get(symbol), dict) else {}
             board = self._symbol_prompt_context(
@@ -440,11 +628,11 @@ class PromptBuilderMixin:
                 deep_analysis=symbol in deep_symbols,
                 event_map=event_map,
             )
-            if symbol in deep_symbols:
-                chart_context = self.build_chart_context(symbol, live)
-                if chart_context:
-                    board["chart_context"] = chart_context
+            chart_context = chart_contexts.get(symbol) if isinstance(chart_contexts.get(symbol), dict) else {}
+            if chart_context:
+                board["chart_context"] = chart_context
             analysis_board[symbol] = board
+        mark_stage("prepare_build_board_ms", stage_started)
 
         prepared = {
             "symbol_cache": symbol_cache,
@@ -452,8 +640,80 @@ class PromptBuilderMixin:
             "ab_context_by_symbol": ab_context_by_symbol,
             "quick_scan_events": quick_scan_events,
             "analysis_board": analysis_board,
+            "profile": profile,
+            "deep_symbols": list(deep_symbols),
+            "chart_symbols": chart_symbols,
         }
         return prepared
+
+    def prepare_rule_engine_context(
+        self,
+        runtime: dict[str, Any],
+        market_cache: dict[str, Any],
+        execution: dict[str, Any],
+        trigger: dict[str, Any] | None,
+        phase_plan: dict[str, Any],
+    ) -> dict[str, Any]:
+        """纯规则引擎路径的轻量上下文准备，避免无效深挖拖慢首轮 cycle。"""
+        symbol_cache = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
+        focus_symbols = [str(symbol).upper() for symbol in (phase_plan.get("focus_symbols") or []) if str(symbol).strip()]
+        profile: dict[str, float] = {}
+
+        def mark_stage(name: str, started_at: float) -> None:
+            profile[name] = round((time.perf_counter() - started_at) * 1000, 2)
+
+        stage_started = time.perf_counter()
+        market_live: dict[str, Any] = {}
+        if focus_symbols:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(focus_symbols))) as pool:
+                future_map = {
+                    symbol: pool.submit(self.fetch_symbol_market, symbol, include_context_frames=False)
+                    for symbol in focus_symbols
+                }
+                for symbol, future in future_map.items():
+                    try:
+                        live = future.result()
+                    except Exception as exc:
+                        live = {"_error": str(exc)}
+                    market_live[symbol] = live if isinstance(live, dict) else {}
+        mark_stage("prepare_fetch_base_market_ms", stage_started)
+
+        quick_scan_events: dict[str, Any] = {}
+        stage_started = time.perf_counter()
+        for symbol in focus_symbols:
+            cached = symbol_cache.get(symbol, {})
+            live = market_live.get(symbol, {})
+            event_map = self.build_quick_scan_event_map(symbol, cached, live, trigger)
+            if event_map:
+                quick_scan_events[symbol] = event_map
+        mark_stage("prepare_quick_scan_ms", stage_started)
+
+        analysis_board: dict[str, Any] = {}
+        ab_context_by_symbol: dict[str, Any] = {symbol: {} for symbol in focus_symbols}
+        stage_started = time.perf_counter()
+        for symbol in focus_symbols:
+            live = market_live.get(symbol, {})
+            event_map = quick_scan_events.get(symbol) if isinstance(quick_scan_events.get(symbol), dict) else {}
+            analysis_board[symbol] = self._symbol_prompt_context(
+                symbol,
+                live,
+                symbol_cache.get(symbol, {}),
+                {},
+                deep_analysis=False,
+                event_map=event_map,
+            )
+        mark_stage("prepare_build_board_ms", stage_started)
+
+        return {
+            "symbol_cache": symbol_cache,
+            "market_live": market_live,
+            "ab_context_by_symbol": ab_context_by_symbol,
+            "quick_scan_events": quick_scan_events,
+            "analysis_board": analysis_board,
+            "profile": profile,
+            "deep_symbols": [],
+            "chart_symbols": [],
+        }
 
     def build_prompt_from_context(
         self,

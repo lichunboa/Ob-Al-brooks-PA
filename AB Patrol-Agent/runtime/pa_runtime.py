@@ -2,15 +2,14 @@
 """AB Patrol-Agent runtime for PA交易 Crypto.
 
 This runtime restores the old Claude patrol loop around the original
-`patrol-l1` skill and S-files. OpenClaw remains the operator / Telegram
-host, while the decision engine can run on an independent provider.
+`patrol-l1` skill and S-files。实盘链以规则引擎为主，LLM 仅作为可选增强，
+不会成为运行主链的硬依赖。
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
 import json
 import logging
 import os
@@ -33,6 +32,31 @@ from brooks_filter import BrooksFilterMixin
 from chart_manager import ChartManagerMixin
 from config import Config
 from http_runtime import HttpRuntimeMixin
+from live_cycle_finalize_mixin import LiveCycleFinalizeMixin
+from live_execution_mixin import LiveExecutionMixin
+from live_followup_mixin import LiveFollowupStateMixin
+from live_management_mixin import LiveManagementMixin
+from live_market_cache_mixin import LiveMarketCacheMixin
+from live_open_bridge_mixin import LiveOpenBridgeMixin
+from live_patch_state import (
+    patch_has_fresh_live_opportunity as _patch_has_fresh_live_opportunity,
+    patch_is_expired_or_stale as _patch_is_expired_or_stale,
+    release_fresh_live_opportunity_state as _release_fresh_live_opportunity_state,
+)
+from live_runtime_state_mixin import LiveRuntimeStateMixin
+from live_safety_net_mixin import LiveSafetyNetMixin
+from live_symbol_merge import (
+    hydrate_symbol_payload_from_analysis as _hydrate_symbol_payload_from_analysis,
+    merge_symbol_patch_with_mag_bridge as _merge_symbol_patch_with_mag_bridge,
+    merge_symbol_payload as _merge_symbol_payload,
+)
+from live_timeout_fallback_mixin import LiveTimeoutFallbackMixin
+from libs.backtest.strategy_filters import (
+    expand_strategy_context,
+    parse_live_strategy_scope,
+    resolve_live_strategy_selection,
+    selection_matches_context,
+)
 from notification_renderer import NotificationRendererMixin
 from prompt_builder import PromptBuilderMixin
 from state_manager import StateManagerMixin
@@ -44,18 +68,22 @@ from signal_analyzer import (
     validation_seed_state,
 )
 from env_loader import load_agent_env
+from execution_targets import (
+    build_execution_targets,
+    build_symbol_exchange_map,
+    normalize_exchange,
+    primary_target_exchange,
+)
 from path_layout import data_run_dir
 from providers import DecisionProviderConfig, build_decision_provider
-from aggressive_mode import should_execute_aggressive, identify_strategy, get_aggressive_mode_status
-from rule_engine import get_executable_trades, analyze_all_symbols
+from rule_engine import get_executable_trades
+from trading.execution_intent import build_open_order_action, build_runtime_symbol_patch
 from utils import (
     all_floats,
-    append_jsonl,
     bar_range,
     build_execution_semantics,
     canonical_action_type,
     cap_status,
-    candidate_stage_cn,
     classify_primary_s6_reference,
     combine_brooks_text,
     compact_bar_record,
@@ -91,30 +119,267 @@ from utils import (
     truncate_text,
     utc_iso,
     utc_now,
-    write_json,
     write_text,
+    write_json,
 )
 
-# 2026-03-09: 导入优化模块（7 个核心优化）
-try:
-    from pa_runtime_optimizations import (
-        validate_trader_equation,
-        simplify_status,
-        validate_signal_bar,
-        calculate_context_score,
-        should_trigger_deep_analysis,
-        extract_trigger_timeframes,
-        detect_scalp_trigger,
-        scalp_fast_lane,
-        FearDetector,
-        validate_h1_entry,
+
+def _infer_live_strategy_family(*values: Any) -> str:
+    """从 live 运行态文本里推断策略族，避免 Web 只能看到旧口径。"""
+    parts: list[str] = []
+    for value in values:
+        if isinstance(value, str):
+            text = value.strip()
+            if text:
+                parts.append(text)
+        elif isinstance(value, dict):
+            text = json.dumps(value, ensure_ascii=False)
+            if text:
+                parts.append(text)
+        elif isinstance(value, list):
+            text = json.dumps(value, ensure_ascii=False)
+            if text:
+                parts.append(text)
+    blob = " ".join(parts).upper()
+    if not blob:
+        return ""
+    if "EMA_GAP_MAG" in blob or "MAG 20/20" in blob or re.search(r"(?<![A-Z0-9])MAG(?![A-Z0-9])", blob):
+        return "MAG"
+    if "FIRST_EMA_GAP" in blob or "第一均线缺口" in blob:
+        return "第一均线缺口"
+    if "EMA_GAP" in blob or "20均线缺口" in blob or "20EMA GAP" in blob:
+        return "20均线缺口"
+    for token in ("H1", "H2", "L1", "L2"):
+        if re.search(rf"(?<![A-Z0-9]){token}(?![A-Z0-9])", blob) or f"{token}@" in blob or f":{token}@" in blob:
+            return token
+    return ""
+
+def _canonical_live_strategy_key(*values: Any) -> str:
+    """把 live 侧的策略文本归一成可比较的冲突键。"""
+    parts: list[str] = []
+    for value in values:
+        if isinstance(value, str):
+            text = value.strip()
+            if text:
+                parts.append(text)
+        elif isinstance(value, dict):
+            text = json.dumps(value, ensure_ascii=False)
+            if text:
+                parts.append(text)
+        elif isinstance(value, list):
+            text = json.dumps(value, ensure_ascii=False)
+            if text:
+                parts.append(text)
+    blob = " ".join(parts).upper()
+    if not blob:
+        return ""
+    if "T3_MAG_2020_SETUP" in blob or "MAG 20/20" in blob:
+        return "T3_MAG_2020_SETUP"
+    if "T3_FIRST_EMA_GAP_REENTRY" in blob or "FIRST_EMA_GAP" in blob or "第一均线缺口" in blob:
+        return "T3_FIRST_EMA_GAP_REENTRY"
+    if "T3_EMA_GAP_CONTINUATION" in blob or "20EMA GAP CONTINUATION" in blob or "20均线缺口" in blob:
+        return "T3_EMA_GAP_CONTINUATION"
+    if "T2_BROAD_CHANNEL_RECOVERY" in blob or "BROAD CHANNEL RECOVERY" in blob or "宽通道恢复" in blob:
+        return "T2_BROAD_CHANNEL_RECOVERY"
+    if "T2_TREND_H2" in blob or "TREND SECOND ENTRY" in blob or "趋势二次入场" in blob:
+        return "T2_TREND_H2"
+    if "T1_H1_AFTER_BO" in blob or "H1/L1 AFTER BO" in blob or "首次入场" in blob:
+        return "T1_H1_AFTER_BO"
+    family = _infer_live_strategy_family(*values)
+    if family:
+        return family.upper()
+    for text in parts:
+        normalized = str(text).strip().upper()
+        if normalized and normalized not in {"AUTO", "WAIT", "WATCH", "WATCH_ONLY"}:
+            return normalized
+    return ""
+
+
+def _enrich_live_symbol_patch(
+    patch: dict[str, Any],
+    *,
+    trade: dict[str, Any] | None = None,
+    action: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """把规则引擎识别结果补回 symbol patch，确保 runtime_state 能带出最新策略族。"""
+    enriched = dict(patch or {})
+    trade_data = trade if isinstance(trade, dict) else {}
+    action_data = action if isinstance(action, dict) else {}
+    planned_trade = enriched.get("planned_trade") if isinstance(enriched.get("planned_trade"), dict) else {}
+    planned_trade = dict(planned_trade)
+
+    def _contains_mag_identity(value: Any) -> bool:
+        text = str(value or "").strip().upper()
+        return bool(text) and ("MAG" in text or "T3_MAG_2020_SETUP" in text)
+
+    primary_contexts = [
+        str(enriched.get("brooks_label") or "").strip(),
+        str(enriched.get("signal_type") or "").strip(),
+        str(planned_trade.get("brooks_label") or "").strip(),
+    ]
+    has_non_mag_primary = any(text and not _contains_mag_identity(text) for text in primary_contexts)
+    if str(enriched.get("ema_gap_variant") or "").strip().upper() == "MAG" and has_non_mag_primary:
+        for field in (
+            "strategy",
+            "strategy_hint",
+            "strategy_family",
+            "latest_strategy_family",
+            "playbook_family",
+            "playbook_id",
+            "management_template",
+        ):
+            if _contains_mag_identity(enriched.get(field)):
+                enriched.pop(field, None)
+        for field in (
+            "strategy",
+            "playbook_family",
+            "playbook_id",
+            "management_template",
+            "signal_type",
+        ):
+            if _contains_mag_identity(planned_trade.get(field)):
+                planned_trade.pop(field, None)
+
+    strategy = str(
+        trade_data.get("strategy")
+        or action_data.get("strategy")
+        or planned_trade.get("strategy")
+        or enriched.get("strategy")
+        or ""
+    ).strip()
+    playbook_id = str(
+        trade_data.get("playbook_id")
+        or action_data.get("playbook_id")
+        or planned_trade.get("playbook_id")
+        or enriched.get("playbook_id")
+        or strategy
+    ).strip()
+    playbook_family = str(
+        trade_data.get("playbook_family")
+        or action_data.get("playbook_family")
+        or planned_trade.get("playbook_family")
+        or enriched.get("playbook_family")
+        or ""
+    ).strip()
+    brooks_label = str(
+        planned_trade.get("brooks_label")
+        or action_data.get("brooks_label")
+        or enriched.get("brooks_label")
+        or ""
+    ).strip()
+    signal_type = str(
+        enriched.get("signal_type")
+        or trade_data.get("signal_type")
+        or action_data.get("signal_type")
+        or planned_trade.get("signal_type")
+        or enriched.get("signal")
+        or ""
+    ).strip()
+    timeframes = trade_data.get("timeframes") if isinstance(trade_data.get("timeframes"), list) else []
+    if timeframes and not planned_trade.get("timeframes"):
+        planned_trade["timeframes"] = timeframes
+    if timeframes and not planned_trade.get("timeframe"):
+        planned_trade["timeframe"] = str(timeframes[0])
+    if strategy and not planned_trade.get("strategy"):
+        planned_trade["strategy"] = strategy
+    if signal_type and not planned_trade.get("signal_type"):
+        planned_trade["signal_type"] = signal_type
+    if playbook_id and not planned_trade.get("playbook_id"):
+        planned_trade["playbook_id"] = playbook_id
+    if action_data.get("management_template") and not planned_trade.get("management_template"):
+        planned_trade["management_template"] = action_data.get("management_template")
+    trade_candidate_stage = str(trade_data.get("candidate_stage") or action_data.get("candidate_stage") or "").strip().upper()
+    trade_execution_mode = str(trade_data.get("execution_mode") or action_data.get("execution_mode") or "").strip().upper()
+    if trade_candidate_stage or trade_execution_mode:
+        execution_semantics = (
+            planned_trade.get("execution_semantics")
+            if isinstance(planned_trade.get("execution_semantics"), dict)
+            else {}
+        )
+        execution_semantics = dict(execution_semantics)
+        if trade_candidate_stage:
+            execution_semantics["candidate_stage"] = trade_candidate_stage
+        if trade_execution_mode:
+            execution_semantics["execution_mode"] = trade_execution_mode
+        planned_trade["execution_semantics"] = execution_semantics
+        if trade_candidate_stage:
+            planned_trade["candidate_stage"] = trade_candidate_stage
+            enriched["candidate_stage"] = trade_candidate_stage
+        if trade_execution_mode:
+            planned_trade["execution_mode"] = trade_execution_mode
+            enriched["execution_mode"] = trade_execution_mode
+
+    family = _infer_live_strategy_family(
+        strategy,
+        signal_type,
+        playbook_family,
+        playbook_id,
+        brooks_label,
+        planned_trade.get("strategy"),
+        planned_trade.get("signal_type"),
+        planned_trade.get("playbook_family"),
+        planned_trade.get("playbook_id"),
+        enriched.get("signal"),
+        enriched.get("pre_signal"),
     )
-    OPTIMIZATIONS_ENABLED = True
-    LOG_OPTIMIZATION = lambda msg: LOG.info(f"[OPTIMIZATION] {msg}")
-except ImportError as e:
-    OPTIMIZATIONS_ENABLED = False
-    LOG_OPTIMIZATION = lambda msg: LOG.warning(f"[OPTIMIZATION-DISABLED] {msg}")
-    LOG.warning(f"优化模块导入失败，使用原始逻辑: {e}")
+
+    def _normalize_primary_strategy_from_family(family_value: str) -> tuple[str, str]:
+        normalized_family = str(family_value or "").strip().upper()
+        if normalized_family in {"H1", "L1"}:
+            return ("T1: H1/L1 after BO", "T1: H1/L1 after BO")
+        if normalized_family in {"H2", "L2"}:
+            return ("T2: H2/L2 broad channel recovery", "T2: H2/L2 broad channel recovery")
+        return ("", "")
+
+    if family in {"H1", "L1", "H2", "L2"}:
+        current_strategy = str(strategy or "").strip()
+        current_playbook = str(playbook_id or "").strip()
+        current_planned_strategy = str(planned_trade.get("strategy") or "").strip()
+        current_planned_playbook = str(planned_trade.get("playbook_id") or "").strip()
+        mag_identity_present = any(
+            _contains_mag_identity(value)
+            for value in (
+                current_strategy,
+                current_playbook,
+                current_planned_strategy,
+                current_planned_playbook,
+                enriched.get("strategy"),
+                enriched.get("playbook_id"),
+            )
+        )
+        if mag_identity_present:
+            normalized_strategy, normalized_playbook = _normalize_primary_strategy_from_family(family)
+            strategy = normalized_strategy or current_strategy
+            playbook_id = normalized_playbook or current_playbook or strategy
+            playbook_family = family
+            planned_trade["strategy"] = strategy
+            planned_trade["playbook_id"] = playbook_id
+            planned_trade["playbook_family"] = family
+            enriched["strategy"] = strategy
+            enriched["playbook_id"] = playbook_id
+            enriched["playbook_family"] = family
+
+    if family:
+        enriched["latest_strategy_family"] = family
+        enriched["strategy_family"] = family
+        if not playbook_family:
+            playbook_family = family
+        if not planned_trade.get("playbook_family"):
+            planned_trade["playbook_family"] = family
+
+    if strategy:
+        enriched["strategy"] = strategy
+    if signal_type:
+        enriched["signal_type"] = signal_type
+    if playbook_id:
+        enriched["playbook_id"] = playbook_id
+    if playbook_family:
+        enriched["playbook_family"] = playbook_family
+    if brooks_label:
+        enriched["brooks_label"] = brooks_label
+    if planned_trade:
+        enriched["planned_trade"] = planned_trade
+    return enriched
 
 
 LOG = logging.getLogger("ab_patrol_runtime")
@@ -130,47 +395,17 @@ PRE_SIGNAL_EXTENSION_SECONDS = {
     "30m": 60 * 60,
     "1h": 60 * 60,
 }
-MODEL_TRANSIENT_FIELDS = (
-    "priority",
-    "priority_score",
-    "priority_note",
-    "align_score",
-    "ai_direction",
-    "market_state",
-    "market_state_detail",
-    "structure_summary",
-    "running_narrative",
-    "pre_signal",
-    "pre_signal_meta",
-    "signal",
-    "key_levels",
-    "entry_idea",
-    "evaluation",
-    "thesis",
-    "scenarios",
-    "trade",
-    "timeframes",
-    "refs",
-    "ema20",
-    "atr14",
-    "ema20_5m",
-    "atr14_5m",
-    "ema20_15m",
-    "atr14_15m",
-    "last_price",
-    "last_signal",
-    "last_quick_scan_state",
-    "bc_sc_guard",
-    "summary",
-    "decision",
-    "reason",
-    "next_trigger",
-    "source_cycle_id",
-    "updated_at",
-    "updated_by",
-)
 
 class PatrolRuntime(
+    LiveCycleFinalizeMixin,
+    LiveTimeoutFallbackMixin,
+    LiveMarketCacheMixin,
+    LiveExecutionMixin,
+    LiveRuntimeStateMixin,
+    LiveSafetyNetMixin,
+    LiveManagementMixin,
+    LiveOpenBridgeMixin,
+    LiveFollowupStateMixin,
     NotificationRendererMixin,
     PromptBuilderMixin,
     StateManagerMixin,
@@ -191,14 +426,18 @@ class PatrolRuntime(
         self.market_state_path = config.data_root / "market_state_l1.json"
         self.pid_path = self.run_dir / "service.pid"
         self.log_path = self.run_dir / "service.log"
-        self.trigger_ack_path = Path.home() / ".openclaw" / "patrol-l1-trigger.ack.json"
+        self.trigger_ack_path = self.state_dir / "patrol-l1-trigger.ack.json"
         self.last_trigger_mtime = 0
         self.last_trigger_digest = ""
         self.chart_refresh_state: dict[str, float] = {}
+        self.chart_generation_disabled_reason: str | None = None
+        self.market_fetch_cache: dict[str, dict[str, Any]] = {}
+        self.ab_context_cache: dict[str, dict[str, Any]] = {}
+        self.chart_context_cache: dict[str, dict[str, Any]] = {}
         self.decision_provider = build_decision_provider(
             DecisionProviderConfig(
                 provider=config.decision_provider,
-                openclaw_agent=config.openclaw_agent,
+                llm_agent=config.llm_agent,
                 api_base=config.decision_api_base,
                 api_key=config.decision_api_key,
                 model=config.decision_model,
@@ -219,15 +458,63 @@ class PatrolRuntime(
         parsed = urllib.parse.urlparse(self.config.execution_base)
         return parsed.port or 8092
 
+    def execution_targets(self) -> dict[str, dict[str, Any]]:
+        """返回当前启用的交易所执行/监控目标。"""
+        return build_execution_targets(
+            self.config.agent_root,
+            self.configured_exchange(),
+            self.config.execution_base,
+        )
+
+    def execution_symbol_routes(self) -> dict[str, str]:
+        """返回品种到交易所的映射。"""
+        return build_symbol_exchange_map(self.execution_targets())
+
+    def exchange_for_symbol(self, symbol: str | None) -> str:
+        """根据品种返回应路由到的交易所。"""
+        normalized_symbol = str(symbol or "").strip().upper()
+        routes = self.execution_symbol_routes()
+        if normalized_symbol and normalized_symbol in routes:
+            return routes[normalized_symbol]
+        return self.configured_exchange()
+
+    def execution_target_for_symbol(self, symbol: str | None) -> dict[str, Any]:
+        """返回品种所属的 execution target。"""
+        exchange = self.exchange_for_symbol(symbol)
+        targets = self.execution_targets()
+        return dict(targets.get(exchange) or targets.get(self.configured_exchange()) or {})
+
+    def execution_base_for_symbol(self, symbol: str | None) -> str:
+        """返回品种所属的 execution-service base URL。"""
+        target = self.execution_target_for_symbol(symbol)
+        return str(target.get("base_url") or self.config.execution_base).rstrip("/")
+
+    def execution_port_for_symbol(self, symbol: str | None) -> int:
+        """返回品种所属的 execution-service 端口。"""
+        parsed = urllib.parse.urlparse(self.execution_base_for_symbol(symbol))
+        return parsed.port or 8092
+
+    def all_monitored_exchanges(self) -> list[str]:
+        """返回当前巡逻需要监控的交易所列表。"""
+        return list(self.execution_targets().keys())
+
     def configured_exchange(self) -> str:
         exchange = (
             os.getenv("AB_PATROL_EXECUTION_EXCHANGE")
             or os.getenv("AB_PATROL_EXCHANGE")
             or "binance"
         ).strip().lower()
-        return exchange if exchange in {"binance", "okx", "ctrader"} else "binance"
+        targets = build_execution_targets(
+            self.config.agent_root,
+            normalize_exchange(exchange),
+            self.config.execution_base,
+        )
+        return primary_target_exchange(targets, exchange)
 
     def configured_market_profile(self) -> str:
+        exchanges = self.all_monitored_exchanges()
+        if len(exchanges) > 1:
+            return "multi_exchange"
         exchange = self.configured_exchange()
         if exchange == "ctrader":
             return "multi_asset"
@@ -236,28 +523,13 @@ class PatrolRuntime(
         return "crypto"
 
     def default_watch_symbols(self) -> list[str]:
-        symbols_config = load_json(self.config.agent_root / "config" / "symbols.json", {})
-        exchange = self.configured_exchange()
-        if exchange == "ctrader":
-            ctrader_config = symbols_config.get("ctrader") if isinstance(symbols_config.get("ctrader"), dict) else {}
-            symbols = [
-                *list(ctrader_config.get("forex") or []),
-                *list(ctrader_config.get("indices") or []),
-                *list(ctrader_config.get("metals") or []),
-            ]
-            return symbols[:10] or ["EURUSD", "GBPUSD", "USDJPY", "US 500", "US TECH 100", "XAUUSD", "XAGUSD"]
-        if exchange == "okx":
-            return list(((symbols_config.get("okx") or {}).get("crypto_swap") or []))[:6] or [
-                "BTC-USDT-SWAP",
-                "ETH-USDT-SWAP",
-                "BNB-USDT-SWAP",
-            ]
-        return list(((symbols_config.get("binance") or {}).get("crypto") or []))[:6] or [
-            "BTCUSDT",
-            "ETHUSDT",
-            "BNBUSDT",
-            "SOLUSDT",
-        ]
+        symbols: list[str] = []
+        for target in self.execution_targets().values():
+            for symbol in target.get("symbols") or []:
+                normalized = str(symbol).strip().upper()
+                if normalized and normalized not in symbols:
+                    symbols.append(normalized)
+        return symbols
 
     def configured_runtime_title(self) -> str:
         exchange = self.configured_exchange()
@@ -266,6 +538,21 @@ class PatrolRuntime(
         if exchange == "okx":
             return "PA交易 OKX"
         return "PA交易 Crypto"
+
+    def runtime_symbol_universe(self, runtime: dict[str, Any], symbol_state: dict[str, Any] | None = None) -> set[str]:
+        """汇总当前实盘链允许保留的品种宇宙。"""
+        values: list[Any] = [
+            *self.default_watch_symbols(),
+            *((runtime.get("focus_symbols") or []) if isinstance(runtime, dict) else []),
+            *((runtime.get("active_symbols") or []) if isinstance(runtime, dict) else []),
+        ]
+        if isinstance(symbol_state, dict):
+            values.extend(symbol_state.keys())
+        return {
+            str(symbol).strip().upper()
+            for symbol in values
+            if str(symbol).strip()
+        }
 
     def align_market_cache(self, runtime: dict[str, Any], market_cache: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(market_cache, dict):
@@ -311,6 +598,21 @@ class PatrolRuntime(
         meta["configured_symbols"] = configured_symbols
         market_cache["_meta"] = meta
 
+        if configured_symbol_set:
+            stale_symbols = [
+                str(symbol).upper()
+                for symbol in list(symbol_cache.keys())
+                if str(symbol).upper() not in configured_symbol_set
+            ]
+            if stale_symbols:
+                LOG.info(
+                    "[MARKET_CACHE] 清理已移出配置的残留品种: %s",
+                    stale_symbols,
+                )
+                for symbol in stale_symbols:
+                    symbol_cache.pop(symbol, None)
+                market_cache["symbols"] = symbol_cache
+
         if reset_reason:
             write_json(self.market_state_path, market_cache)
         return market_cache
@@ -336,7 +638,14 @@ class PatrolRuntime(
         trigger: dict[str, Any] | None,
     ) -> dict[str, Any]:
         symbol_cache = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
-        active_symbols = list(symbol_cache.keys()) or self.default_watch_symbols()
+        configured_symbols = [str(symbol).upper() for symbol in self.default_watch_symbols()]
+        configured_symbol_set = set(configured_symbols)
+        cached_symbols = [
+            str(symbol).upper()
+            for symbol in symbol_cache.keys()
+            if str(symbol).upper() in configured_symbol_set
+        ]
+        active_symbols = list(dict.fromkeys(cached_symbols + configured_symbols))
         positions = self._tracked_bot_positions(execution)
         trigger_symbol = str(trigger.get("symbol") or "").upper() if trigger else ""
         has_positions = bool(positions)
@@ -378,7 +687,7 @@ class PatrolRuntime(
             align = int(item.get("align_score") or 0)
             return (0 if symbol == trigger_symbol else 1, rank_map.get(status, 3), priority - align)
 
-        focus_symbols = sorted(active_symbols, key=status_rank)[:3]
+        focus_symbols = sorted(active_symbols, key=status_rank)
         if has_positions:
             phase = "MANAGE"
             refs = [
@@ -590,6 +899,7 @@ class PatrolRuntime(
             if patch_from_state:
                 base.update({k: v for k, v in patch_from_state.items() if v is not None})
             base.update({k: v for k, v in patch.items() if v is not None})
+            base = _merge_symbol_patch_with_mag_bridge(base, frames)
             base.setdefault("status", base.get("status") or "watching")
             base.setdefault("stage", phase_plan["phase"])
             base.setdefault("priority", base.get("priority") or 9)
@@ -730,7 +1040,14 @@ class PatrolRuntime(
                 }
             if "trade" not in base:
                 base["trade"] = None
+            if _patch_has_fresh_live_opportunity(base):
+                base = _release_fresh_live_opportunity_state(base)
             base = self.apply_brooks_filter_to_patch(base, event_tags)
+            if _patch_has_fresh_live_opportunity(base):
+                base = _release_fresh_live_opportunity_state(base)
+            # 过期/超时的旧结论不能在 validate 阶段再次被 Brooks 过滤器播种回 pre_signal/planned_trade。
+            if _patch_is_expired_or_stale(base):
+                base = self._clear_expired_live_symbol_state(base)
             merged_updates[key] = base
         for symbol, patch in (decision.get("symbol_updates") or {}).items():
             key = str(symbol).upper()
@@ -764,14 +1081,14 @@ class PatrolRuntime(
         if allocated > 0 and risk_usdt > 0:
             return max(0.1, risk_usdt / allocated * 100)
         intent = str(action.get("intent") or action.get("raw_type") or "").upper()
-        if intent == "PYRAMID_ADD":
-            # S7-management 第三笔/最后一笔加仓风险 0.4%。
-            return 0.4
         if intent in {"ADD_ON", "SCALE_IN"}:
             # S7-management 首个加仓风险 0.3%。
             return 0.3
-        # 首仓默认同样按 0.3% 起步，由后续确认再做加仓。
-        return 0.3
+        if intent == "PYRAMID_ADD":
+            # S7-management 第三笔/最后一笔加仓风险 0.3%。
+            return 0.3
+        # 首仓默认按 0.4% 起步，后续两次加仓各 0.3%。
+        return 0.4
 
     @staticmethod
     def _position_field(position: Any, key: str, default: Any = None) -> Any:
@@ -1136,81 +1453,171 @@ class PatrolRuntime(
             hydrated.setdefault("note", "S7 加仓")
         return hydrated
 
-    def load_trade_gate_module(self) -> Any:
-        module = getattr(self, "_trade_gate_module", None)
-        if module is not None:
-            return module
-        module_path = self.config.tools_root / "patrol_trade.py"
-        spec = importlib.util.spec_from_file_location("ab_patrol_trade_gate", module_path)
-        if spec is None or spec.loader is None:
-            raise RuntimeError(f"无法加载交易校验模块: {module_path}")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        self._trade_gate_module = module
-        return module
+    def live_allowed_strategy_scope(self) -> tuple[str, ...]:
+        """读取当前实盘允许的策略范围。"""
+        raw = os.getenv("AB_PATROL_LIVE_ALLOWED_STRATEGIES", "H1,L1,H2,L2,MAG")
+        return parse_live_strategy_scope(raw)
+
+    def live_strategy_selection(self):
+        """把实盘白名单解析成与回测共用的选择对象。"""
+        return resolve_live_strategy_selection(",".join(self.live_allowed_strategy_scope()))
+
+    def _action_strategy_context(self, action: dict[str, Any]) -> list[Any]:
+        """优先读取动作自身携带的策略身份。"""
+        return [
+            action.get("strategy"),
+            action.get("playbook_id"),
+            action.get("playbook_hint"),
+        ]
+
+    def _symbol_strategy_context(self, symbol: str, decision: dict[str, Any]) -> list[Any]:
+        """收集某个 symbol 在运行态缓存里的策略身份。"""
+        symbol_updates = decision.get("symbol_updates") if isinstance(decision.get("symbol_updates"), dict) else {}
+        patch = symbol_updates.get(symbol) if isinstance(symbol_updates.get(symbol), dict) else {}
+        planned_trade = patch.get("planned_trade") if isinstance(patch.get("planned_trade"), dict) else {}
+        followup_seed = patch.get("followup_seed") if isinstance(patch.get("followup_seed"), dict) else {}
+        timeframes = patch.get("timeframes") if isinstance(patch.get("timeframes"), dict) else {}
+        event_tags = patch.get("event_tags") if isinstance(patch.get("event_tags"), list) else []
+        text_chunks: list[Any] = [
+            patch.get("signal"),
+            patch.get("pre_signal"),
+            patch.get("stage"),
+            planned_trade.get("strategy"),
+            planned_trade.get("playbook_id"),
+            planned_trade.get("playbook_hint"),
+            planned_trade.get("brooks_label"),
+            followup_seed.get("strategy"),
+            followup_seed.get("playbook_id"),
+            followup_seed.get("playbook_hint"),
+        ]
+        text_chunks.extend(event_tags)
+        for snapshot in timeframes.values():
+            if not isinstance(snapshot, dict):
+                continue
+            text_chunks.append(snapshot.get("signal"))
+            text_chunks.append(snapshot.get("summary"))
+        return text_chunks
+
+    def open_order_in_live_scope(self, action: dict[str, Any], decision: dict[str, Any]) -> bool:
+        """判断开仓动作是否落在当前 live 策略白名单内。"""
+        allowed_scope = self.live_allowed_strategy_scope()
+        if not allowed_scope or "ALL" in {item.upper() for item in allowed_scope}:
+            return True
+        symbol = str(action.get("symbol") or "").upper()
+        if not symbol:
+            return False
+        selection = self.live_strategy_selection()
+        action_context = self._action_strategy_context(action)
+        if expand_strategy_context(action_context):
+            return selection_matches_context(selection, action_context, action.get("reason"))
+        return selection_matches_context(selection, self._symbol_strategy_context(symbol, decision), action.get("reason"))
+
+    def _filter_live_scope_bucket(
+        self,
+        decision: dict[str, Any],
+        bucket: list[Any],
+        *,
+        bucket_name: str,
+    ) -> list[Any]:
+        """把指定动作桶中不在实盘白名单内的开仓动作降级成 LOG_ONLY。"""
+        allowed_scope = self.live_allowed_strategy_scope()
+        if not allowed_scope or "ALL" in {item.upper() for item in allowed_scope}:
+            return bucket
+
+        filtered_actions: list[dict[str, Any]] = []
+        for action in bucket or []:
+            if not isinstance(action, dict):
+                filtered_actions.append(action)
+                continue
+            if canonical_action_type(action.get("type")) != "OPEN_ORDER":
+                filtered_actions.append(action)
+                continue
+            if self.open_order_in_live_scope(action, decision):
+                filtered_actions.append(action)
+                continue
+
+            downgraded = dict(action)
+            original_reason = str(action.get("reason") or action.get("strategy") or "不在白名单")
+            downgraded["type"] = "LOG_ONLY"
+            downgraded["reason"] = (
+                f"{original_reason} | [LIVE_STRATEGY_FILTER:{bucket_name}] 当前实盘仅放行 {', '.join(sorted(allowed_scope))}"
+            )
+            filtered_actions.append(downgraded)
+            LOG.info(
+                "[LIVE_STRATEGY_FILTER] %s/%s 降级为 LOG_ONLY: strategy=%s",
+                bucket_name,
+                str(action.get("symbol") or "-").upper(),
+                action.get("strategy"),
+            )
+        return filtered_actions
+
+    def enforce_live_strategy_scope(self, decision: dict[str, Any]) -> dict[str, Any]:
+        """把不在当前实盘白名单内的开仓动作统一降级成 LOG_ONLY。"""
+        allowed_scope = self.live_allowed_strategy_scope()
+        state_patch = decision.setdefault("state_patch", {})
+        state_patch["live_allowed_strategies"] = sorted(allowed_scope)
+        if not allowed_scope or "ALL" in {item.upper() for item in allowed_scope}:
+            return decision
+
+        decision["actions"] = self._filter_live_scope_bucket(
+            decision,
+            decision.get("actions") or [],
+            bucket_name="actions",
+        )
+        decision["position_management"] = self._filter_live_scope_bucket(
+            decision,
+            decision.get("position_management") or [],
+            bucket_name="position_management",
+        )
+        return decision
 
     def validate_trade_gate(self, action: dict[str, Any]) -> dict[str, Any]:
-        action = self.ensure_gate_ready_equation(action)
-        refs = ",".join(normalize_refs(action.get("refs")))
-        gate = self.load_trade_gate_module()
+        side = str(action.get("side") or "").upper()
+        entry = safe_float(action.get("entry") or action.get("entry_price"))
+        stop_loss = safe_float(action.get("sl") or action.get("stop_loss"))
+        take_profit = safe_float(action.get("tp") or action.get("take_profit"))
 
         checks: list[str] = []
         errors: list[str] = []
-        warnings: list[str] = []
 
-        def record(label: str, ok: bool, message: str, *, warning: bool = False) -> None:
-            prefix = "⚠️" if warning else ("✅" if ok else "❌")
-            checks.append(f"{prefix} {label}: {message}")
-            if warning:
-                warnings.append(message)
-            elif not ok:
+        def record(label: str, ok: bool, message: str) -> None:
+            checks.append(f"{'✅' if ok else '❌'} {label}: {message}")
+            if not ok:
                 errors.append(message)
 
-        ok, message = gate.validate_equation(str(action.get("equation") or ""))
-        record("Equation", ok, str(message))
-
-        ok, message = gate.validate_refs(refs)
-        record("Refs", ok, str(message))
-
-        ok, message = gate.validate_bar_reading(str(action.get("bar_reading") or ""))
-        record("Reading", ok, str(message))
-
-        ok, message = gate.validate_stop_loss(
-            str(action.get("side") or ""),
-            safe_float(action.get("entry")),
-            safe_float(action.get("sl")),
-            safe_float(action.get("tp")),
-            str(action.get("strategy") or ""),
-            str(action.get("style") or ""),
-            str(action.get("equation") or ""),
-            str(action.get("market_state") or ""),
-            refs,
-        )
-        record("SL/TP", ok, str(message))
-
-        ai_parts = str(action.get("ai_direction") or "").replace(",", " ").split()
-        target_dir = "AIL" if str(action.get("side") or "").upper() == "BUY" else "AIS"
-        aligned = sum(1 for part in ai_parts if target_dir in part.upper())
-        if aligned < 3:
-            record("Alignment", False, f"{action.get('side')} 需要至少 3 个 TF 为 {target_dir}，当前只有 {aligned} 个")
+        if side not in {"BUY", "SELL"}:
+            record("方向", False, f"无效方向: {side or '-'}")
         else:
-            record("Alignment", True, f"{aligned}/4 TF = {target_dir}")
+            record("方向", True, side)
 
-        market_state = str(action.get("market_state") or "").upper()
-        strategy = str(action.get("strategy") or "").upper()
-        if market_state == "TR" and "BO" in strategy:
-            record("State", True, "TR 状态下不应做 BO 策略", warning=True)
+        if entry <= 0:
+            record("入场", False, f"入场价无效: {entry}")
         else:
-            record("State", True, f"{market_state or '-'} + {action.get('strategy') or '-'} 一致")
+            record("入场", True, f"{entry:.5f}")
+
+        if stop_loss <= 0:
+            record("止损", False, f"止损价无效: {stop_loss}")
+        else:
+            record("止损", True, f"{stop_loss:.5f}")
+
+        if take_profit <= 0:
+            record("止盈", False, f"止盈价无效: {take_profit}")
+        else:
+            record("止盈", True, f"{take_profit:.5f}")
+
+        if side == "BUY" and entry > 0 and stop_loss > 0 and take_profit > 0:
+            record("结构", stop_loss < entry < take_profit, f"BUY: sl={stop_loss:.5f} < entry={entry:.5f} < tp={take_profit:.5f}")
+        elif side == "SELL" and entry > 0 and stop_loss > 0 and take_profit > 0:
+            record("结构", take_profit < entry < stop_loss, f"SELL: tp={take_profit:.5f} < entry={entry:.5f} < sl={stop_loss:.5f}")
+
+        if entry > 0 and stop_loss > 0 and take_profit > 0:
+            risk = abs(entry - stop_loss)
+            reward = abs(take_profit - entry)
+            rr = reward / risk if risk > 0 else 0.0
+            record("盈亏比", risk > 0 and reward > 0, f"R:R={rr:.2f}")
 
         output_lines = checks[:]
-        if warnings:
-            output_lines.append("⚠️ 警告: " + " | ".join(warnings))
-        if errors:
-            output_lines.append("🚫 下单被拒绝")
-        else:
-            output_lines.append("✅ 全部校验通过")
-
+        output_lines.append("✅ 已按回测链口径跳过旧实盘 trade gate，只保留几何合法性校验" if not errors else "🚫 下单被拒绝")
         return {
             "ok": not errors,
             "stdout": "\n".join(output_lines)[-1500:],
@@ -1218,226 +1625,8 @@ class PatrolRuntime(
         }
 
     def execute_action(self, action: dict[str, Any], execution: dict[str, Any]) -> dict[str, Any]:
-        action_type = str(action.get("type") or "").upper()
-        symbol = str(action.get("symbol") or "")
-        result: dict[str, Any] = {
-            "type": action_type,
-            "symbol": symbol,
-            "dry_run": self.config.dry_run,
-            "started_at": utc_iso(),
-        }
-        action_snapshot = {
-            key: action.get(key)
-            for key in (
-                "symbol",
-                "side",
-                "entry",
-                "entry_price",
-                "sl",
-                "stop_loss",
-                "tp",
-                "take_profit",
-                "strategy",
-                "style",
-                "intent",
-                "risk_percent",
-                "reentry_attempt",
-                "followup_profile",
-                "playbook_hint",
-                "playbook_id",
-                "market_state",
-            )
-            if action.get(key) not in (None, "")
-        }
-        if action_snapshot:
-            result["action_snapshot"] = action_snapshot
-
-        if action_type == "LOG_ONLY":
-            result["success"] = True
-            result["status"] = "LOG_ONLY"
-            result["message"] = action.get("reason") or action.get("strategy") or "log only"
-            return result
-
-        if action_type == "OPEN_ORDER":
-            result["trade_gate"] = self.validate_trade_gate(action)
-            if not result["trade_gate"].get("ok"):
-                gate_message = result["trade_gate"].get("stdout") or result["trade_gate"].get("stderr") or "trade gate rejected"
-                result["success"] = False
-                result["status"] = "VALIDATION_REJECTED"
-                result["message"] = gate_message
-                return result
-
-            can_trade = execution.get("can_trade") if isinstance(execution.get("can_trade"), dict) else {}
-            if not can_trade.get("can_trade", False):
-                result["success"] = False
-                result["status"] = "BLOCKED"
-                result["message"] = f"can_trade blocked: {can_trade.get('reason', '-')}"
-                return result
-
-            scale_ok, scale_message = self.validate_scale_in(action, execution)
-            result["scale_in_gate"] = {"ok": scale_ok, "message": scale_message}
-            if not scale_ok:
-                result["success"] = False
-                result["status"] = "S7_SCALE_IN_BLOCKED"
-                result["message"] = scale_message
-                return result
-
-            risk_percent = self.action_risk_percent(action, execution)
-            size = self.http_get_json(
-                f"/trading/calculate-size/{self.config.execution_bot_id}",
-                {
-                    "symbol": symbol,
-                    "entry_price": safe_float(action.get("entry")),
-                    "stop_loss": safe_float(action.get("sl")),
-                    "risk_percent": risk_percent,
-                    "intent": str(action.get("intent") or ""),
-                },
-            )
-            result["size_calc"] = size
-            quantity = safe_float((size or {}).get("quantity"))
-            if quantity <= 0:
-                result["success"] = False
-                result["status"] = "SIZE_FAILED"
-                result["message"] = json.dumps(size, ensure_ascii=False)
-                return result
-
-            order_payload = {
-                "symbol": symbol,
-                "side": action.get("side"),
-                "quantity": quantity,
-                "order_type": action.get("order_type") or "MARKET",
-                "price": action.get("price"),
-                "stop_loss": action.get("sl"),
-                "take_profit": action.get("tp"),
-                "strategy": action.get("strategy"),
-                "signal_source": action.get("signal_source") or self.config.operator_agent,
-                "bot_id": self.config.execution_bot_id,
-            }
-            result["order_payload"] = order_payload
-            if self.config.dry_run:
-                result["success"] = True
-                result["status"] = "DRY_RUN_VALIDATED"
-                result["message"] = "dry-run 模式：已完成仓位计算并生成订单载荷，未实际发送"
-                return result
-
-            order_resp = self.http_post_json("/order", order_payload)
-            result["response"] = order_resp
-            result["success"] = bool(order_resp.get("success"))
-            result["status"] = order_resp.get("status", "UNKNOWN")
-            result["message"] = order_resp.get("message")
-            return result
-
-        if action_type in {"PARTIAL_CLOSE", "REDUCE_POSITION"}:
-            positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
-            live_position = next(
-                (
-                    item
-                    for item in positions
-                    if isinstance(item, dict) and str(item.get("symbol") or "").upper() == symbol.upper()
-                ),
-                {},
-            )
-            live_qty = abs(
-                safe_float(live_position.get("quantity"))
-                or safe_float(live_position.get("contracts"))
-                or safe_float(live_position.get("size"))
-            )
-            quantity = safe_float(action.get("quantity") or action.get("close_quantity"), 0.0)
-            close_ratio = safe_float(action.get("close_ratio") or action.get("reduce_ratio") or action.get("ratio"), 0.0)
-            if quantity <= 0 and close_ratio > 0 and live_qty > 0:
-                quantity = round(live_qty * close_ratio, 8)
-            result["position_quantity"] = live_qty
-            result["close_quantity"] = quantity
-            if quantity <= 0:
-                result["success"] = False
-                result["status"] = "SIZE_FAILED"
-                result["message"] = "partial close 缺少可执行数量"
-                return result
-            if self.config.dry_run:
-                result["success"] = True
-                result["status"] = "DRY_RUN_PARTIAL_CLOSE"
-                return result
-            close_resp = self.http_post_json(
-                f"/order/{symbol}/close",
-                {},
-                {"quantity": quantity, "bot_id": self.config.execution_bot_id},
-            )
-            result["response"] = close_resp
-            result["success"] = bool(close_resp.get("success", True))
-            result["status"] = close_resp.get("status", "UNKNOWN")
-            result["message"] = close_resp.get("message")
-            return result
-
-        if action_type == "CLOSE_POSITION":
-            quantity = safe_float(action.get("quantity") or action.get("close_quantity"), 0.0)
-            if self.config.dry_run:
-                result["success"] = True
-                result["status"] = "DRY_RUN_CLOSE"
-                if quantity > 0:
-                    result["close_quantity"] = quantity
-                return result
-            close_resp = self.http_post_json(
-                f"/order/{symbol}/close",
-                {},
-                {"bot_id": self.config.execution_bot_id, "quantity": quantity if quantity > 0 else None},
-            )
-            result["response"] = close_resp
-            result["success"] = bool(close_resp.get("success", True))
-            result["status"] = close_resp.get("status", "UNKNOWN")
-            result["message"] = close_resp.get("message")
-            return result
-
-        if action_type == "MODIFY_STOP_LOSS":
-            new_sl = action.get("new_stop_loss") or action.get("sl")
-            if self.config.dry_run:
-                result["success"] = True
-                result["status"] = "DRY_RUN_MODIFY_SL"
-                result["new_stop_loss"] = new_sl
-                return result
-            modify_resp = self.http_post_json(
-                f"/order/{symbol}/modify-sl",
-                {},
-                {"new_stop_loss": safe_float(new_sl), "bot_id": self.config.execution_bot_id},
-            )
-            result["response"] = modify_resp
-            result["success"] = "error" not in str(modify_resp).lower()
-            result["status"] = "MODIFIED" if result["success"] else "FAILED"
-            return result
-
-        if action_type == "MODIFY_TAKE_PROFIT":
-            new_tp = action.get("new_take_profit") or action.get("tp") or action.get("take_profit")
-            if self.config.dry_run:
-                result["success"] = True
-                result["status"] = "DRY_RUN_MODIFY_TP"
-                result["new_take_profit"] = new_tp
-                return result
-            modify_resp = self.http_post_json(
-                f"/order/{symbol}/modify-tp",
-                {},
-                {"new_take_profit": safe_float(new_tp), "bot_id": self.config.execution_bot_id},
-            )
-            result["response"] = modify_resp
-            result["success"] = bool(modify_resp.get("success"))
-            result["status"] = modify_resp.get("status", "FAILED")
-            result["message"] = modify_resp.get("message")
-            return result
-
-        if action_type in {"CANCEL_ALL_ORDERS", "CANCEL_PENDING_ENTRY"}:
-            if self.config.dry_run:
-                result["success"] = True
-                result["status"] = "DRY_RUN_CANCEL_ORDERS"
-                return result
-            cancel_resp = self.http_delete_json("/orders", {"symbol": symbol or None})
-            result["response"] = cancel_resp
-            result["success"] = bool(cancel_resp.get("success", True))
-            result["status"] = "CANCELLED" if result["success"] else "FAILED"
-            result["message"] = cancel_resp.get("message")
-            return result
-
-        result["success"] = False
-        result["status"] = "UNSUPPORTED"
-        result["message"] = f"unsupported action type: {action_type}"
-        return result
+        """兼容旧入口，真实实现已迁移到 live_execution_mixin。"""
+        return LiveExecutionMixin.execute_action(self, action, execution)
 
     def update_market_cache(
         self,
@@ -1446,81 +1635,14 @@ class PatrolRuntime(
         execution_results: list[dict[str, Any]],
         cycle_id: str,
     ) -> None:
-        symbol_cache = market_cache.setdefault("symbols", {})
-        if not isinstance(symbol_cache, dict):
-            symbol_cache = {}
-            market_cache["symbols"] = symbol_cache
-        now_iso = utc_iso()
-        loop_count = int(market_cache.get("loop_count") or 0) + 1
-        market_cache["last_update"] = now_iso
-        market_cache["loop_count"] = loop_count
-        meta = market_cache.setdefault("_meta", {})
-        if not isinstance(meta, dict):
-            meta = {}
-            market_cache["_meta"] = meta
-        meta["loop_count"] = loop_count
-        meta["last_update"] = now_iso
-        meta["exchange"] = self.configured_exchange()
-        meta["market_profile"] = self.configured_market_profile()
-        meta["configured_symbols"] = self.default_watch_symbols()
-
-        signal_count = 0
-        for patch in (decision.get("symbol_updates") or {}).values():
-            if not isinstance(patch, dict):
-                continue
-            status = str(patch.get("status") or "")
-            if status in {"pre_signal", "entry_ready", "entry_ready_blocked"} or str(patch.get("pre_signal") or "").strip():
-                signal_count += 1
-        meta["total_signals"] = int(meta.get("total_signals") or 0) + signal_count
-        meta["total_trades"] = int(meta.get("total_trades") or 0) + sum(
-            1
-            for item in execution_results
-            if str(item.get("type") or "") == "OPEN_ORDER" and str(item.get("status") or "") != "LOG_ONLY"
+        """兼容旧入口，真实实现已迁移到 live_market_cache_mixin。"""
+        return LiveMarketCacheMixin.update_market_cache(
+            self,
+            market_cache,
+            decision,
+            execution_results,
+            cycle_id,
         )
-        pass_wait = 0
-        pass_rule = 0
-        for action in (decision.get("actions") or []):
-            reason = str(action.get("reason") or "")
-            if "[PASS-WAIT]" in reason:
-                pass_wait += 1
-            if "[PASS-RULE]" in reason:
-                pass_rule += 1
-        meta["total_passes"] = int(meta.get("total_passes") or 0) + pass_wait + pass_rule
-        meta["pass_wait"] = int(meta.get("pass_wait") or 0) + pass_wait
-        meta["pass_rule"] = int(meta.get("pass_rule") or 0) + pass_rule
-
-        if decision.get("phase") == "BOOTSTRAP":
-            market_cache["last_full_refresh"] = now_iso
-            meta["last_full_refresh"] = now_iso
-
-        for symbol, patch in (decision.get("symbol_updates") or {}).items():
-            current = symbol_cache.setdefault(symbol, {})
-            if not isinstance(current, dict):
-                current = {}
-                symbol_cache[symbol] = current
-            for field in MODEL_TRANSIENT_FIELDS:
-                current.pop(field, None)
-            cleaned_patch = dict(patch)
-            status = str(cleaned_patch.get("status") or current.get("status") or "")
-            has_pre_signal = bool(str(cleaned_patch.get("pre_signal") or "").strip()) or status in {
-                "pre_signal",
-                "entry_ready",
-                "entry_ready_blocked",
-            }
-            if has_pre_signal:
-                cleaned_patch["pre_signal_meta"] = self.build_pre_signal_meta(current, cleaned_patch)
-            else:
-                cleaned_patch["pre_signal"] = None
-                cleaned_patch["pre_signal_meta"] = None
-            for key, value in cleaned_patch.items():
-                if value is None:
-                    current.pop(key, None)
-                else:
-                    current[key] = value
-            current["updated_at"] = utc_iso()
-            current["source_cycle_id"] = cycle_id
-
-        write_json(self.market_state_path, market_cache)
 
 
 
@@ -1542,134 +1664,6 @@ class PatrolRuntime(
             except Exception as exc:
                 LOG.warning("prefetch charts failed for %s: %s", symbol, exc)
 
-    def write_runtime_state(
-        self,
-        runtime: dict[str, Any],
-        decision: dict[str, Any],
-        phase_plan: dict[str, Any],
-        execution: dict[str, Any],
-        analysis_board: dict[str, Any],
-        session_id: str | None,
-        cycle_id: str,
-    ) -> dict[str, Any]:
-        next_scan_plan = self.normalize_next_scan_plan(decision, execution, analysis_board)
-        next_scan_seconds = int(next_scan_plan.get("in_seconds") or 480)
-        next_scan_at = utc_now() + timedelta(seconds=next_scan_seconds)
-        can_trade = execution.get("can_trade") if isinstance(execution.get("can_trade"), dict) else {}
-        symbol_updates = decision.get("symbol_updates") or {}
-        pre_signals = [
-            symbol
-            for symbol, patch in symbol_updates.items()
-            if str(patch.get("status") or "").startswith("pre_signal") or str(patch.get("status") or "") == "entry_ready"
-        ]
-        best_candidate = None
-        for action in decision.get("actions") or []:
-            if action.get("type") in {"OPEN_ORDER", "LOG_ONLY"}:
-                best_candidate = action.get("symbol")
-                if best_candidate:
-                    break
-        if not best_candidate:
-            best_candidate = (decision.get("focus_symbols") or [None])[0]
-
-        updated = dict(runtime)
-        updated.update(
-            {
-                "version": "2.0",
-                "bot_id": self.config.execution_bot_id,
-                "exchange": self.configured_exchange(),
-                "market_profile": self.configured_market_profile(),
-                "loop_seq": int(runtime.get("loop_seq") or 0) + 1,
-                "status": "RUNNING",
-                "current_phase": decision.get("phase") or phase_plan["phase"],
-                "last_run_at": utc_iso(),
-                "last_success_at": utc_iso(),
-                "next_scan": {
-                    "next_scan_at": next_scan_at.isoformat(),
-                    "in_seconds": next_scan_seconds,
-                    "requested_seconds": next_scan_plan.get("requested_seconds"),
-                    "model_suggested_seconds": decision.get("next_scan_seconds"),
-                    "model_suggested_reason": decision.get("next_scan_reason"),
-                    "reason_code": next_scan_plan.get("reason_code") or decision.get("next_scan_reason") or "PRE_SIGNAL_NEAR",
-                    "reason_text": next_scan_plan.get("reason_text") or decision.get("next_scan_reason") or "follow decision",
-                    "bucket_rule": next_scan_plan.get("bucket_rule"),
-                    "bucket_source_refs": next_scan_plan.get("bucket_source_refs") or [],
-                    "derived_from_cycle": cycle_id,
-                    "interruptible": True,
-                },
-                "active_symbols": phase_plan["focus_symbols"],
-                "focus_symbols": decision.get("focus_symbols") or phase_plan["focus_symbols"],
-                "open_positions": execution.get("positions") if isinstance(execution.get("positions"), list) else [],
-                "pending_pre_signals": pre_signals,
-                "risk_mode": "NORMAL",
-                "host_mode": "CLI_SESSION" if self.config.decision_provider == "codex_cli" else "OPENCLAW",
-                "degraded": False,
-                "last_trigger": None,
-                "last_cycle_id": cycle_id,
-                "quiet_loops": int((decision.get("state_patch") or {}).get("quiet_loops") or runtime.get("quiet_loops") or 0),
-                "full_refresh": phase_plan["full_refresh"],
-                "needs_post_trade_refresh": bool((decision.get("state_patch") or {}).get("needs_post_trade_refresh", False)),
-                "model_timeout": False,
-                "last_full_refresh_at": utc_iso() if phase_plan["full_refresh"] else runtime.get("last_full_refresh_at"),
-                "last_scan_decision": decision.get("market_summary"),
-                "trade_readiness": "can_trade_true" if can_trade.get("can_trade") else f"blocked:{can_trade.get('reason', '-')}",
-                "best_candidate": best_candidate,
-                "best_candidate_status": (
-                    ((decision.get("symbol_updates") or {}).get(best_candidate or "", {}) or {}).get("status")
-                    if best_candidate
-                    else "-"
-                ),
-                "openclaw_runtime_agent": self.config.openclaw_agent if self.config.decision_provider == "openclaw" else None,
-                "openclaw_runtime_session_id": session_id or runtime.get("openclaw_runtime_session_id"),
-                "openclaw_operator_agent": runtime.get("openclaw_operator_agent") or runtime.get("openclaw_agent") or self.config.operator_agent,
-                "openclaw_session_id": runtime.get("openclaw_session_id"),
-                "llm_provider": self.config.decision_provider,
-                "decision_requested_provider": self.config.requested_decision_provider,
-                "decision_fallback_provider": self.config.decision_fallback_provider,
-                "decision_model": self.config.decision_model or runtime.get("decision_model") or "openai-codex/gpt-5.4",
-                "decision_session_id": session_id or runtime.get("decision_session_id"),
-                "openclaw_agent": runtime.get("openclaw_agent") or self.config.operator_agent,
-                "query_service_base": self.config.query_service_base,
-                "dry_run": self.config.dry_run,
-            }
-        )
-        updated.update(decision.get("state_patch") or {})
-        updated["exchange"] = self.configured_exchange()
-        updated["market_profile"] = self.configured_market_profile()
-        updated["dry_run"] = self.config.dry_run
-        updated["active_symbols"] = updated.get("active_symbols") or self.default_watch_symbols()
-        updated["focus_symbols"] = updated.get("focus_symbols") or phase_plan["focus_symbols"]
-        if str(runtime.get("exchange") or "").strip().lower() != self.configured_exchange():
-            updated.pop("symbols", None)
-        symbol_state = decision.get("symbol_updates") if isinstance(decision.get("symbol_updates"), dict) else {}
-        if symbol_state:
-            updated["symbols"] = symbol_state
-        existing_symbol_state = updated.get("symbols") if isinstance(updated.get("symbols"), dict) else {}
-        allowed_symbols = {
-            str(symbol).upper()
-            for symbol in [
-                *self.default_watch_symbols(),
-                *(updated.get("focus_symbols") or []),
-                *(updated.get("active_symbols") or []),
-            ]
-            if str(symbol).strip()
-        }
-        existing_symbols = {str(symbol).upper() for symbol in existing_symbol_state.keys()}
-        if existing_symbols and allowed_symbols and not (existing_symbols & allowed_symbols):
-            updated.pop("symbols", None)
-        updated.pop("runtime_state", None)
-        updated["next_scan"].setdefault("bucket_source_refs", [])
-        updated["next_scan"].setdefault("bucket_rule", "-")
-        decision.setdefault("state_patch", {})["scan_bucket"] = next_scan_plan
-        if session_id:
-            updated["openclaw_runtime_session_id"] = session_id
-            updated["decision_session_id"] = session_id
-        updated["openclaw_runtime_agent"] = self.config.openclaw_agent if self.config.decision_provider == "openclaw" else None
-        updated["openclaw_operator_agent"] = updated.get("openclaw_operator_agent") or self.config.operator_agent
-        updated["openclaw_agent"] = updated.get("openclaw_agent") or self.config.operator_agent
-        write_json(self.runtime_state_path, updated)
-        write_json(self.next_scan_path, updated["next_scan"])
-        return updated
-
     def _tracked_bot_positions(self, execution: dict[str, Any]) -> list[dict[str, Any]]:
         """只保留当前 bot 负责的持仓。"""
         positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
@@ -1689,438 +1683,448 @@ class PatrolRuntime(
         return matched
 
     @staticmethod
-    def _same_market_state_family(current: str, previous: str) -> bool:
-        """强/弱趋势与宽/紧区间允许视作同一前提族。"""
-        current_key = str(current or "").strip()
-        previous_key = str(previous or "").strip()
-        if not current_key or not previous_key or current_key == previous_key:
+    def _normalize_live_symbol(value: Any) -> str:
+        """统一实盘侧品种标识，兼容 BTCUSDT / BTCUSDT:USDT / BTC/USDT:USDT。"""
+        text = str(value or "").strip().upper()
+        if ":" in text:
+            text = text.split(":", 1)[0].strip()
+        text = text.replace("/", "")
+        return text
+
+    @staticmethod
+    def _is_transport_block_reason(value: Any) -> bool:
+        """识别 execution-service 的传输层错误，避免把接口抖动误判成业务禁止。"""
+        if isinstance(value, dict):
+            text = str(value.get("_error") or value.get("reason") or value)
+        else:
+            text = str(value or "")
+        lowered = text.lower()
+        return any(
+            token in lowered
+            for token in (
+                "connection refused",
+                "timed out",
+                "timeout",
+                "operation timed out",
+                "read operation timed out",
+                "service unavailable",
+                "connection reset",
+            )
+        )
+
+    @staticmethod
+    def _preflight_has_live_probe(meta: dict[str, Any] | None) -> bool:
+        """只要预检里任一 live 探针成功，就说明 execution 服务当下可达。"""
+        if not isinstance(meta, dict):
+            return False
+        return any(
+            str(meta.get(field) or "").lower() == "live"
+            for field in ("positions_source", "orders_source")
+        )
+
+    def _live_strategy_key_from_action(self, action: dict[str, Any]) -> str:
+        """从开仓动作里提取策略冲突键。"""
+        return _canonical_live_strategy_key(
+            action.get("playbook_id"),
+            action.get("strategy"),
+            action.get("playbook_hint"),
+            action.get("ema_gap_variant"),
+            action.get("strategy_family"),
+            action.get("latest_strategy_family"),
+        )
+
+    def _live_strategy_key_from_execution_item(self, item: dict[str, Any]) -> str:
+        """从 execution 回读的持仓/挂单里提取策略冲突键。"""
+        return _canonical_live_strategy_key(
+            item.get("playbook_id"),
+            item.get("strategy"),
+            item.get("playbook_hint"),
+            item.get("ema_gap_variant"),
+            item.get("strategy_family"),
+            item.get("latest_strategy_family"),
+            item.get("signal_type"),
+        )
+
+    def _canonical_live_strategy_key(self, *values: Any) -> str:
+        """兼容类内旧调用，统一走文件级策略键标准化函数。"""
+        return _canonical_live_strategy_key(*values)
+
+    @staticmethod
+    def _candidate_stage_is_executable(candidate_stage: Any) -> bool:
+        """live 只允许 executable 阶段真正进入开仓动作。"""
+        return str(candidate_stage or "").strip().upper().startswith("EXECUTABLE_")
+
+    @staticmethod
+    def _looks_like_stale_live_patch(patch: dict[str, Any] | None) -> bool:
+        """识别模型超时后沿用旧结论的缓存态。"""
+        if not isinstance(patch, dict):
+            return False
+        if _patch_has_fresh_live_opportunity(patch):
+            return False
+        if str(patch.get("last_pass_reason") or "").strip().upper() == "PRE_SIGNAL_EXPIRED":
             return True
-        bull_family = {"strong_trend_bull", "weak_trend_bull"}
-        bear_family = {"strong_trend_bear", "weak_trend_bear"}
-        range_family = {"tight_range", "broad_range"}
-        return (
-            (current_key in bull_family and previous_key in bull_family)
-            or (current_key in bear_family and previous_key in bear_family)
-            or (current_key in range_family and previous_key in range_family)
-        )
-
-    @staticmethod
-    def _reentry_window_seconds(timeframe: str) -> int:
-        """把回测的 bars 窗口折成 live 的时间窗口。"""
-        if timeframe == "15m":
-            return 45 * 60
-        if timeframe == "30m":
-            return 90 * 60
-        if timeframe == "1h":
-            return 120 * 60
-        return 25 * 60
-
-    def _infer_followup_timeframe(self, symbol_state: dict[str, Any], fallback: str = "5m") -> str:
-        """从当前信号缓存推断 follow-up 所属周期。"""
-        if not isinstance(symbol_state, dict):
-            return fallback
-        planned_trade = symbol_state.get("planned_trade") if isinstance(symbol_state.get("planned_trade"), dict) else {}
-        pre_signal = symbol_state.get("pre_signal") if isinstance(symbol_state.get("pre_signal"), dict) else {}
-        meta = symbol_state.get("pre_signal_meta") if isinstance(symbol_state.get("pre_signal_meta"), dict) else {}
-        timeframe = infer_signal_timeframe(
-            meta.get("timeframe"),
-            pre_signal,
-            symbol_state.get("signal"),
-            symbol_state.get("stage"),
-            planned_trade,
-            symbol_state.get("market_state_detail"),
-            fallback,
-        )
-        return str(timeframe or fallback).lower()
-
-    def _build_followup_seed(
-        self,
-        *,
-        symbol: str,
-        side: Any,
-        symbol_state: dict[str, Any] | None,
-        existing_seed: dict[str, Any] | None = None,
-        entry_price: float = 0.0,
-        stop_loss: float = 0.0,
-        take_profit: float = 0.0,
-        strategy: str = "",
-        style: str = "",
-        playbook_hint: str = "",
-        playbook_id: str = "",
-        reentry_attempt: int = 0,
-    ) -> dict[str, Any]:
-        """统一构建 live follow-up 种子。"""
-        symbol_key = str(symbol or "").upper()
-        current_state = symbol_state if isinstance(symbol_state, dict) else {}
-        existing = existing_seed if isinstance(existing_seed, dict) else {}
-        planned_trade = (
-            current_state.get("planned_trade")
-            if isinstance(current_state.get("planned_trade"), dict)
-            else {}
-        )
-        entry_idea = current_state.get("entry_idea") if isinstance(current_state.get("entry_idea"), dict) else {}
-        direction = normalize_trade_side(side or existing.get("direction"))
-        if not symbol_key or direction not in {"BUY", "SELL"}:
-            return {}
-
-        resolved_entry = safe_float(entry_price or existing.get("entry_price"), 0.0)
-        if resolved_entry <= 0:
-            return {}
-
-        seed = {
-            "symbol": symbol_key,
-            "direction": direction,
-            "entry_price": resolved_entry,
-            "stop_loss": safe_float(
-                stop_loss
-                or existing.get("stop_loss")
-                or planned_trade.get("stop_loss"),
-                0.0,
-            ),
-            "take_profit": safe_float(
-                take_profit
-                or existing.get("take_profit")
-                or planned_trade.get("take_profit"),
-                0.0,
-            ),
-            "timeframe": str(
-                existing.get("timeframe")
-                or self._infer_followup_timeframe(current_state)
-                or "5m"
-            ).lower(),
-            "market_state": str(
-                current_state.get("market_state")
-                or current_state.get("state")
-                or existing.get("market_state")
-                or ""
-            ).strip(),
-            "strategy": str(
-                strategy
-                or existing.get("strategy")
-                or planned_trade.get("strategy")
-                or playbook_id
-                or playbook_hint
-                or ""
-            ).strip(),
-            "style": str(
-                style
-                or existing.get("style")
-                or planned_trade.get("style")
-                or entry_idea.get("style")
-                or ""
-            ).strip(),
-            "playbook_hint": str(
-                playbook_hint
-                or existing.get("playbook_hint")
-                or planned_trade.get("playbook_hint")
-                or planned_trade.get("playbook_id")
-                or ""
-            ).strip(),
-            "playbook_id": str(
-                playbook_id
-                or existing.get("playbook_id")
-                or planned_trade.get("playbook_id")
-                or playbook_hint
-                or ""
-            ).strip(),
-            "reentry_attempt": int(
-                reentry_attempt
-                or existing.get("reentry_attempt")
-                or planned_trade.get("reentry_attempt")
-                or 0
-            ),
-            "updated_at": utc_iso(),
-        }
-        return seed
-
-    def _build_followup_seed_from_position(
-        self,
-        position: dict[str, Any],
-        symbol_state: dict[str, Any] | None,
-        existing_seed: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        """用 live 持仓和当前缓存恢复 follow-up 种子。"""
-        symbol = str(position.get("symbol") or "").upper()
-        return self._build_followup_seed(
-            symbol=symbol,
-            side=position.get("side"),
-            symbol_state=symbol_state,
-            existing_seed=existing_seed,
-            entry_price=safe_float(position.get("entry_price"), 0.0),
-        )
-
-    def _build_followup_seed_from_action_snapshot(
-        self,
-        snapshot: dict[str, Any],
-        symbol_state: dict[str, Any] | None,
-        existing_seed: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        """用成功下单动作更新 follow-up 种子。"""
-        symbol = str(snapshot.get("symbol") or "").upper()
-        return self._build_followup_seed(
-            symbol=symbol,
-            side=snapshot.get("side"),
-            symbol_state=symbol_state,
-            existing_seed=existing_seed,
-            entry_price=safe_float(snapshot.get("entry") or snapshot.get("entry_price"), 0.0),
-            stop_loss=safe_float(snapshot.get("sl") or snapshot.get("stop_loss"), 0.0),
-            take_profit=safe_float(snapshot.get("tp") or snapshot.get("take_profit"), 0.0),
-            strategy=str(snapshot.get("strategy") or ""),
-            style=str(snapshot.get("style") or ""),
-            playbook_hint=str(snapshot.get("playbook_hint") or ""),
-            playbook_id=str(snapshot.get("playbook_id") or ""),
-            reentry_attempt=int(snapshot.get("reentry_attempt") or 0),
-        )
-
-    @staticmethod
-    def _is_watch_active(watch: dict[str, Any]) -> bool:
-        """检查 re-entry 观察窗口是否仍然有效。"""
-        expires_at = parse_dt(watch.get("expires_at"))
-        if expires_at is None:
-            return False
-        return expires_at > utc_now()
-
-    @staticmethod
-    def _tracked_exit_event_id(change: dict[str, Any]) -> str:
-        """为已消费的平仓事件生成稳定指纹。"""
-        return "|".join(
-            [
-                str(change.get("trade_id") or ""),
-                str(change.get("symbol") or "").upper(),
-                str(change.get("trigger_reason") or ""),
-                str(change.get("exit_price") or ""),
-            ]
-        )
-
-    def _seed_allows_reentry(self, seed: dict[str, Any]) -> bool:
-        """只允许 Brooks 主链 setup 进入一次性重入观察。"""
-        if not isinstance(seed, dict):
-            return False
-        if int(seed.get("reentry_attempt") or 0) >= 1:
-            return False
-        playbook_key = str(seed.get("playbook_id") or seed.get("playbook_hint") or seed.get("strategy") or "").upper()
-        prefixes = (
-            "T1",
-            "T2",
-            "T3",
-            "T4",
-            "T5",
-            "T6",
-            "R1",
-            "R2",
-            "R3",
-            "TR1",
-            "TR2",
-            "TR3",
-            "TR4",
-            "S1",
-            "S2",
-        )
-        if any(playbook_key.startswith(prefix) for prefix in prefixes):
+        if bool(patch.get("stale_model_timeout")):
             return True
-        return bool(str(seed.get("market_state") or "").strip() and str(seed.get("timeframe") or "").strip())
 
-    def _build_reentry_watch(self, seed: dict[str, Any], event_id: str) -> dict[str, Any]:
-        """把止损事件转换为 live 重入观察窗口。"""
-        if not self._seed_allows_reentry(seed):
+        text_values: list[str] = []
+        for field in (
+            "thesis",
+            "structure_summary",
+            "market_state_detail",
+            "running_narrative",
+            "status_reason",
+        ):
+            text = str(patch.get(field) or "").strip()
+            if text:
+                text_values.append(text)
+
+        pre_signal = patch.get("pre_signal") if isinstance(patch.get("pre_signal"), dict) else {}
+        planned_trade = patch.get("planned_trade") if isinstance(patch.get("planned_trade"), dict) else {}
+        for value in (
+            pre_signal.get("reason"),
+            pre_signal.get("note"),
+            planned_trade.get("why_wait"),
+        ):
+            text = str(value or "").strip()
+            if text:
+                text_values.append(text)
+
+        return any("本轮模型超时，保持上一轮观察结论" in text for text in text_values)
+
+    def _clear_expired_live_symbol_state(self, patch: dict[str, Any] | None) -> dict[str, Any]:
+        """把已过期的 live 预信号状态降回 watching，避免旧计划反复复活。"""
+        normalized = dict(patch) if isinstance(patch, dict) else {}
+        if not normalized:
             return {}
-        timeframe = str(seed.get("timeframe") or "5m").lower()
-        next_attempt = int(seed.get("reentry_attempt") or 0) + 1
-        return {
-            "direction": str(seed.get("direction") or ""),
-            "timeframe": timeframe,
-            "market_state": str(seed.get("market_state") or ""),
-            "playbook_hint": str(seed.get("playbook_hint") or ""),
-            "playbook_id": str(seed.get("playbook_id") or seed.get("playbook_hint") or ""),
-            "strategy": str(seed.get("strategy") or ""),
-            "style": str(seed.get("style") or ""),
-            "next_attempt": next_attempt,
-            "created_at": utc_iso(),
-            "expires_at": (utc_now() + timedelta(seconds=self._reentry_window_seconds(timeframe))).isoformat(),
-            "source_event_id": event_id,
-        }
+        if _patch_has_fresh_live_opportunity(normalized):
+            return _release_fresh_live_opportunity_state(normalized)
+        expired = str(normalized.get("last_pass_reason") or "").strip().upper() == "PRE_SIGNAL_EXPIRED"
+        if not expired:
+            expired = self._looks_like_stale_live_patch(normalized)
+        if not expired:
+            return normalized
 
-    def _symbol_matches_reentry_watch(self, cached: dict[str, Any], watch: dict[str, Any]) -> bool:
-        """确认当前缓存是否满足同方向、同前提族的重入条件。"""
-        if not isinstance(cached, dict) or not self._is_watch_active(watch):
-            return False
-        planned_trade = cached.get("planned_trade") if isinstance(cached.get("planned_trade"), dict) else {}
-        pre_signal = cached.get("pre_signal") if isinstance(cached.get("pre_signal"), dict) else {}
-        entry_idea = cached.get("entry_idea") if isinstance(cached.get("entry_idea"), dict) else {}
-        trigger_price = pre_signal.get("trigger_price") if isinstance(pre_signal.get("trigger_price"), dict) else {}
-        side = normalize_trade_side(
-            planned_trade.get("side")
-            or entry_idea.get("side")
-            or pre_signal.get("side")
-            or pre_signal.get("direction")
-        )
-        if side != str(watch.get("direction") or ""):
-            return False
-        timeframe = self._infer_followup_timeframe(cached, str(watch.get("timeframe") or "5m"))
-        if timeframe != str(watch.get("timeframe") or "").lower():
-            return False
-        market_state = str(cached.get("market_state") or cached.get("state") or "").strip()
-        if not self._same_market_state_family(market_state, str(watch.get("market_state") or "")):
-            return False
-        status = str(cached.get("status") or "").lower()
-        qualified_status = {"pre_signal", "entry_ready", "entry_ready_blocked", "executable"}
-        if not pre_signal and status not in qualified_status:
-            return False
-        entry_price = safe_float(
-            planned_trade.get("entry_price")
-            or trigger_price.get("entry")
-            or trigger_price.get("breakout")
-            or trigger_price.get("breakdown"),
-            0.0,
-        )
-        stop_loss = safe_float(planned_trade.get("stop_loss") or trigger_price.get("stop_loss"), 0.0)
-        return entry_price > 0 and stop_loss > 0
+        for key in ("pre_signal", "pre_signal_meta", "planned_trade", "trade", "followup_seed"):
+            normalized.pop(key, None)
+        entry_idea = normalized.get("entry_idea") if isinstance(normalized.get("entry_idea"), dict) else {}
+        for field in (
+            "candidate_stage",
+            "candidate_stage_cn",
+            "execution_mode",
+            "execution_mode_cn",
+            "style",
+            "filter_summary",
+            "upgrade_condition",
+            "brooks_rule",
+            "source_refs",
+        ):
+            entry_idea.pop(field, None)
+        if entry_idea:
+            normalized["entry_idea"] = entry_idea
+        else:
+            normalized.pop("entry_idea", None)
+        evaluation = normalized.get("evaluation") if isinstance(normalized.get("evaluation"), dict) else {}
+        for field in (
+            "candidate_stage",
+            "execution_mode",
+            "execution_decision",
+            "risk",
+            "signal_rank",
+            "brooks_rule",
+            "source_refs",
+        ):
+            evaluation.pop(field, None)
+        if evaluation:
+            normalized["evaluation"] = evaluation
+        else:
+            normalized.pop("evaluation", None)
+        if str(normalized.get("status") or "").strip() in {"pre_signal", "entry_ready", "entry_ready_blocked"}:
+            normalized["status"] = "watching"
+        normalized["stage"] = "WATCH"
+        normalized["stale_model_timeout"] = False
+        return normalized
 
-    def _apply_reentry_overlay(
-        self,
-        symbol_cache: dict[str, Any],
-        reentry_watch: dict[str, Any],
-        active_symbols: set[str],
-    ) -> None:
-        """把 live re-entry 计划写入缓存，供 LLM 和规则引擎复用。"""
-        if not isinstance(symbol_cache, dict):
-            return
-        for symbol, watch in reentry_watch.items():
-            symbol_key = str(symbol or "").upper()
-            if symbol_key in active_symbols:
+    def _sanitize_runtime_symbols_state(self, runtime: dict[str, Any]) -> dict[str, Any]:
+        """启动每轮前先清掉 runtime_state 里已经过期的候选态。"""
+        if not isinstance(runtime, dict):
+            return {}
+        symbols = runtime.get("symbols") if isinstance(runtime.get("symbols"), dict) else {}
+        if not symbols:
+            return runtime
+        changed = False
+        sanitized_symbols: dict[str, Any] = {}
+        for symbol, raw in symbols.items():
+            if not isinstance(raw, dict):
+                sanitized_symbols[symbol] = raw
                 continue
-            cached = symbol_cache.get(symbol_key)
-            if not isinstance(cached, dict):
-                continue
-            if not self._symbol_matches_reentry_watch(cached, watch):
-                continue
-            planned_trade = dict(cached.get("planned_trade") or {})
-            planned_trade["intent"] = "REENTRY"
-            planned_trade["risk_percent"] = planned_trade.get("risk_percent") or 0.3
-            planned_trade["reentry_attempt"] = int(watch.get("next_attempt") or 1)
-            planned_trade["followup_profile"] = "reentry_after_stop"
-            planned_trade["reentry_candidate"] = True
-            if watch.get("playbook_hint") and not planned_trade.get("playbook_hint"):
-                planned_trade["playbook_hint"] = watch.get("playbook_hint")
-            if watch.get("playbook_id") and not planned_trade.get("playbook_id"):
-                planned_trade["playbook_id"] = watch.get("playbook_id")
-            cached["planned_trade"] = planned_trade
-            cached["reentry_watch"] = {
-                "active": True,
-                "next_attempt": int(watch.get("next_attempt") or 1),
-                "expires_at": watch.get("expires_at"),
-                "reason": "S7 重入：止损后同方向、同前提族观察窗口仍有效",
-            }
+            sanitized = self._clear_expired_live_symbol_state(raw)
+            if sanitized != raw:
+                changed = True
+            sanitized_symbols[symbol] = sanitized
+        if not changed:
+            return runtime
+        updated = dict(runtime)
+        updated["symbols"] = sanitized_symbols
+        write_json(self.runtime_state_path, updated)
+        return updated
 
-    def sync_live_followup_state(
-        self,
-        runtime: dict[str, Any],
-        market_cache: dict[str, Any],
-        execution: dict[str, Any],
-        *,
-        execution_results: list[dict[str, Any]] | None = None,
-    ) -> dict[str, Any]:
-        """同步 live add-on / re-entry 运行态，并把重入计划注入当前缓存。"""
-        runtime_symbols = runtime.get("symbols") if isinstance(runtime.get("symbols"), dict) else {}
-        market_symbols = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
-        position_seeds = dict(runtime.get("position_seeds") if isinstance(runtime.get("position_seeds"), dict) else {})
-        reentry_watch = {
-            str(symbol).upper(): dict(watch)
-            for symbol, watch in (runtime.get("reentry_watch") or {}).items()
-            if isinstance(watch, dict)
-        }
-        processed_exit_events = [
-            str(item)
-            for item in (runtime.get("processed_exit_events") or [])
-            if str(item).strip()
-        ]
-        processed_exit_set = set(processed_exit_events)
+    def _sanitize_decision_symbol_outputs(self, decision: dict[str, Any]) -> dict[str, Any]:
+        """在最终落盘前再次清理过期候选态，避免 stale 结论在展示层复活。"""
+        if not isinstance(decision, dict):
+            return decision
 
-        live_positions = self._tracked_bot_positions(execution)
-        active_symbols = {
-            str(item.get("symbol") or "").upper()
-            for item in live_positions
-            if str(item.get("symbol") or "").strip()
-        }
-        for symbol in list(reentry_watch.keys()):
-            if symbol in active_symbols or not self._is_watch_active(reentry_watch[symbol]):
-                reentry_watch.pop(symbol, None)
+        raw_updates = decision.get("symbol_updates") if isinstance(decision.get("symbol_updates"), dict) else {}
+        raw_symbols = decision.get("symbols") if isinstance(decision.get("symbols"), dict) else {}
+        sanitized_updates: dict[str, Any] = {}
 
-        for position in live_positions:
-            symbol = str(position.get("symbol") or "").upper()
-            symbol_state = runtime_symbols.get(symbol) if isinstance(runtime_symbols.get(symbol), dict) else {}
-            if not symbol_state:
-                symbol_state = market_symbols.get(symbol) if isinstance(market_symbols.get(symbol), dict) else {}
-            seed = self._build_followup_seed_from_position(position, symbol_state, position_seeds.get(symbol))
-            if seed:
-                position_seeds[symbol] = seed
+        for symbol, raw_patch in raw_updates.items():
+            key = str(symbol).upper()
+            if not isinstance(raw_patch, dict):
+                sanitized_updates[key] = raw_patch
+                continue
+            sanitized_updates[key] = self._clear_expired_live_symbol_state(raw_patch)
 
-        tracked_orders = (
-            execution.get("tracked_orders")
-            if isinstance(execution.get("tracked_orders"), dict)
-            else {}
-        )
-        status_changes = (
-            tracked_orders.get("status_changes")
-            if isinstance(tracked_orders.get("status_changes"), list)
-            else []
-        )
-        for change in status_changes:
-            if not isinstance(change, dict):
-                continue
-            if str(change.get("bot_id") or "") != self.config.execution_bot_id:
-                continue
-            if str(change.get("trigger_reason") or "") != "stop_loss_hit":
-                continue
-            symbol = str(change.get("symbol") or "").upper()
-            if not symbol or symbol in active_symbols:
-                continue
-            event_id = self._tracked_exit_event_id(change)
-            if not event_id or event_id in processed_exit_set:
-                continue
-            processed_exit_set.add(event_id)
-            processed_exit_events.append(event_id)
-            seed = position_seeds.get(symbol)
-            watch = self._build_reentry_watch(seed or {}, event_id)
-            if watch:
-                reentry_watch[symbol] = watch
-                LOG.info("[FOLLOWUP] %s 注册 live re-entry 观察窗口，attempt=%s", symbol, watch.get("next_attempt"))
+        if sanitized_updates:
+            decision["symbol_updates"] = sanitized_updates
 
-        successful_open_symbols: set[str] = set()
-        for item in execution_results or []:
-            if not isinstance(item, dict):
+        if raw_symbols or sanitized_updates:
+            normalized_symbols: dict[str, Any] = {}
+            ordered_keys: list[str] = []
+            for symbol in list(raw_symbols.keys()) + list(sanitized_updates.keys()):
+                key = str(symbol).upper()
+                if key and key not in ordered_keys:
+                    ordered_keys.append(key)
+            for key in ordered_keys:
+                raw_card = raw_symbols.get(key) if isinstance(raw_symbols.get(key), dict) else {}
+                patch = sanitized_updates.get(key) if isinstance(sanitized_updates.get(key), dict) else {}
+                merged = dict(raw_card)
+                if patch:
+                    merged["status"] = patch.get("status", merged.get("status", "watching"))
+                    merged["stage"] = patch.get("stage", merged.get("stage", "WATCH"))
+                    merged["thesis"] = patch.get("thesis", merged.get("thesis", ""))
+                    merged["pre_signal"] = patch.get("pre_signal")
+                    merged["planned_trade"] = patch.get("planned_trade")
+                    # 主策略身份以当前 patch 为准，不能把旧 runtime_state 里的 MAG 残留重新拼回去。
+                    for field in (
+                        "latest_strategy_family",
+                        "strategy_family",
+                        "playbook_id",
+                        "playbook_family",
+                        "strategy_hint",
+                        "management_template",
+                        "brooks_label",
+                        "signal_type",
+                        "ema_gap_variant",
+                    ):
+                        merged[field] = patch.get(field)
+                normalized_symbols[key] = merged
+            decision["symbols"] = normalized_symbols
+
+        return decision
+
+    def _cycle_open_key(self, symbol: str, strategy_key: str) -> tuple[str, str]:
+        """同一轮去重键：同品种同策略视为同一开仓动作。"""
+        normalized_symbol = self._normalize_live_symbol(symbol) or str(symbol or "").upper()
+        normalized_strategy_key = self._canonical_live_strategy_key(strategy_key) or str(strategy_key or "").strip().upper()
+        return normalized_symbol, normalized_strategy_key
+
+    @staticmethod
+    def _live_side_conflicts(requested_side: str, existing_side: str) -> bool:
+        """只把同方向暴露视为首仓冲突，避免反向信号被过宽拦截。"""
+        requested = str(requested_side or "").strip().upper()
+        existing = str(existing_side or "").strip().upper()
+        if not requested or not existing:
+            return True
+        if requested == "BUY":
+            return existing in {"BUY", "LONG"}
+        if requested == "SELL":
+            return existing in {"SELL", "SHORT"}
+        return True
+
+    def _collect_pending_open_keys(self, actions: list[dict[str, Any]]) -> set[tuple[str, str]]:
+        """从当前 decision.actions 收集已经排队的 OPEN_ORDER 键。"""
+        pending_keys: set[tuple[str, str]] = set()
+        for action in actions:
+            if not isinstance(action, dict):
                 continue
-            if str(item.get("type") or "").upper() != "OPEN_ORDER" or not item.get("success"):
+            if str(action.get("type") or "").upper() != "OPEN_ORDER":
                 continue
-            snapshot = item.get("action_snapshot") if isinstance(item.get("action_snapshot"), dict) else {}
-            symbol = str(item.get("symbol") or snapshot.get("symbol") or "").upper()
+            symbol = str(action.get("symbol") or "").upper()
             if not symbol:
                 continue
-            symbol_state = runtime_symbols.get(symbol) if isinstance(runtime_symbols.get(symbol), dict) else {}
-            if not symbol_state:
-                symbol_state = market_symbols.get(symbol) if isinstance(market_symbols.get(symbol), dict) else {}
-            seed = self._build_followup_seed_from_action_snapshot(snapshot, symbol_state, position_seeds.get(symbol))
-            if seed:
-                position_seeds[symbol] = seed
-                successful_open_symbols.add(symbol)
-            reentry_watch.pop(symbol, None)
+            strategy_key = self._live_strategy_key_from_action(action)
+            pending_keys.add(self._cycle_open_key(symbol, strategy_key))
+        return pending_keys
 
-        keep_symbols = active_symbols | set(reentry_watch.keys()) | successful_open_symbols
-        position_seeds = {
-            symbol: seed
-            for symbol, seed in position_seeds.items()
-            if symbol in keep_symbols
+    def _tracked_bot_orders(self, execution: dict[str, Any]) -> list[dict[str, Any]]:
+        """只保留当前 bot 负责、且仍处于活动状态的挂单。"""
+        orders = execution.get("orders") if isinstance(execution.get("orders"), list) else []
+        matched: list[dict[str, Any]] = []
+        for item in orders:
+            if not isinstance(item, dict):
+                continue
+            bot_ids = item.get("bot_ids")
+            bot_id = str(item.get("bot_id") or "").strip()
+            if isinstance(bot_ids, list):
+                normalized = {str(value).strip() for value in bot_ids if str(value).strip()}
+                if normalized and self.config.execution_bot_id not in normalized:
+                    continue
+            elif bot_id and bot_id != self.config.execution_bot_id:
+                continue
+            if bool(item.get("reduce_only")):
+                continue
+            status = str(item.get("status") or "").strip().lower()
+            if status in {"closed", "filled", "cancelled", "canceled", "rejected", "failed"}:
+                continue
+            matched.append(item)
+        return matched
+
+    def _live_entry_preflight_snapshot(
+        self,
+        symbol: str,
+        execution: dict[str, Any],
+        *,
+        base_url: str,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """对目标交易所做实时持仓与挂单预检，避免聚合快照滞后导致重复首仓。"""
+        snapshot = {
+            "positions": execution.get("positions") if isinstance(execution.get("positions"), list) else [],
+            "orders": execution.get("orders") if isinstance(execution.get("orders"), list) else [],
         }
-        processed_exit_events = processed_exit_events[-200:]
-
-        self._apply_reentry_overlay(runtime_symbols, reentry_watch, active_symbols)
-        self._apply_reentry_overlay(market_symbols, reentry_watch, active_symbols)
-
-        return {
-            "position_seeds": position_seeds,
-            "reentry_watch": reentry_watch,
-            "processed_exit_events": processed_exit_events,
+        meta: dict[str, Any] = {
+            "symbol": symbol,
+            "positions_source": "cached",
+            "orders_source": "cached",
         }
+
+        live_positions = self.http_get_json("/positions", base_url=base_url, timeout=4)
+        if isinstance(live_positions, list):
+            snapshot["positions"] = live_positions
+            meta["positions_source"] = "live"
+            meta["positions_count"] = len(live_positions)
+        else:
+            meta["positions_count"] = len(snapshot["positions"])
+            meta["positions_error"] = str((live_positions or {}).get("_error") or live_positions or "-")
+            meta["positions_transport_error"] = self._is_transport_block_reason(live_positions)
+
+        if meta.get("positions_transport_error"):
+            meta["orders_count"] = len(snapshot["orders"])
+            meta["orders_error"] = "skip live orders after positions transport error"
+            return snapshot, meta
+
+        live_orders = self.http_get_json(
+            "/orders/open",
+            {"symbol": symbol},
+            base_url=base_url,
+            timeout=4,
+        )
+        if isinstance(live_orders, list):
+            snapshot["orders"] = live_orders
+            meta["orders_source"] = "live"
+            meta["orders_count"] = len(live_orders)
+        else:
+            meta["orders_count"] = len(snapshot["orders"])
+            meta["orders_error"] = str((live_orders or {}).get("_error") or live_orders or "-")
+
+        return snapshot, meta
+
+    def _live_entry_conflict(
+        self,
+        symbol: str,
+        strategy_key: str,
+        execution: dict[str, Any],
+        *,
+        side: str = "",
+    ) -> tuple[bool, str]:
+        """检测同品种同策略是否已有 live 暴露，不同策略允许并行首仓。"""
+        normalized_symbol = self._normalize_live_symbol(symbol)
+        if not normalized_symbol:
+            return False, ""
+
+        for item in self._tracked_bot_positions(execution):
+            if self._normalize_live_symbol(item.get("symbol")) != normalized_symbol:
+                continue
+            existing_strategy_key = self._live_strategy_key_from_execution_item(item)
+            if strategy_key:
+                if existing_strategy_key and existing_strategy_key != strategy_key:
+                    continue
+                if not existing_strategy_key:
+                    continue
+            existing_side = str(
+                item.get("side")
+                or item.get("direction")
+                or item.get("position_side")
+                or "-"
+            ).upper()
+            if not self._live_side_conflicts(side, existing_side):
+                continue
+            quantity = (
+                safe_float(item.get("quantity"))
+                or safe_float(item.get("contracts"))
+                or safe_float(item.get("size"))
+                or 0.0
+            )
+            if quantity <= 0:
+                continue
+            strategy_hint = existing_strategy_key or strategy_key or "未知策略"
+            return True, f"当前已有同品种同策略持仓（{strategy_hint} | {existing_side} {quantity:g}），先走持仓管理链"
+
+        for item in self._tracked_bot_orders(execution):
+            if self._normalize_live_symbol(item.get("symbol")) != normalized_symbol:
+                continue
+            order_class = str(item.get("order_class") or item.get("orderClass") or "").strip().upper()
+            protection_kind = str(item.get("protection_kind") or item.get("protectionKind") or "").strip().upper()
+            entry_intent = str(
+                item.get("entry_intent")
+                or item.get("intent")
+                or item.get("order_intent")
+                or ""
+            ).strip().upper()
+            reduce_only = bool(item.get("reduce_only") or item.get("reduceOnly"))
+            if reduce_only:
+                continue
+            if order_class in {"PROTECTION", "MANAGEMENT"}:
+                continue
+            if protection_kind in {"STOP_LOSS", "TAKE_PROFIT"}:
+                continue
+            if entry_intent in {
+                "MANAGEMENT",
+                "PROTECTION",
+                "STOP_LOSS",
+                "TAKE_PROFIT",
+                "CLOSE",
+                "REDUCE",
+                "PARTIAL_CLOSE",
+            }:
+                continue
+            existing_strategy_key = self._live_strategy_key_from_execution_item(item)
+            if strategy_key:
+                if existing_strategy_key and existing_strategy_key != strategy_key:
+                    continue
+                if not existing_strategy_key:
+                    continue
+            existing_side = str(item.get("side") or "-").upper()
+            if not self._live_side_conflicts(side, existing_side):
+                continue
+            order_type = str(item.get("order_type") or item.get("type") or "-").upper()
+            strategy_hint = existing_strategy_key or strategy_key or "未知策略"
+            return True, f"当前已有同品种同策略活动挂单（{strategy_hint} | {existing_side} {order_type}），避免重复首仓"
+
+        return False, ""
+
+    @staticmethod
+    def _planned_trade_flag(value: Any, default: bool = False) -> bool:
+        """把 planned_trade / execution_semantics 里的真假值统一解析成布尔。"""
+        if value in (None, ""):
+            return default
+        if isinstance(value, bool):
+            return value
+        text = str(value).strip().lower()
+        if text in {"true", "1", "yes", "y"}:
+            return True
+        if text in {"false", "0", "no", "n"}:
+            return False
+        return bool(value)
 
     def primary_chart_for_decision(
         self,
@@ -2148,21 +2152,79 @@ class PatrolRuntime(
         from rule_engine import get_executable_trades
         from trading.position_management import manage_position
 
-        positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
-        # 优先从 runtime.symbols 读取（包含完整的 pre_signal 数据），fallback 到 market_cache
-        symbol_cache = runtime.get("symbols") if isinstance(runtime.get("symbols"), dict) else {}
-        if not symbol_cache:
-            symbol_cache = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
+        positions = self._tracked_bot_positions(execution)
+        # 使用 market_cache 作为底座，再叠加 runtime 展示态里的有效字段，避免空值冲掉价格/ATR。
+        runtime_symbol_cache = runtime.get("symbols") if isinstance(runtime.get("symbols"), dict) else {}
+        market_symbol_cache = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
+        symbol_cache: dict[str, Any] = {}
+        all_symbol_keys = {
+            str(symbol).upper()
+            for symbol in (
+                list(market_symbol_cache.keys())
+                + list(runtime_symbol_cache.keys())
+            )
+        }
+        for symbol in all_symbol_keys:
+            symbol_cache[symbol] = _merge_symbol_payload(
+                market_symbol_cache.get(symbol),
+                runtime_symbol_cache.get(symbol),
+            )
         focus_symbols = phase_plan.get("focus_symbols") or []
+        normalized_symbol_cache: dict[str, Any] = {}
+        for symbol in focus_symbols:
+            cached_raw = symbol_cache.get(symbol) if isinstance(symbol_cache.get(symbol), dict) else {}
+            analysis = analysis_board.get(symbol) if isinstance(analysis_board.get(symbol), dict) else {}
+            hydrated_raw = _hydrate_symbol_payload_from_analysis(cached_raw, analysis)
+            frames = hydrated_raw.get("timeframes") if isinstance(hydrated_raw.get("timeframes"), dict) else {}
+            normalized_symbol_cache[symbol] = _merge_symbol_patch_with_mag_bridge(
+                self._clear_expired_live_symbol_state(build_runtime_symbol_patch(hydrated_raw)),
+                frames,
+            )
+        for symbol, payload in symbol_cache.items():
+            if symbol not in normalized_symbol_cache and isinstance(payload, dict):
+                analysis = analysis_board.get(symbol) if isinstance(analysis_board.get(symbol), dict) else {}
+                hydrated_payload = _hydrate_symbol_payload_from_analysis(payload, analysis)
+                frames = hydrated_payload.get("timeframes") if isinstance(hydrated_payload.get("timeframes"), dict) else {}
+                normalized_symbol_cache[symbol] = _merge_symbol_patch_with_mag_bridge(
+                    self._clear_expired_live_symbol_state(build_runtime_symbol_patch(hydrated_payload)),
+                    frames,
+                )
+        symbol_cache = normalized_symbol_cache
 
         # 1. 持仓管理（如果有持仓）
         position_management = []
         if positions:
             try:
                 for pos in positions:
-                    result = manage_position(pos, market_cache)
+                    symbol = self._normalize_live_symbol(pos.get("symbol"))
+                    raw_state = symbol_cache.get(symbol) if isinstance(symbol_cache.get(symbol), dict) else {}
+                    if not raw_state:
+                        market_symbols = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
+                        raw_state = market_symbols.get(symbol) if isinstance(market_symbols.get(symbol), dict) else {}
+                    symbol_patch = build_runtime_symbol_patch(raw_state)
+                    management_position = self._hydrate_live_position_for_management(
+                        pos,
+                        symbol_patch,
+                        analysis_board,
+                    )
+                    management_market_data = self._management_market_data_for_symbol(
+                        symbol,
+                        management_position,
+                        symbol_patch,
+                        analysis_board,
+                        execution,
+                    )
+                    result = manage_position(management_position, management_market_data)
                     if result and result.get("actions"):
                         position_management.extend(result["actions"])
+                    else:
+                        LOG.info(
+                            "[RULE_ENGINE_DECISION] %s 管理无动作: reason=%s | premise=%s | confidence=%s",
+                            self._normalize_live_symbol(pos.get("symbol")),
+                            (result or {}).get("reason"),
+                            ((result or {}).get("premise_check") or {}).get("action"),
+                            ((result or {}).get("strength_check") or {}).get("confidence"),
+                        )
                 if position_management:
                     LOG.info("[RULE_ENGINE_DECISION] 生成 %d 个持仓管理 actions", len(position_management))
             except Exception as exc:
@@ -2198,55 +2260,133 @@ class PatrolRuntime(
         # 3. 构建 decision
         actions = []
         symbols_dict = {}
+        symbol_updates = {}
+        pending_open_keys: set[tuple[str, str]] = set()
 
         for symbol in focus_symbols:
             cached = symbol_cache.get(symbol, {}) if isinstance(symbol_cache.get(symbol), dict) else {}
+            patch = self._clear_expired_live_symbol_state(build_runtime_symbol_patch(cached))
+            patch_is_expired = _patch_is_expired_or_stale(patch) or self._looks_like_stale_live_patch(cached)
+
+            # 生成开仓 actions（当前规则引擎路径始终运行）
+            matching_trades = [t for t in executable_trades if t["symbol"] == symbol]
+            primary_trade = matching_trades[0] if matching_trades else None
+            planned_trade_action = None
+            if (not patch_is_expired) and (not primary_trade):
+                planned_trade_action = self._build_executable_planned_trade_action(
+                    symbol=symbol,
+                    cached=cached,
+                    reason_prefix="规则链补桥",
+                    refs=[],
+                    source_chain="planned_trade_bridge.rule_engine",
+                )
+            if not patch_is_expired:
+                patch = _enrich_live_symbol_patch(
+                    patch,
+                    trade=primary_trade,
+                    action=planned_trade_action,
+                )
+            symbol_updates[symbol] = patch
 
             # 构建 symbols 字典
             symbols_dict[symbol] = {
-                "status": cached.get("status", "watching"),
-                "stage": cached.get("stage", ""),
-                "market_state": cached.get("market_state", ""),
-                "thesis": cached.get("thesis", ""),
-                "pre_signal": cached.get("pre_signal"),
-                "planned_trade": cached.get("planned_trade"),
+                "status": patch.get("status", "watching"),
+                "stage": patch.get("stage", ""),
+                "market_state": patch.get("market_state", ""),
+                "thesis": patch.get("thesis", ""),
+                "pre_signal": patch.get("pre_signal"),
+                "planned_trade": patch.get("planned_trade"),
+                "latest_strategy_family": patch.get("latest_strategy_family"),
             }
+            if matching_trades:
+                for matching_trade in matching_trades:
+                    action_reason = f"规则引擎: {matching_trade['strategy']} | {matching_trade['reason']}"
+                    strategy_key = self._canonical_live_strategy_key(
+                        matching_trade.get("strategy"),
+                        matching_trade.get("playbook_family"),
+                        matching_trade.get("playbook_id"),
+                        patch.get("ema_gap_variant"),
+                    )
+                    entry_blocked, entry_block_reason = self._live_entry_conflict(
+                        symbol,
+                        strategy_key,
+                        execution,
+                        side=str(matching_trade.get("side") or ""),
+                    )
+                    if entry_blocked:
+                        actions.append(
+                            {
+                                "type": "LOG_ONLY",
+                                "symbol": symbol,
+                                "reason": f"{action_reason} | [LIVE_ENTRY_CONFLICT] {entry_block_reason}",
+                                "refs": [],
+                            }
+                        )
+                        continue
 
-            # 生成开仓 actions（当前规则引擎路径始终运行）
-            matching_trade = next((t for t in executable_trades if t["symbol"] == symbol), None)
-            if matching_trade:
-                action_type = "OPEN_ORDER"
-                action_reason = f"规则引擎: {matching_trade['strategy']} | {matching_trade['reason']}"
-                LOG.info(f"[RULE_ENGINE_DECISION] {symbol} 生成 OPEN_ORDER")
+                    cycle_key = self._cycle_open_key(symbol, strategy_key)
+                    if cycle_key in pending_open_keys:
+                        actions.append(
+                            {
+                                "type": "LOG_ONLY",
+                                "symbol": symbol,
+                                "reason": f"{action_reason} | [DUPLICATE_IN_CYCLE] 同一轮同品种同策略已生成 OPEN_ORDER",
+                                "refs": [],
+                            }
+                        )
+                        continue
 
-                # 构建完整的 action（包含所有必要参数）
-                actions.append({
-                    "type": action_type,
-                    "symbol": symbol,
-                    "side": matching_trade["side"],
-                    "entry": matching_trade["entry_price"],
-                    "sl": matching_trade["stop_loss"],
-                    "tp": matching_trade["take_profit"],
-                    "strategy": matching_trade["strategy"],
-                    "style": matching_trade["style"],
-                    "reason": action_reason,
-                    "refs": [],
-                    "market_state": cached.get("market_state", ""),
-                    "signal_bar": "",
-                    "equation": "",
-                    "bar_reading": "",
-                    "ai_direction": matching_trade["side"],
-                    "risk_usdt": 10,
-                    "confidence": matching_trade.get("confidence"),
-                    "signal_source": self.config.execution_bot_id,
-                    "intent": matching_trade.get("intent"),
-                    "risk_percent": matching_trade.get("risk_percent"),
-                    "reentry_attempt": matching_trade.get("reentry_attempt"),
-                    "followup_profile": matching_trade.get("followup_profile"),
-                    "playbook_hint": matching_trade.get("playbook_hint"),
-                    "playbook_id": matching_trade.get("playbook_id"),
-                    "reentry_candidate": matching_trade.get("reentry_candidate"),
-                })
+                    LOG.info(
+                        "[RULE_ENGINE_DECISION] %s 生成 OPEN_ORDER: %s",
+                        symbol,
+                        matching_trade.get("strategy"),
+                    )
+                    actions.append(
+                        build_open_order_action(
+                            symbol=symbol,
+                            reason=action_reason,
+                            trade=matching_trade,
+                            patch=patch,
+                            signal_source=self.config.execution_bot_id,
+                            source_chain="rule_engine",
+                            base_action={
+                                "confidence": matching_trade.get("confidence"),
+                            },
+                        )
+                    )
+                    pending_open_keys.add(cycle_key)
+            elif planned_trade_action:
+                strategy_key = self._live_strategy_key_from_action(planned_trade_action)
+                entry_blocked, entry_block_reason = self._live_entry_conflict(
+                    symbol,
+                    strategy_key,
+                    execution,
+                    side=str(planned_trade_action.get("side") or ""),
+                )
+                if entry_blocked:
+                    actions.append(
+                        {
+                            "type": "LOG_ONLY",
+                            "symbol": symbol,
+                            "reason": f"{planned_trade_action.get('reason') or 'planned_trade桥接'} | [LIVE_ENTRY_CONFLICT] {entry_block_reason}",
+                            "refs": [],
+                        }
+                    )
+                else:
+                    cycle_key = self._cycle_open_key(symbol, strategy_key)
+                    if cycle_key in pending_open_keys:
+                        actions.append(
+                            {
+                                "type": "LOG_ONLY",
+                                "symbol": symbol,
+                                "reason": f"{planned_trade_action.get('reason') or 'planned_trade桥接'} | [DUPLICATE_IN_CYCLE] 同一轮同品种同策略已生成 OPEN_ORDER",
+                                "refs": [],
+                            }
+                        )
+                        continue
+                    LOG.info("[PLANNED_TRADE_BRIDGE] %s 生成 OPEN_ORDER", symbol)
+                    actions.append(planned_trade_action)
+                    pending_open_keys.add(cycle_key)
             else:
                 action_type = "LOG_ONLY"
                 action_reason = "规则引擎: 未识别到可执行交易"
@@ -2268,7 +2408,7 @@ class PatrolRuntime(
             "market_summary": market_summary,
             "focus_symbols": focus_symbols,
             "symbols": symbols_dict,
-            "symbol_updates": {},
+            "symbol_updates": symbol_updates,
             "actions": actions,
             "position_management": position_management,
             "next_scan_seconds": 120 if not positions else 60,
@@ -2287,166 +2427,61 @@ class PatrolRuntime(
         quick_scan_events: dict[str, Any],
         error: Exception,
     ) -> dict[str, Any]:
-        # 激进模式开关（强制从 .env 重新读取）
-        env_file = Path(__file__).parent.parent / "config" / ".env"
-        aggressive_mode = False
-        rule_engine_enabled = True  # 默认启用
-        if env_file.exists():
-            for line in env_file.read_text().splitlines():
-                if line.strip().startswith("AB_PATROL_AGGRESSIVE_MODE="):
-                    aggressive_mode = bool(int(line.split("=", 1)[1].strip()))
-                elif line.strip().startswith("AB_PATROL_RULE_ENGINE="):
-                    rule_engine_enabled = bool(int(line.split("=", 1)[1].strip()))
-
-        # 如果 .env 没有，再从环境变量读取
-        if not aggressive_mode:
-            aggressive_mode = bool(int(os.getenv("AB_PATROL_AGGRESSIVE_MODE", "0")))
-
-        symbol_cache = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
-        focus_symbols = [str(item).upper() for item in (phase_plan.get("focus_symbols") or [])]
-        refs = list(phase_plan.get("prompt_references") or [])[:4]
-        positions = self._tracked_bot_positions(execution)
-        cached_pre_signal = any(
-            str((symbol_cache.get(symbol, {}) or {}).get("status") or "")
-            in {"pre_signal", "entry_ready", "entry_ready_blocked"}
-            for symbol in focus_symbols
+        """兼容旧入口，真实实现已迁移到 live_timeout_fallback_mixin。"""
+        return LiveTimeoutFallbackMixin.timeout_fallback_decision(
+            self,
+            runtime,
+            market_cache,
+            execution,
+            phase_plan,
+            analysis_board,
+            quick_scan_events,
+            error,
         )
-        next_scan_seconds = 240 if positions or cached_pre_signal else 480
-        symbol_updates: dict[str, Any] = {}
-        actions: list[dict[str, Any]] = []
-
-        if aggressive_mode:
-            LOG.info("[AGGRESSIVE] 激进模式已启用 | positions=%d", len(positions))
-
-        LOG.info("[TIMEOUT_FALLBACK] symbol_cache keys=%d, focus_symbols=%s", len(symbol_cache), focus_symbols)
-
-        # 使用规则引擎分析所有品种（无论是否有持仓）
-        if rule_engine_enabled:
-            try:
-                executable_trades = get_executable_trades(symbol_cache)
-                if executable_trades:
-                    LOG.info("[RULE_ENGINE] 发现 %d 个可执行交易", len(executable_trades))
-                    for trade in executable_trades:
-                        LOG.info("[RULE_ENGINE] %s: %s | confidence=%.2f | %s",
-                                trade["symbol"], trade["strategy"], trade["confidence"], trade["reason"])
-            except Exception as exc:
-                LOG.warning("[RULE_ENGINE] 规则引擎失败: %s", exc)
-                executable_trades = []
-        else:
-            executable_trades = []
-
-        def _trim_text(value: Any, limit: int = 180) -> str:
-            text = str(value or "").strip()
-            if len(text) <= limit:
-                return text
-            return text[: max(0, limit - 1)].rstrip() + "…"
-
-        for symbol in focus_symbols:
-            cached = symbol_cache.get(symbol, {}) if isinstance(symbol_cache.get(symbol), dict) else {}
-            board = analysis_board.get(symbol, {}) if isinstance(analysis_board.get(symbol), dict) else {}
-            events = self.flatten_events(quick_scan_events.get(symbol))
-            event_text = ", ".join(events[:4]) if events else "无新增事件"
-            thesis = _trim_text(
-                str(
-                    cached.get("thesis")
-                    or cached.get("structure_summary")
-                    or cached.get("market_state_detail")
-                    or f"{symbol} 本轮模型超时，保持上一轮观察结论。"
-                ),
-                220,
-            )
-            symbol_updates[symbol] = {
-                "status": str(cached.get("status") or "watching"),
-                "daily_bias": cached.get("daily_bias"),
-                "ai_direction": cached.get("ai_direction"),
-                "market_state": cached.get("market_state"),
-                "market_state_detail": cached.get("market_state_detail") or board.get("cached_state", {}).get("market_state_detail"),
-                "structure_summary": cached.get("structure_summary") or thesis,
-                "key_levels": cached.get("key_levels") or board.get("cached_state", {}).get("key_levels") or {},
-                "thesis": thesis,
-                "pre_signal": cached.get("pre_signal"),
-            }
-
-            # 优先使用规则引擎
-            action_type = "LOG_ONLY"
-            action_reason = f"模型超时，保留上一轮判断；事件参考: {event_text}"
-            action_params = {}  # 存储额外的交易参数
-
-            # 1. 规则引擎优先
-            if rule_engine_enabled and executable_trades:
-                matching_trade = next((t for t in executable_trades if t["symbol"] == symbol), None)
-                if matching_trade:
-                    action_type = "OPEN_ORDER"
-                    action_reason = f"规则引擎: {matching_trade['strategy']} | {matching_trade['reason']}"
-                    # 添加完整的交易参数
-                    action_params = {
-                        "entry": matching_trade["entry_price"],
-                        "sl": matching_trade["stop_loss"],
-                        "tp": matching_trade["take_profit"],
-                        "side": matching_trade["side"],
-                        "strategy": matching_trade["strategy"],
-                        "style": matching_trade["style"],
-                        "confidence": matching_trade["confidence"],
-                        "intent": matching_trade.get("intent"),
-                        "risk_percent": matching_trade.get("risk_percent"),
-                        "reentry_attempt": matching_trade.get("reentry_attempt"),
-                        "followup_profile": matching_trade.get("followup_profile"),
-                        "playbook_hint": matching_trade.get("playbook_hint"),
-                        "playbook_id": matching_trade.get("playbook_id"),
-                        "reentry_candidate": matching_trade.get("reentry_candidate"),
-                    }
-                    LOG.info(f"[RULE_ENGINE] {symbol} 执行: {matching_trade['strategy']}")
-
-            # 2. 激进模式作为备选
-            elif aggressive_mode and not positions:
-                can_execute, exec_reason = should_execute_aggressive(cached)
-                if can_execute and cached.get("status") == "executable":
-                    action_type = "OPEN_ORDER"
-                    action_reason = f"激进模式执行: {exec_reason}"
-                    strategy = identify_strategy(cached)
-                    LOG.info(f"[AGGRESSIVE] {symbol} 激进模式触发: {strategy} | {exec_reason}")
-
-            action = {
-                "type": action_type,
-                "symbol": symbol,
-                "reason": action_reason,
-                "refs": refs,
-            }
-            # 合并交易参数
-            action.update(action_params)
-            actions.append(action)
-
-        if positions:
-            market_summary = "本轮决策模型超时。为避免持仓无人看管，系统保留上一轮管理结论，不做新开仓，缩短到 60 秒后重试。"
-        else:
-            market_summary = "本轮决策模型超时。系统保留上一轮观察结论，不做新开仓，快速重试下一轮。"
-
-        return {
-            "phase": phase_plan["phase"],
-            "market_summary": market_summary,
-            "focus_symbols": focus_symbols,
-            "symbols": symbol_updates,
-            "symbol_updates": symbol_updates,
-            "actions": actions,
-            "position_management": [],
-            "next_scan_seconds": next_scan_seconds,
-            "next_scan_reason": "MODEL_TIMEOUT_RETRY",
-            "state_patch": {
-                "model_timeout": True,
-                "last_model_timeout_at": utc_iso(),
-                "needs_post_trade_refresh": False,
-                "quiet_loops": int(runtime.get("quiet_loops") or 0),
-            },
-            "explanation": _trim_text(f"Decision provider timeout fallback: {error}", 240),
-        }
 
     def run_cycle(self, trigger: dict[str, Any] | None = None) -> dict[str, Any]:
-        runtime = self.load_runtime_state()
+        cycle_started = time.perf_counter()
+        profile_stages: dict[str, float] = {}
+
+        def mark_stage(name: str, started_at: float) -> None:
+            profile_stages[name] = round((time.perf_counter() - started_at) * 1000, 2)
+
+        stage_started = time.perf_counter()
+        runtime = self._sanitize_runtime_symbols_state(self.load_runtime_state())
         market_cache = self.align_market_cache(runtime, self.normalize_market_cache(self.load_market_cache()))
+        mark_stage("load_runtime_market_cache_ms", stage_started)
+
+        stage_started = time.perf_counter()
         execution = self.execution_snapshot()
+        mark_stage("execution_snapshot_ms", stage_started)
+
+        stage_started = time.perf_counter()
         runtime.update(self.sync_live_followup_state(runtime, market_cache, execution))
         phase_plan = self.select_phase_plan(runtime, market_cache, execution, trigger)
-        prepared = self.prepare_prompt_context(runtime, market_cache, execution, trigger, phase_plan)
+        mark_stage("sync_followup_phase_plan_ms", stage_started)
+
+        # LLM 不能成为实盘链硬依赖；未显式开启时直接退回规则引擎。
+        llm_runtime_enabled = not (
+            str(self.config.decision_provider).lower() in {"openclaw", "openclaw_oauth", "llm_gateway", "llm"}
+            and os.getenv(
+                "AB_PATROL_ENABLE_LLM_RUNTIME",
+                os.getenv("AB_PATROL_ENABLE_OPENCLAW_RUNTIME", "0"),
+            )
+            != "1"
+        )
+
+        stage_started = time.perf_counter()
+        if llm_runtime_enabled:
+            prepared = self.prepare_prompt_context(runtime, market_cache, execution, trigger, phase_plan)
+        else:
+            prepared = self.prepare_rule_engine_context(runtime, market_cache, execution, trigger, phase_plan)
+        mark_stage("prepare_prompt_context_ms", stage_started)
+        prepared_profile = prepared.get("profile") if isinstance(prepared.get("profile"), dict) else {}
+        for name, value in prepared_profile.items():
+            try:
+                profile_stages[str(name)] = round(float(value), 2)
+            except Exception:
+                continue
         symbol_cache = prepared["symbol_cache"]
         ab_context_by_symbol = prepared["ab_context_by_symbol"]
         quick_scan_events = prepared["quick_scan_events"]
@@ -2461,7 +2496,9 @@ class PatrolRuntime(
         knowledge_meta: dict[str, Any]
 
         fast_lane_candidates = []
-        if not execution.get("positions") and phase_plan["phase"] in {"SCAN", "ENTRY_READY"}:
+        from llm_trigger_integration import should_use_fast_lane
+
+        if llm_runtime_enabled and should_use_fast_lane() and not execution.get("positions") and phase_plan["phase"] in {"SCAN", "ENTRY_READY"}:
             fast_lane_candidates = self.scalp_fast_candidates(
                 phase_plan,
                 symbol_cache,
@@ -2472,7 +2509,9 @@ class PatrolRuntime(
         decision = {}
         ref_names = []
         knowledge_meta = {}
-        if fast_lane_candidates:
+        stage_started = time.perf_counter()
+
+        if fast_lane_candidates and llm_runtime_enabled:
             scalp_symbol = fast_lane_candidates[0]
             try:
                 fast_system, fast_user, fast_refs, fast_board, fast_events, fast_knowledge = self.build_scalp_fast_prompt(
@@ -2542,6 +2581,11 @@ class PatrolRuntime(
                 runtime=runtime,
             )
 
+            if use_llm and not llm_runtime_enabled:
+                LOG.info("[RULE_ENGINE] LLM 运行态未启用，跳过 LLM 决策，直接走规则引擎")
+                use_llm = False
+                trigger_reason = f"{trigger_reason} | llm_runtime_disabled"
+
             if use_llm:
                 # 使用 LLM
                 LOG.info(f"[LLM_TRIGGER] {trigger_reason}")
@@ -2564,9 +2608,7 @@ class PatrolRuntime(
                         LOG.warning("decision json malformed, attempting repair: %s", exc)
                         decision = self.repair_decision_json(response_text, exc)
                 except RuntimeError as exc:
-                    if "timeout" not in str(exc).lower():
-                        raise
-                    LOG.warning("decision provider timed out, using fallback decision: %s", exc)
+                    LOG.warning("decision provider unavailable, using fallback decision: %s", exc)
                     decision = self.timeout_fallback_decision(
                         runtime,
                         market_cache,
@@ -2587,6 +2629,7 @@ class PatrolRuntime(
                     analysis_board,
                     quick_scan_events,
                 )
+        mark_stage("decision_pipeline_ms", stage_started)
         decision = self.validate_decision(decision, phase_plan, ref_names, market_cache, analysis_board, quick_scan_events)
 
         # 规则引擎作为安全网：即使 LLM 输出 LOG_ONLY，规则引擎也能识别并执行交易
@@ -2599,26 +2642,9 @@ class PatrolRuntime(
                     break
 
         positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
-        if rule_engine_enabled and not positions:
-            from rule_engine import get_executable_trades
-            symbol_cache_for_rules = decision.get("symbols") or {}
-            try:
-                executable_trades = get_executable_trades(symbol_cache_for_rules)
-                if executable_trades:
-                    LOG.info("[RULE_ENGINE_SAFETY_NET] 发现 %d 个可执行交易", len(executable_trades))
-                    # 检查是否有 LOG_ONLY 的 actions 可以升级为 OPEN_ORDER
-                    for action in (decision.get("actions") or []):
-                        if not isinstance(action, dict):
-                            continue
-                        symbol = str(action.get("symbol") or "").upper()
-                        if action.get("type") == "LOG_ONLY":
-                            matching_trade = next((t for t in executable_trades if t["symbol"] == symbol), None)
-                            if matching_trade:
-                                action["type"] = "OPEN_ORDER"
-                                action["reason"] = f"规则引擎升级: {matching_trade['strategy']} | {matching_trade['reason']}"
-                                LOG.info(f"[RULE_ENGINE_SAFETY_NET] {symbol} 从 LOG_ONLY 升级为 OPEN_ORDER: {matching_trade['strategy']}")
-            except Exception as exc:
-                LOG.warning("[RULE_ENGINE_SAFETY_NET] 规则引擎失败: %s", exc)
+        decision = self._apply_rule_engine_safety_net(decision, market_cache, execution, positions)
+
+        decision = self._sanitize_decision_symbol_outputs(decision)
 
         state_patch = decision.setdefault("state_patch", {})
         overall_eventful = False
@@ -2645,275 +2671,25 @@ class PatrolRuntime(
         state_patch["prompt_references"] = ref_names
         write_json(self.logs_dir / "last_decision.json", decision)
 
-        session_id = provider_meta.get("session_id") or runtime.get("openclaw_runtime_session_id") or ""
-
-        cycle_id = f"cycle_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        hydrated_actions: list[dict[str, Any]] = []
-        for action in (decision.get("actions") or []):
-            if isinstance(action, dict):
-                hydrated_actions.append(self.hydrate_open_order_action(action, decision))
-            else:
-                hydrated_actions.append(action)
-        decision["actions"] = hydrated_actions
-
-        hydrated_management: list[dict[str, Any]] = []
-        for action in (decision.get("position_management") or []):
-            if isinstance(action, dict):
-                hydrated_management.append(self.hydrate_open_order_action(action, decision))
-            else:
-                hydrated_management.append(action)
-        decision["position_management"] = hydrated_management
-
-        execution_results: list[dict[str, Any]] = []
-        for action in hydrated_actions:
-            execution_results.append(self.execute_action(action, execution))
-        for action in hydrated_management:
-            if isinstance(action, dict) and action.get("type"):
-                execution_results.append(self.execute_action(action, execution))
-
-        if any(
-            item.get("type") in {"OPEN_ORDER", "CLOSE_POSITION", "MODIFY_STOP_LOSS", "MODIFY_TAKE_PROFIT", "PARTIAL_CLOSE", "CANCEL_ALL_ORDERS"}
-            and item.get("success")
-            for item in execution_results
-        ):
-            decision.setdefault("state_patch", {})["needs_post_trade_refresh"] = True
-        else:
-            decision.setdefault("state_patch", {})["needs_post_trade_refresh"] = False
-        decision.setdefault("state_patch", {}).update(
-            self.sync_live_followup_state(
-                runtime,
-                market_cache,
-                execution,
-                execution_results=execution_results,
-            )
+        return self.finalize_cycle_outputs(
+            runtime=runtime,
+            market_cache=market_cache,
+            execution=execution,
+            phase_plan=phase_plan,
+            analysis_board=analysis_board,
+            quick_scan_events=quick_scan_events,
+            symbol_cache=symbol_cache,
+            decision=decision,
+            payload=payload,
+            ref_names=ref_names,
+            knowledge_meta=knowledge_meta,
+            trigger=trigger,
+            cycle_started=cycle_started,
+            profile_stages=profile_stages,
         )
-
-        previous_symbols = json.loads(json.dumps(market_cache.get("symbols") or {}, ensure_ascii=False))
-        self.update_market_cache(market_cache, decision, execution_results, cycle_id)
-        current_symbols = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
-        pre_signal_notices = self.detect_new_pre_signals(
-            previous_symbols if isinstance(previous_symbols, dict) else {},
-            current_symbols,
-            analysis_board,
-            quick_scan_events,
-        )
-        if pre_signal_notices:
-            self.prefetch_pre_signal_charts([str(item.get("symbol") or "") for item in pre_signal_notices if item.get("symbol")])
-        updated_runtime = self.write_runtime_state(
-            runtime,
-            decision,
-            phase_plan,
-            execution,
-            analysis_board,
-            str(session_id),
-            cycle_id,
-        )
-
-        next_scan = updated_runtime["next_scan"]
-        cycle_payload = {
-            "cycle_id": cycle_id,
-            "phase": decision.get("phase") or phase_plan["phase"],
-            "time_utc": utc_iso(),
-            "trigger": trigger,
-            "quick_scan_events": quick_scan_events,
-            "phase_plan": phase_plan,
-            "knowledge_loading": knowledge_meta,
-            "analysis_board": analysis_board,
-            "positions": execution.get("positions") if isinstance(execution.get("positions"), list) else [],
-            "position_summaries": execution.get("orders") if isinstance(execution.get("orders"), list) else [],
-            "decision": decision,
-            "execution_results": execution_results,
-            "next_scan": next_scan,
-            "render_status": {
-                "cycle_card": {"ok": None, "skipped": True},
-                "pre_signal": [],
-                "housekeeping": {"ok": None, "skipped": True},
-            },
-            "push_status": {
-                "cycle_card": {"ok": False, "skipped": True, "reason": "not_significant"},
-                "pre_signal": [],
-                "housekeeping": {"ok": False, "skipped": True, "reason": "not_due"},
-            },
-        }
-        cycle_path = self.cycles_dir / f"{cycle_id}.json"
-        write_json(cycle_path, cycle_payload)
-        write_json(self.logs_dir / f"{cycle_id}_response.json", payload)
-        write_json(self.logs_dir / f"{cycle_id}_decision.json", decision)
-        last_request_path = self.logs_dir / "last_request.md"
-        if last_request_path.exists():
-            write_text(
-                self.logs_dir / f"{cycle_id}_request.md",
-                last_request_path.read_text(encoding="utf-8"),
-            )
-
-        push_result = {"ok": False, "skipped": True, "reason": "not_significant"}
-        cycle_card_render = {"ok": True, "skipped": False}
-        if self.should_push_cycle_card(
-            runtime,
-            updated_runtime,
-            decision,
-            execution,
-            execution_results,
-            pre_signal_notices,
-            trigger,
-        ):
-            try:
-                push_text = self.render_push_card(
-                    cycle_id,
-                    updated_runtime,
-                    decision,
-                    execution,
-                    execution_results,
-                    int(next_scan.get("in_seconds") or 120),
-                    next_scan,
-                    trigger,
-                    quick_scan_events,
-                    analysis_board,
-                )
-            except Exception as exc:
-                cycle_card_render = {"ok": False, "skipped": False, "error": " ".join(str(exc).split())[:240]}
-                LOG.exception("cycle card render failed: %s", exc)
-                push_result = {"ok": False, "skipped": True, "reason": "render_failed"}
-            else:
-                try:
-                    push_result = self.push_telegram_update(push_text)
-                except Exception as exc:
-                    push_result = {"ok": False, "skipped": True, "reason": "push_failed", "error": " ".join(str(exc).split())[:240]}
-                    LOG.exception("cycle card push failed: %s", exc)
-                else:
-                    cycle_symbol, cycle_chart = self.primary_chart_for_decision(decision, analysis_board)
-                    if cycle_chart:
-                        phase_mapping = {
-                            "BOOTSTRAP": "初始化扫描",
-                            "SCAN": "全市场扫描",
-                            "WATCH": "观察阶段",
-                            "PRE_SIGNAL": "预信号",
-                            "ENTRY_READY": "临近触发",
-                            "IN_TRADE": "持仓中",
-                            "MANAGE": "管理持仓",
-                            "EXIT": "退出阶段",
-                            "COOLDOWN": "冷却期",
-                        }
-                        phase_text = phase_mapping.get(str(decision.get('phase') or ''), str(decision.get('phase') or '-'))
-                        push_result = {
-                            **push_result,
-                            "photo": self.push_telegram_photo(
-                                cycle_chart,
-                                f"📈 {self.configured_runtime_title()}｜{cycle_symbol or '-'} 图表\n• 轮次: {cycle_id}\n• 阶段: {phase_text}",
-                            ),
-                        }
-        else:
-            cycle_card_render = {"ok": True, "skipped": True, "reason": "not_significant"}
-        pre_signal_pushes: list[dict[str, Any]] = []
-        pre_signal_renders: list[dict[str, Any]] = []
-        for notice in pre_signal_notices:
-            symbol = str(notice.get("symbol") or "-")
-            try:
-                message = self.render_pre_signal_push(notice)
-            except Exception as exc:
-                pre_signal_renders.append(
-                    {"symbol": symbol, "ok": False, "skipped": False, "error": " ".join(str(exc).split())[:240]}
-                )
-                pre_signal_pushes.append({"symbol": symbol, "ok": False, "skipped": True, "reason": "render_failed"})
-                LOG.exception("pre-signal render failed for %s: %s", symbol, exc)
-                continue
-            pre_signal_renders.append({"symbol": symbol, "ok": True, "skipped": False})
-            try:
-                result = self.push_telegram_update(message)
-            except Exception as exc:
-                result = {"symbol": symbol, "ok": False, "skipped": True, "reason": "push_failed", "error": " ".join(str(exc).split())[:240]}
-                LOG.exception("pre-signal push failed for %s: %s", symbol, exc)
-            else:
-                if isinstance(result, dict):
-                    chart_context = notice.get("chart_context") if isinstance(notice.get("chart_context"), dict) else {}
-                    result = {
-                        "symbol": symbol,
-                        **result,
-                        "photo": self.push_telegram_photo(
-                            str(chart_context.get("primary_chart_path") or ""),
-                            f"🖼 {self.configured_runtime_title()}｜{symbol} 预信号图表\n• 状态: {notice.get('status') or '-'}\n• 图表: {chart_context.get('primary_chart_file') or '-'}",
-                        ),
-                    }
-            pre_signal_pushes.append(result)
-        housekeeping_push = None
-        housekeeping_render = {"ok": True, "skipped": True, "reason": "not_due"}
-        if int(updated_runtime.get("loop_seq") or 0) % 6 == 0:
-            try:
-                housekeeping_text = self.render_housekeeping_card(
-                    updated_runtime,
-                    market_cache,
-                    execution,
-                    decision,
-                    int(next_scan.get("in_seconds") or 120),
-                )
-            except Exception as exc:
-                housekeeping_render = {"ok": False, "skipped": False, "error": " ".join(str(exc).split())[:240]}
-                housekeeping_push = {"ok": False, "skipped": True, "reason": "render_failed"}
-                LOG.exception("housekeeping render failed: %s", exc)
-            else:
-                housekeeping_render = {"ok": True, "skipped": False}
-                try:
-                    housekeeping_push = self.push_telegram_update(housekeeping_text)
-                except Exception as exc:
-                    housekeeping_push = {"ok": False, "skipped": True, "reason": "push_failed", "error": " ".join(str(exc).split())[:240]}
-                    LOG.exception("housekeeping push failed: %s", exc)
-        cycle_payload["render_status"] = {
-            "cycle_card": cycle_card_render,
-            "pre_signal": pre_signal_renders,
-            "housekeeping": housekeeping_render,
-        }
-        cycle_payload["push_status"] = {
-            "cycle_card": push_result,
-            "pre_signal": pre_signal_pushes,
-            "housekeeping": housekeeping_push,
-        }
-        write_json(cycle_path, cycle_payload)
-
-        append_jsonl(
-            self.journal_dir / "decision_log.jsonl",
-            {
-                "logged_at": utc_iso(),
-                "cycle_id": cycle_id,
-                "phase": decision.get("phase"),
-                "trigger": trigger,
-                "prompt_profile": phase_plan["phase"],
-                "focus_symbols": decision.get("focus_symbols"),
-                "decision_summary": decision.get("market_summary"),
-                "actions": decision.get("actions"),
-                "state_patch": decision.get("state_patch"),
-                "next_scan_seconds": decision.get("next_scan_seconds"),
-                "next_scan_reason": decision.get("next_scan_reason"),
-                "references": ref_names,
-                "explanation": decision.get("explanation"),
-                "render_status": cycle_payload["render_status"],
-                "push_status": cycle_payload["push_status"],
-            },
-        )
-        for item in execution_results:
-            append_jsonl(
-                self.journal_dir / "execution_log.jsonl",
-                {
-                    "logged_at": utc_iso(),
-                    "cycle_id": cycle_id,
-                    **item,
-                },
-            )
-        LOG.info("cycle complete: %s phase=%s push=%s", cycle_id, decision.get("phase"), push_result)
-        if trigger:
-            self.ack_trigger(trigger, cycle_id)
-
-        return {
-            "cycle_id": cycle_id,
-            "decision": decision,
-            "execution_results": execution_results,
-            "next_scan": next_scan,
-            "push_result": push_result,
-            "pre_signal_pushes": pre_signal_pushes,
-            "housekeeping_push": housekeeping_push,
-            "cycle_path": str(cycle_path),
-        }
 
     def run_once(self, trigger: dict[str, Any] | None = None) -> int:
+        self.sync_runtime_mode_marker(status="RUNNING")
         try:
             result = self.run_cycle(trigger=trigger)
         except Exception as exc:
@@ -2921,6 +2697,14 @@ class PatrolRuntime(
             return 1
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+
+    def sync_runtime_mode_marker(self, *, status: str | None = None) -> None:
+        runtime = self.load_runtime_state()
+        updated = dict(runtime)
+        updated["dry_run"] = self.config.dry_run
+        if status:
+            updated["status"] = status
+        write_json(self.runtime_state_path, updated)
 
     def wait_for_next(self, base_seconds: int) -> dict[str, Any] | None:
         deadline = time.time() + max(5, base_seconds)
@@ -2933,6 +2717,7 @@ class PatrolRuntime(
 
     def loop(self) -> int:
         write_text(self.pid_path, str(os.getpid()))
+        self.sync_runtime_mode_marker(status="RUNNING")
         trigger: dict[str, Any] | None = None
         while True:
             try:
@@ -2975,14 +2760,17 @@ class PatrolRuntime(
 
 def setup_logging(log_file: Path) -> None:
     ensure_dir(log_file.parent)
-    handlers = [
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(log_file, encoding="utf-8"),
-    ]
+    handlers: list[logging.Handler] = []
+    # 交互式运行保留终端输出和文件；start.sh 已经把 stdout 重定向到 service.log，
+    # 此时再叠加 FileHandler 会把同一条日志写两次。
+    handlers.append(logging.StreamHandler(sys.stdout))
+    if sys.stdout.isatty():
+        handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         handlers=handlers,
+        force=True,
     )
 
 

@@ -35,6 +35,7 @@ class MarketReplay:
         self.symbols = symbols
         self.timeframes = timeframes or ["1m", "5m", "15m", "1h", "4h", "1d"]
         self._virtual_time: datetime = None
+        self._window_cache: dict[tuple[str, str, int], list[Candle]] = {}
 
         # 预聚合所有时间框架
         self._data: dict[str, dict[str, pd.DataFrame]] = {}
@@ -84,6 +85,7 @@ class MarketReplay:
     def advance_to(self, timestamp: datetime):
         """推进虚拟时钟"""
         self._virtual_time = timestamp
+        self._window_cache.clear()
 
     @property
     def virtual_time(self) -> datetime:
@@ -101,6 +103,11 @@ class MarketReplay:
         """
         if self._virtual_time is None:
             return []
+
+        cache_key = (symbol, timeframe, int(limit))
+        cached = self._window_cache.get(cache_key)
+        if cached is not None:
+            return cached
 
         df = self._data.get(symbol, {}).get(timeframe, pd.DataFrame())
         if df.empty:
@@ -130,6 +137,7 @@ class MarketReplay:
                 volume=float(row.get("volume", 0)),
                 timeframe=timeframe,
             ))
+        self._window_cache[cache_key] = candles
         return candles
 
     def get_current_candle(self, symbol: str, timeframe: str = "5m"):
