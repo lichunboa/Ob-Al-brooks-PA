@@ -2,90 +2,83 @@
 
 import React from 'react';
 import { Activity, Clock3, Cpu, RefreshCw, ShieldCheck } from 'lucide-react';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 import type { RuntimeData } from './types';
-import { formatDuration, formatNumber, translateHealthLabel } from './formatters';
+import { formatDuration, formatNumber, formatTime, translateHealthLabel, translateSourceLabel } from './formatters';
 
-export const CARD_CLASS =
-  'rounded-[16px] border border-[#16222c] bg-[linear-gradient(180deg,rgba(10,14,19,0.99),rgba(8,11,16,1))] shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_18px_36px_rgba(0,0,0,0.18)]';
-export const SECTION_CLASS =
-  'rounded-[18px] border border-[#18232d] bg-[linear-gradient(180deg,rgba(7,10,15,0.995),rgba(5,8,12,1))] shadow-[0_18px_38px_rgba(0,0,0,0.2)]';
-export const TERMINAL_STRIP_CLASS =
-  'rounded-[16px] border border-[#17232d] bg-[linear-gradient(180deg,rgba(8,12,17,0.985),rgba(7,10,14,0.99))] shadow-[0_14px_32px_rgba(0,0,0,0.18)]';
-export const SUBCARD_CLASS =
-  'rounded-[15px] border border-[#1a2630] bg-[linear-gradient(180deg,rgba(255,255,255,0.018),rgba(255,255,255,0.008))]';
-export const TABLE_CLASS = 'overflow-hidden rounded-[15px] border border-[#17212b] bg-[#0a1016]/98 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]';
-export const TABLE_HEAD_CLASS = 'border-b border-[#17212b] text-[10px] uppercase tracking-[0.22em] text-slate-500/90';
-export const TABLE_ROW_CLASS =
-  'border-[#17212b] text-sm transition-[background-color,border-color] duration-150 hover:bg-[#0f1821]';
-export const LABEL_CLASS = 'text-[10px] uppercase tracking-[0.24em] text-slate-500';
-export const MUTED_CLASS = 'text-xs text-slate-500';
-export const VALUE_CLASS = 'text-sm font-medium text-slate-100';
-export const BADGE_BASE_CLASS =
-  'inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-[0.32rem] text-[10px] font-medium tracking-[0.15em] uppercase text-slate-200/95 backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]';
-export const BUTTON_GHOST_CLASS =
-  'inline-flex items-center gap-2 rounded-full bg-white/[0.03] px-4 py-2 text-sm text-slate-100 transition duration-150 hover:bg-white/[0.06] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60';
-export const BUTTON_ACCENT_CLASS =
-  'inline-flex items-center gap-2 rounded-full bg-[#88bfb2]/14 px-4 py-2 text-sm text-[#d8f2e9] transition duration-150 hover:bg-[#88bfb2]/22 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60';
-export const INPUT_CLASS =
-  'w-full appearance-none rounded-[12px] border border-[#1a2732] !bg-[#0a1016] px-4 py-3 text-slate-100 [color-scheme:dark] shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] outline-none transition placeholder:text-slate-600 focus:border-[#4f7c74] focus:!bg-[#0c131a]';
-export const SKELETON_BLOCK_CLASS = 'animate-pulse rounded-[12px] bg-white/[0.05]';
-export const DATA_VALUE_CLASS = 'font-mono tabular-nums text-white';
-export const TABLE_STICKY_HEAD_CLASS =
-  'sticky left-0 z-[3] bg-[#0a1016]/98 shadow-[10px_0_14px_rgba(2,6,12,0.28)]';
-export const TABLE_STICKY_CELL_CLASS =
-  'sticky left-0 z-[2] bg-[#0a1016]/98 shadow-[8px_0_12px_rgba(2,6,12,0.18)]';
-export const TABLE_STICKY_CELL_ALT_CLASS =
-  'sticky left-0 z-[2] bg-[#0e151d]/98 shadow-[8px_0_12px_rgba(2,6,12,0.18)]';
-
-export function cn(...values: Array<string | false | null | undefined>): string {
-  return values.filter(Boolean).join(' ');
+/* ── cn: proper tailwind-merge utility ── */
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
 }
 
+/* ── Design Tokens as class constants ── */
+export const CARD_CLASS =
+  'rounded-xl border border-border bg-surface';
+export const SECTION_CLASS = CARD_CLASS;
+export const TERMINAL_STRIP_CLASS = CARD_CLASS;
+export const SUBCARD_CLASS =
+  'rounded-lg border border-border bg-surface-raised/50';
+export const TABLE_CLASS =
+  'overflow-hidden rounded-xl border border-border bg-surface';
+export const TABLE_HEAD_CLASS =
+  'border-b border-border text-xs font-medium uppercase tracking-wider text-foreground-faint';
+export const TABLE_ROW_CLASS =
+  'border-border text-sm transition-colors hover:bg-white/[0.03]';
+export const LABEL_CLASS =
+  'text-xs font-medium uppercase tracking-wider text-foreground-faint';
+export const MUTED_CLASS =
+  'text-xs text-foreground-muted';
+export const BADGE_BASE_CLASS =
+  'inline-flex items-center whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium';
+export const BUTTON_GHOST_CLASS =
+  'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 active:bg-white/[0.08] disabled:pointer-events-none disabled:opacity-50';
+export const BUTTON_ACCENT_CLASS =
+  'inline-flex items-center gap-2 rounded-lg bg-accent/10 px-3 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20 active:bg-accent/25 disabled:pointer-events-none disabled:opacity-50';
+export const INPUT_CLASS =
+  'w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground-faint focus:border-accent focus:ring-2 focus:ring-ring';
+export const SKELETON_BLOCK_CLASS =
+  'animate-pulse rounded-lg bg-white/[0.06]';
+export const DATA_VALUE_CLASS =
+  'font-mono tabular-nums text-foreground';
+export const TABLE_STICKY_HEAD_CLASS =
+  'sticky left-0 z-[3] bg-surface';
+export const TABLE_STICKY_CELL_CLASS =
+  'sticky left-0 z-[2] bg-surface';
+export const TABLE_STICKY_CELL_ALT_CLASS = TABLE_STICKY_CELL_CLASS;
+
+/* ── Tone helpers ── */
 export function statusTone(value: string): string {
-  const normalized = value.toLowerCase();
-  if (
-    normalized.includes('fail') ||
-    normalized.includes('reject') ||
-    normalized.includes('blocked') ||
-    normalized.includes('unsupported')
-  ) {
-    return 'bg-rose-500/[0.12] text-rose-100';
-  }
-  if (
-    normalized.includes('placed') ||
-    normalized.includes('open') ||
-    normalized.includes('new') ||
-    normalized.includes('modified') ||
-    normalized.includes('closed')
-  ) {
-    return 'bg-[#7cc9b3]/[0.12] text-[#d7fff0]';
-  }
-  if (normalized.includes('entry') || normalized.includes('candidate') || normalized.includes('executable')) {
-    return 'bg-[#7aa8c8]/[0.12] text-[#d8efff]';
-  }
-  if (normalized.includes('trade') || normalized.includes('manage')) {
-    return 'bg-[#7cc9b3]/[0.12] text-[#d7fff0]';
-  }
-  if (normalized.includes('watch') || normalized.includes('pre')) {
-    return 'bg-[#b89c62]/[0.14] text-[#f2e1b8]';
-  }
-  return 'bg-white/[0.05] text-slate-200';
+  const n = value.toLowerCase();
+  if (n.includes('fail') || n.includes('reject') || n.includes('blocked') || n.includes('unsupported'))
+    return 'bg-danger/10 text-danger';
+  if (n.includes('placed') || n.includes('open') || n.includes('new') || n.includes('modified') || n.includes('closed'))
+    return 'bg-success/10 text-success';
+  if (n.includes('entry') || n.includes('candidate') || n.includes('executable'))
+    return 'bg-info/10 text-info';
+  if (n.includes('trade') || n.includes('manage'))
+    return 'bg-success/10 text-success';
+  if (n.includes('watch') || n.includes('pre'))
+    return 'bg-warning/10 text-warning';
+  return 'bg-white/5 text-foreground-muted';
 }
 
 export function healthTone(value: string): string {
-  const normalized = value.toUpperCase();
-  if (normalized === 'HEALTHY') return 'text-emerald-300';
-  if (normalized === 'DEGRADED') return 'text-amber-300';
-  return 'text-rose-300';
+  const n = value.toUpperCase();
+  if (n === 'HEALTHY') return 'text-success';
+  if (n === 'DEGRADED') return 'text-warning';
+  return 'text-danger';
 }
 
 export function badgeTone(kind: 'neutral' | 'info' | 'success' | 'warn' | 'danger' = 'neutral'): string {
-  if (kind === 'info') return 'bg-[#7aa8c8]/[0.12] text-[#d8efff]';
-  if (kind === 'success') return 'bg-[#7cc9b3]/[0.12] text-[#d7fff0]';
-  if (kind === 'warn') return 'bg-[#b89c62]/[0.14] text-[#f2e1b8]';
-  if (kind === 'danger') return 'bg-rose-500/[0.12] text-rose-100';
-  return 'bg-white/[0.04] text-slate-200';
+  if (kind === 'info') return 'bg-info/10 text-info';
+  if (kind === 'success') return 'bg-success/10 text-success';
+  if (kind === 'warn') return 'bg-warning/10 text-warning';
+  if (kind === 'danger') return 'bg-danger/10 text-danger';
+  return 'bg-white/5 text-foreground-muted';
 }
+
+/* ── Components ── */
 
 export function TerminalBadge({
   children,
@@ -109,10 +102,10 @@ export function MetricCard({
   sub?: string;
 }) {
   return (
-    <article className={cn(CARD_CLASS, 'px-4 py-3.5')}>
-      <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">{label}</div>
-      <div className="mt-2.5 font-mono tabular-nums text-[24px] leading-none font-semibold tracking-[-0.035em] text-white">{value}</div>
-      {sub ? <div className="mt-2.5 text-[12px] leading-5 text-slate-400">{sub}</div> : null}
+    <article className={cn(CARD_CLASS, 'px-4 py-4')}>
+      <div className="text-xs font-medium text-foreground-faint">{label}</div>
+      <div className="mt-2 font-mono text-2xl font-semibold tabular-nums text-foreground">{value}</div>
+      {sub ? <div className="mt-2 text-xs text-foreground-muted">{sub}</div> : null}
     </article>
   );
 }
@@ -129,15 +122,11 @@ export function Section({
   subtitle?: string;
 }) {
   return (
-    <section className={cn(SECTION_CLASS, 'px-4 py-4')}>
-      <div className="mb-4 flex items-start justify-between gap-4 border-b border-white/6 pb-3">
-        <div>
-          <div className="flex items-center gap-2 text-slate-400">
-            <Icon className="h-4 w-4" />
-            <h2 className="text-[11px] uppercase tracking-[0.24em]">{title}</h2>
-          </div>
-          {subtitle ? <p className="mt-1.5 max-w-3xl text-[12px] leading-5 text-slate-500">{subtitle}</p> : null}
-        </div>
+    <section className={cn(CARD_CLASS, 'px-5 py-5')}>
+      <div className="mb-4 flex items-center gap-2 border-b border-border pb-3">
+        <Icon className="size-4 text-foreground-muted" />
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        {subtitle ? <span className="ml-2 text-xs text-foreground-faint">{subtitle}</span> : null}
       </div>
       {children}
     </section>
@@ -146,21 +135,9 @@ export function Section({
 
 export function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-[16px] border border-dashed border-white/[0.08] bg-black/18 px-4 py-7 text-center">
-      <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">暂无数据</div>
-      <div className="mt-2 text-sm leading-6 text-slate-400">{text}</div>
-    </div>
-  );
-}
-
-export function CompactEmptyState({ text }: { text: string }) {
-  return (
-    <div className="flex h-[76px] items-center justify-between rounded-[14px] border border-dashed border-white/[0.08] bg-black/18 px-4">
-      <div>
-        <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">暂无数据</div>
-        <div className="mt-1.5 text-sm text-slate-400">{text}</div>
-      </div>
-      <div className="font-mono text-xs uppercase tracking-[0.22em] text-slate-600">EMPTY</div>
+    <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
+      <div className="text-xs font-medium text-foreground-faint">暂无数据</div>
+      <div className="mt-2 text-sm text-foreground-muted">{text}</div>
     </div>
   );
 }
@@ -177,37 +154,37 @@ export function TableScroll({
 
 export function LoadingShell() {
   return (
-    <div className="space-y-6">
-      <section className={cn(SECTION_CLASS, 'px-4 py-5')}>
+    <div className="flex flex-col gap-5 animate-fade-in">
+      <section className={cn(CARD_CLASS, 'px-5 py-5')}>
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_320px]">
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             <div className={cn(SKELETON_BLOCK_CLASS, 'h-5 w-32')} />
             <div className={cn(SKELETON_BLOCK_CLASS, 'h-10 w-56')} />
             <div className={cn(SKELETON_BLOCK_CLASS, 'h-20 w-full')} />
             <div className="grid gap-3 md:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={`loading-strip-${index}`} className={cn(SKELETON_BLOCK_CLASS, 'h-[92px]')} />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={`ls-${i}`} className={cn(SKELETON_BLOCK_CLASS, 'h-[92px]')} />
               ))}
             </div>
           </div>
           <div className="grid gap-3">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div key={`loading-side-${index}`} className={cn(SKELETON_BLOCK_CLASS, 'h-[84px]')} />
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={`rs-${i}`} className={cn(SKELETON_BLOCK_CLASS, 'h-[84px]')} />
             ))}
           </div>
         </div>
       </section>
-      <div className="grid gap-6 xl:grid-cols-[1.65fr_320px]">
-        <div className="space-y-6">
-          <div className={cn(SECTION_CLASS, 'h-[300px]')} />
-          <div className="grid gap-6 xl:grid-cols-2">
-            <div className={cn(SECTION_CLASS, 'h-[420px]')} />
-            <div className={cn(SECTION_CLASS, 'h-[420px]')} />
+      <div className="grid gap-5 xl:grid-cols-[1.65fr_320px]">
+        <div className="flex flex-col gap-5">
+          <div className={cn(CARD_CLASS, 'h-[300px]')} />
+          <div className="grid gap-5 xl:grid-cols-2">
+            <div className={cn(CARD_CLASS, 'h-[420px]')} />
+            <div className={cn(CARD_CLASS, 'h-[420px]')} />
           </div>
         </div>
-        <div className="space-y-6">
-          <div className={cn(SECTION_CLASS, 'h-[320px]')} />
-          <div className={cn(SECTION_CLASS, 'h-[280px]')} />
+        <div className="flex flex-col gap-5">
+          <div className={cn(CARD_CLASS, 'h-[320px]')} />
+          <div className={cn(CARD_CLASS, 'h-[280px]')} />
         </div>
       </div>
     </div>
@@ -218,66 +195,104 @@ export function PageIntro({
   title,
   subtitle,
   runtimeData,
+  updatedAt,
+  sourceLabel,
 }: {
   title: string;
   subtitle: string;
   runtimeData: RuntimeData;
+  updatedAt?: string;
+  sourceLabel?: string;
 }) {
   return (
-    <section className={cn(TERMINAL_STRIP_CLASS, 'px-4 py-3')}>
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <div className="text-[11px] uppercase tracking-[0.28em] text-slate-500">当前页面</div>
-          <div className="mt-1 text-xl font-semibold tracking-[-0.03em] text-white">{title}</div>
-          <div className="mt-1 max-w-3xl text-[12px] leading-5 text-slate-500">{subtitle}</div>
+    <section className={cn(CARD_CLASS, 'px-5 py-4')}>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+          <p className="mt-1 text-sm text-foreground-muted">{subtitle}</p>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[560px] lg:grid-cols-4">
-          <div className="rounded-[13px] border border-white/7 bg-black/16 px-4 py-2.5">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-slate-500">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              健康
-            </div>
-            <div className={cn('mt-1.5 text-[15px] font-semibold', healthTone(runtimeData.health.overall))}>
-              {translateHealthLabel(runtimeData.health.overall)}
-            </div>
-          </div>
-          <div className="rounded-[13px] border border-white/7 bg-black/16 px-4 py-2.5">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-slate-500">
-              <Clock3 className="h-3.5 w-3.5" />
-              下轮
-            </div>
-            <div className="mt-1.5 font-mono tabular-nums text-[15px] font-semibold text-white">{runtimeData.nextScan.inSeconds ?? '-'} 秒</div>
-          </div>
-          <div className="rounded-[13px] border border-white/7 bg-black/16 px-4 py-2.5">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-slate-500">
-              <Activity className="h-3.5 w-3.5" />
-              运行时间
-            </div>
-            <div className="mt-1.5 font-mono tabular-nums text-[15px] font-semibold text-white">
-              {formatDuration(runtimeData.monitoring.uptimeSeconds ?? runtimeData.monitoring.sessionAgeSeconds)}
-            </div>
-          </div>
-          <div className="rounded-[13px] border border-white/7 bg-black/16 px-4 py-2.5">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-slate-500">
-              <Cpu className="h-3.5 w-3.5" />
-              Profiling
-            </div>
-            <div className="mt-1.5 font-mono tabular-nums text-[15px] font-semibold text-white">
-              {runtimeData.profiling.totalMs ? `${formatNumber(runtimeData.profiling.totalMs)} ms` : '-'}
-            </div>
-          </div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[720px] lg:grid-cols-6">
+          <StatusChip icon={ShieldCheck} label="健康" value={translateHealthLabel(runtimeData.health.overall)} tone={healthTone(runtimeData.health.overall)} />
+          <StatusChip icon={Clock3} label="下轮" value={`${runtimeData.nextScan.inSeconds ?? '-'}s`} />
+          <StatusChip icon={Activity} label="运行" value={formatDuration(runtimeData.monitoring.uptimeSeconds ?? runtimeData.monitoring.sessionAgeSeconds)} />
+          <StatusChip icon={Cpu} label="耗时" value={runtimeData.profiling.totalMs ? `${formatNumber(runtimeData.profiling.totalMs)}ms` : '-'} />
+          <StatusChip icon={RefreshCw} label="刷新" value={formatTime(updatedAt || null)} />
+          <StatusChip icon={RefreshCw} label="来源" value={translateSourceLabel(sourceLabel || runtimeData.system.sourceLabel || '-')} />
         </div>
       </div>
     </section>
   );
 }
 
+function StatusChip({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  tone?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-surface-raised/40 px-3 py-2.5">
+      <div className="flex items-center gap-1.5 text-xs text-foreground-faint">
+        <Icon className="size-3.5" />
+        {label}
+      </div>
+      <div className={cn('mt-1 font-mono text-sm font-semibold tabular-nums', tone || 'text-foreground')}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+export function ProgressBar({
+  value,
+  max,
+  label,
+  className,
+}: {
+  value: number;
+  max: number;
+  label?: string;
+  className?: string;
+}) {
+  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+  return (
+    <div className={cn('flex flex-col gap-1', className)}>
+      {label ? (
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-foreground-muted">{label}</span>
+          <span className="font-mono tabular-nums text-foreground-faint">{pct}%</span>
+        </div>
+      ) : null}
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+        <div
+          className={cn(
+            'h-full rounded-full transition-all',
+            pct > 80 ? 'bg-danger' : pct > 50 ? 'bg-warning' : 'bg-accent',
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+export function DotIndicator({ active, className }: { active: boolean; className?: string }) {
+  return (
+    <span className={cn('inline-block size-2 rounded-full', active ? 'bg-success' : 'bg-foreground-faint/40', className)} />
+  );
+}
+
 export function ErrorCard({ text }: { text: string }) {
   return (
-    <div className="rounded-[32px] border border-rose-500/20 bg-rose-950/10 p-10 text-center">
-      <RefreshCw className="mx-auto h-12 w-12 text-rose-300/70" />
-      <div className="mt-4 text-2xl text-white">统一实盘链运行态不可用</div>
-      <div className="mt-3 text-sm text-slate-400">{text}</div>
+    <div className="rounded-xl border border-danger/20 bg-danger/5 p-8 text-center">
+      <RefreshCw className="mx-auto size-10 text-danger/60" />
+      <div className="mt-4 text-lg font-semibold text-foreground">数据不可用</div>
+      <div className="mt-2 text-sm text-foreground-muted">{text}</div>
     </div>
   );
 }

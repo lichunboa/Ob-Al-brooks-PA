@@ -84,7 +84,7 @@ function buildExecutionFallbackCacheKey(runtimeConfig: RuntimeConfigInput, runti
 }
 
 function executionFallbackProfile(view: RuntimeView): ExecutionFallbackProfile {
-  if (view === 'orders' || view === 'review' || view === 'overview') {
+  if (view === 'review') {
     return {
       includeBotSummary: false,
       includeCanTrade: false,
@@ -94,13 +94,33 @@ function executionFallbackProfile(view: RuntimeView): ExecutionFallbackProfile {
     };
   }
 
+  if (view === 'orders') {
+    return {
+      includeBotSummary: false,
+      includeCanTrade: true,
+      includeBalance: true,
+      includeLiveContext: false,
+      allowSlowRetry: false,
+    };
+  }
+
+  if (view === 'overview') {
+    return {
+      includeBotSummary: false,
+      includeCanTrade: true,
+      includeBalance: true,
+      includeLiveContext: true,
+      allowSlowRetry: true,
+    };
+  }
+
   if (view === 'audit' || view === 'system') {
     return {
       includeBotSummary: false,
       includeCanTrade: true,
-      includeBalance: false,
-      includeLiveContext: false,
-      allowSlowRetry: false,
+      includeBalance: true,
+      includeLiveContext: true,
+      allowSlowRetry: true,
     };
   }
 
@@ -111,6 +131,17 @@ function executionFallbackProfile(view: RuntimeView): ExecutionFallbackProfile {
     includeLiveContext: true,
     allowSlowRetry: true,
   };
+}
+
+async function retryIfMissing(
+  enabled: boolean,
+  currentValue: unknown,
+  url: string,
+  timeoutMs: number,
+): Promise<unknown> {
+  if (!enabled) return currentValue;
+  if (currentValue !== null) return currentValue;
+  return fetchJson(url, timeoutMs);
 }
 
 function primaryBalanceEntry(balanceRows: unknown[]): UnknownRecord {
@@ -211,8 +242,10 @@ async function buildExecutionFallback(
       const cachedBundle = asRecord(executionServiceCache.get(cacheKey));
       const hasCachedBundle = Object.keys(cachedBundle).length > 0;
       const healthTimeoutMs = isOverview ? (isCtrader ? 1000 : 900) : isCtrader ? 2500 : 2000;
-      const positionsTimeoutMs = isOverview ? (isCtrader ? 1500 : 1000) : isCtrader ? 3500 : 2500;
-      const ordersTimeoutMs = isOverview ? (isCtrader ? 1500 : 1000) : isCtrader ? 3500 : 2500;
+      // cTrader 的 /positions 在真实运行中经常超过 1.5s，
+      // 概览页如果超时就会把真实持仓误显示成 0。
+      const positionsTimeoutMs = isOverview ? (isCtrader ? 7000 : 4000) : isCtrader ? 4500 : 2500;
+      const ordersTimeoutMs = isOverview ? (isCtrader ? 5000 : 3000) : isCtrader ? 4500 : 2500;
       const botSummaryTimeoutMs = isCtrader ? 4500 : 3500;
       const canTradeTimeoutMs = isCtrader ? 4500 : 3500;
       const balanceTimeoutMs = isCtrader ? 4500 : 3500;
@@ -237,24 +270,43 @@ async function buildExecutionFallback(
           : Promise.resolve(null),
       ]);
 
-      if (isCtrader && profile.allowSlowRetry && !hasCachedBundle) {
-        if (profile.includeBotSummary && !hasContent(botSummaryRaw)) {
-          botSummaryRaw = await fetchJson(`${baseUrl}/trading/bot-summary/${runtimeConfig.botId}`, 6000);
-        }
-        if (profile.includeCanTrade && !hasContent(canTradeRaw)) {
-          canTradeRaw = await fetchJson(`${baseUrl}/trading/can-trade/${runtimeConfig.botId}`, 6000);
-        }
-        if (profile.includeBalance && !hasContent(balanceRaw)) {
-          balanceRaw = await fetchJson(`${baseUrl}/balance`, 6000);
-        }
-        if (profile.includeLiveContext && !hasContent(liveContextRaw)) {
-          liveContextRaw = await fetchJson(
-            `${baseUrl}/trading/live-context/${runtimeConfig.botId}?symbols=${encodeURIComponent(symbols.join(','))}`,
-            7000,
-          );
-        }
+      if (profile.allowSlowRetry) {
+        healthRaw = await retryIfMissing(true, healthRaw, `${baseUrl}/health`, isCtrader ? 4500 : 3500);
+        positionsRaw = await retryIfMissing(true, positionsRaw, `${baseUrl}/positions`, isCtrader ? 8000 : 5000);
+        ordersRaw = await retryIfMissing(true, ordersRaw, `${baseUrl}/orders/open`, isCtrader ? 6500 : 4500);
+        botSummaryRaw = await retryIfMissing(
+          profile.includeBotSummary,
+          botSummaryRaw,
+          `${baseUrl}/trading/bot-summary/${runtimeConfig.botId}`,
+          6000,
+        );
+        canTradeRaw = await retryIfMissing(
+          profile.includeCanTrade,
+          canTradeRaw,
+          `${baseUrl}/trading/can-trade/${runtimeConfig.botId}`,
+          6000,
+        );
+        balanceRaw = await retryIfMissing(
+          profile.includeBalance,
+          balanceRaw,
+          `${baseUrl}/balance`,
+          isCtrader ? 7000 : 5000,
+        );
+        liveContextRaw = await retryIfMissing(
+          profile.includeLiveContext,
+          liveContextRaw,
+          `${baseUrl}/trading/live-context/${runtimeConfig.botId}?symbols=${encodeURIComponent(symbols.join(','))}`,
+          isCtrader ? 8000 : 6000,
+        );
       }
 
+      const healthRequestFailed = healthRaw === null;
+      const positionsRequestFailed = positionsRaw === null;
+      const ordersRequestFailed = ordersRaw === null;
+      const botSummaryRequestFailed = profile.includeBotSummary && botSummaryRaw === null;
+      const canTradeRequestFailed = profile.includeCanTrade && canTradeRaw === null;
+      const balanceRequestFailed = profile.includeBalance && balanceRaw === null;
+      const liveContextRequestFailed = profile.includeLiveContext && liveContextRaw === null;
       const health = asRecord(healthRaw);
       const positions = asArray(positionsRaw);
       const orders = asArray(ordersRaw);
@@ -262,7 +314,15 @@ async function buildExecutionFallback(
       const canTrade = profile.includeCanTrade ? asRecord(canTradeRaw) : asRecord(cachedBundle.can_trade);
       const balance = profile.includeBalance ? asArray(balanceRaw) : asArray(cachedBundle.balance);
       const liveContext = profile.includeLiveContext ? asRecord(liveContextRaw) : asRecord(cachedBundle.live_context);
-      const unavailable = !hasContent(health) && !hasContent(positions) && !hasContent(orders);
+      const unavailable = healthRequestFailed && positionsRequestFailed && ordersRequestFailed;
+      const partialFailure =
+        healthRequestFailed ||
+        positionsRequestFailed ||
+        ordersRequestFailed ||
+        botSummaryRequestFailed ||
+        canTradeRequestFailed ||
+        balanceRequestFailed ||
+        liveContextRequestFailed;
 
       const currentBundle: UnknownRecord = {
         account_id: account.id,
@@ -271,7 +331,7 @@ async function buildExecutionFallback(
         exchange,
         base_url: baseUrl,
         configured_symbols: symbols,
-        stale: false,
+        stale: partialFailure,
         health: unavailable ? { _error: 'service_unavailable' } : health,
         positions: unavailable ? [] : positions,
         orders: unavailable ? [] : orders,
@@ -284,6 +344,16 @@ async function buildExecutionFallback(
             ? { exchange, requested_symbols: symbols, _error: 'service_unavailable' }
             : liveContext,
       };
+
+      if (!unavailable && hasCachedBundle) {
+        currentBundle.health = healthRequestFailed ? asRecord(cachedBundle.health) : currentBundle.health;
+        currentBundle.positions = positionsRequestFailed ? asArray(cachedBundle.positions) : currentBundle.positions;
+        currentBundle.orders = ordersRequestFailed ? asArray(cachedBundle.orders) : currentBundle.orders;
+        currentBundle.bot_summary = botSummaryRequestFailed ? asRecord(cachedBundle.bot_summary) : currentBundle.bot_summary;
+        currentBundle.can_trade = canTradeRequestFailed ? asRecord(cachedBundle.can_trade) : currentBundle.can_trade;
+        currentBundle.balance = balanceRequestFailed ? asArray(cachedBundle.balance) : currentBundle.balance;
+        currentBundle.live_context = liveContextRequestFailed ? asRecord(cachedBundle.live_context) : currentBundle.live_context;
+      }
 
       if (!unavailable) {
         const repairedBundle = repairExecutionBundle(exchange, currentBundle);
@@ -304,9 +374,9 @@ async function buildExecutionFallback(
           tracked_orders: hasContent(asRecord(cachedBundle.tracked_orders).status_changes)
             ? asRecord(cachedBundle.tracked_orders)
             : { status_changes: [] },
-          health: hasContent(health) ? health : asRecord(cachedBundle.health),
-          positions: positions.length > 0 ? positions : asArray(cachedBundle.positions),
-          orders: orders.length > 0 ? orders : asArray(cachedBundle.orders),
+          health: healthRequestFailed ? asRecord(cachedBundle.health) : health,
+          positions: positionsRequestFailed ? asArray(cachedBundle.positions) : positions,
+          orders: ordersRequestFailed ? asArray(cachedBundle.orders) : orders,
           bot_summary: hasContent(botSummary) ? botSummary : asRecord(cachedBundle.bot_summary),
           can_trade: hasContent(canTrade)
             ? canTrade

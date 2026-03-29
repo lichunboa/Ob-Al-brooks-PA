@@ -4,11 +4,11 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import timedelta
 from typing import Any
 
 from utils import (
-    infer_signal_timeframe,
     normalize_trade_side,
     parse_dt,
     safe_float,
@@ -18,10 +18,39 @@ from utils import (
 
 
 LOG = logging.getLogger(__name__)
+TIMEFRAME_PATTERN = re.compile(r"\b(5m|15m|30m|1h)\b", re.IGNORECASE)
+
+
+def _infer_signal_timeframe(*values: Any) -> str:
+    """在 follow-up 模块内本地推断周期，避免依赖外部兼容导出。"""
+    for value in values:
+        if isinstance(value, dict):
+            for nested in value.values():
+                match = TIMEFRAME_PATTERN.search(str(nested))
+                if match:
+                    return match.group(1).lower()
+            continue
+        match = TIMEFRAME_PATTERN.search(str(value or ""))
+        if match:
+            return match.group(1).lower()
+    return "15m"
 
 
 class LiveFollowupStateMixin:
     """抽离 live follow-up / re-entry 状态同步逻辑。"""
+
+    @staticmethod
+    def _protection_geometry_valid(direction: str, entry_price: float, stop_loss: float, take_profit: float) -> bool:
+        """校验恢复出来的保护价是否与真实持仓几何一致。"""
+        side = str(direction or "").upper()
+        entry = safe_float(entry_price, 0.0)
+        stop = safe_float(stop_loss, 0.0)
+        target = safe_float(take_profit, 0.0)
+        if entry <= 0 or stop <= 0 or target <= 0 or side not in {"BUY", "SELL"}:
+            return False
+        if side == "BUY":
+            return stop < entry < target
+        return target < entry < stop
 
     @staticmethod
     def _same_market_state_family(current: str, previous: str) -> bool:
@@ -50,21 +79,21 @@ class LiveFollowupStateMixin:
             return 120 * 60
         return 25 * 60
 
-    def _infer_followup_timeframe(self, symbol_state: dict[str, Any], fallback: str = "5m") -> str:
+    def _infer_followup_timeframe(self, symbol_state: dict[str, Any], fallback: str = "15m") -> str:
         """从当前信号缓存推断 follow-up 所属周期。"""
         if not isinstance(symbol_state, dict):
             return fallback
         planned_trade = symbol_state.get("planned_trade") if isinstance(symbol_state.get("planned_trade"), dict) else {}
         pre_signal = symbol_state.get("pre_signal") if isinstance(symbol_state.get("pre_signal"), dict) else {}
         meta = symbol_state.get("pre_signal_meta") if isinstance(symbol_state.get("pre_signal_meta"), dict) else {}
-        timeframe = infer_signal_timeframe(
+        timeframe = _infer_signal_timeframe(
             meta.get("timeframe"),
             pre_signal,
             symbol_state.get("signal"),
             symbol_state.get("stage"),
-            planned_trade,
+            {},
             symbol_state.get("market_state_detail"),
-            fallback,
+            planned_trade.get("signal_timeframe") or planned_trade.get("timeframe") or fallback,
         )
         return str(timeframe or fallback).lower()
 
@@ -78,6 +107,7 @@ class LiveFollowupStateMixin:
         entry_price: float = 0.0,
         stop_loss: float = 0.0,
         take_profit: float = 0.0,
+        timeframe: str = "",
         strategy: str = "",
         style: str = "",
         playbook_hint: str = "",
@@ -108,20 +138,24 @@ class LiveFollowupStateMixin:
             "entry_price": resolved_entry,
             "stop_loss": safe_float(
                 stop_loss
-                or existing.get("stop_loss")
-                or planned_trade.get("stop_loss"),
+                or planned_trade.get("stop_loss")
+                or existing.get("stop_loss"),
                 0.0,
             ),
             "take_profit": safe_float(
                 take_profit
-                or existing.get("take_profit")
-                or planned_trade.get("take_profit"),
+                or planned_trade.get("take_profit")
+                or existing.get("take_profit"),
                 0.0,
             ),
             "timeframe": str(
-                existing.get("timeframe")
+                timeframe
+                or planned_trade.get("management_timeframe")
+                or planned_trade.get("signal_timeframe")
+                or planned_trade.get("reference_timeframe")
                 or self._infer_followup_timeframe(current_state)
-                or "5m"
+                or existing.get("timeframe")
+                or "15m"
             ).lower(),
             "market_state": str(
                 current_state.get("market_state")
@@ -166,6 +200,17 @@ class LiveFollowupStateMixin:
             ),
             "updated_at": utc_iso(),
         }
+        if not self._protection_geometry_valid(
+            direction,
+            resolved_entry,
+            seed.get("stop_loss") or 0.0,
+            seed.get("take_profit") or 0.0,
+        ):
+            live_stop = safe_float(stop_loss, 0.0)
+            live_take_profit = safe_float(take_profit, 0.0)
+            if self._protection_geometry_valid(direction, resolved_entry, live_stop, live_take_profit):
+                seed["stop_loss"] = live_stop
+                seed["take_profit"] = live_take_profit
         return seed
 
     def _build_followup_seed_from_position(
@@ -184,6 +229,13 @@ class LiveFollowupStateMixin:
             entry_price=safe_float(position.get("entry_price"), 0.0),
             stop_loss=safe_float(position.get("stop_loss"), 0.0),
             take_profit=safe_float(position.get("take_profit"), 0.0),
+            timeframe=str(
+                position.get("management_timeframe")
+                or position.get("signal_timeframe")
+                or position.get("reference_timeframe")
+                or position.get("timeframe")
+                or ""
+            ),
             strategy=str(position.get("strategy") or ""),
             style=str(position.get("style") or ""),
             playbook_hint=str(position.get("playbook_hint") or ""),
@@ -207,6 +259,13 @@ class LiveFollowupStateMixin:
             entry_price=safe_float(snapshot.get("entry") or snapshot.get("entry_price"), 0.0),
             stop_loss=safe_float(snapshot.get("sl") or snapshot.get("stop_loss"), 0.0),
             take_profit=safe_float(snapshot.get("tp") or snapshot.get("take_profit"), 0.0),
+            timeframe=str(
+                snapshot.get("management_timeframe")
+                or snapshot.get("signal_timeframe")
+                or snapshot.get("reference_timeframe")
+                or snapshot.get("timeframe")
+                or ""
+            ),
             strategy=str(snapshot.get("strategy") or ""),
             style=str(snapshot.get("style") or ""),
             playbook_hint=str(snapshot.get("playbook_hint") or ""),
@@ -266,7 +325,7 @@ class LiveFollowupStateMixin:
         """把止损事件转换为 live 重入观察窗口。"""
         if not self._seed_allows_reentry(seed):
             return {}
-        timeframe = str(seed.get("timeframe") or "5m").lower()
+        timeframe = str(seed.get("timeframe") or "15m").lower()
         next_attempt = int(seed.get("reentry_attempt") or 0) + 1
         return {
             "direction": str(seed.get("direction") or ""),
@@ -298,7 +357,7 @@ class LiveFollowupStateMixin:
         )
         if side != str(watch.get("direction") or ""):
             return False
-        timeframe = self._infer_followup_timeframe(cached, str(watch.get("timeframe") or "5m"))
+        timeframe = self._infer_followup_timeframe(cached, str(watch.get("timeframe") or "15m"))
         if timeframe != str(watch.get("timeframe") or "").lower():
             return False
         market_state = str(cached.get("market_state") or cached.get("state") or "").strip()
@@ -324,7 +383,7 @@ class LiveFollowupStateMixin:
         reentry_watch: dict[str, Any],
         active_symbols: set[str],
     ) -> None:
-        """把 live re-entry 计划写入缓存，供 LLM 和规则引擎复用。"""
+        """把 live re-entry 计划写入缓存，供规则引擎与通知链复用。"""
         if not isinstance(symbol_cache, dict):
             return
         for symbol, watch in reentry_watch.items():
@@ -402,6 +461,11 @@ class LiveFollowupStateMixin:
             for item in live_positions
             if str(item.get("symbol") or "").strip()
         }
+        active_order_symbols = {
+            str(item.get("symbol") or "").upper()
+            for item in self._tracked_bot_orders(execution)
+            if str(item.get("symbol") or "").strip()
+        }
         for symbol in list(reentry_watch.keys()):
             if symbol in active_symbols or not self._is_watch_active(reentry_watch[symbol]):
                 reentry_watch.pop(symbol, None)
@@ -446,7 +510,6 @@ class LiveFollowupStateMixin:
                 reentry_watch[symbol] = watch
                 LOG.info("[FOLLOWUP] %s 注册 live re-entry 观察窗口，attempt=%s", symbol, watch.get("next_attempt"))
 
-        successful_open_symbols: set[str] = set()
         for item in execution_results or []:
             if not isinstance(item, dict):
                 continue
@@ -456,16 +519,26 @@ class LiveFollowupStateMixin:
             symbol = str(item.get("symbol") or snapshot.get("symbol") or "").upper()
             if not symbol:
                 continue
+            order_type = str(snapshot.get("order_type") or "").strip().upper()
+            execution_mode = str(snapshot.get("execution_mode") or "").strip().upper()
+            should_keep_seed = (
+                symbol in active_symbols
+                or symbol in active_order_symbols
+                or order_type == "MARKET"
+                or execution_mode == "MARKET_IMMEDIATE"
+            )
+            if not should_keep_seed:
+                reentry_watch.pop(symbol, None)
+                continue
             symbol_state = runtime_symbols.get(symbol) if isinstance(runtime_symbols.get(symbol), dict) else {}
             if not symbol_state:
                 symbol_state = market_symbols.get(symbol) if isinstance(market_symbols.get(symbol), dict) else {}
             seed = self._build_followup_seed_from_action_snapshot(snapshot, symbol_state, position_seeds.get(symbol))
             if seed:
                 position_seeds[symbol] = seed
-                successful_open_symbols.add(symbol)
             reentry_watch.pop(symbol, None)
 
-        keep_symbols = active_symbols | set(reentry_watch.keys()) | successful_open_symbols
+        keep_symbols = active_symbols | active_order_symbols | set(reentry_watch.keys())
         position_seeds = {
             symbol: seed
             for symbol, seed in position_seeds.items()

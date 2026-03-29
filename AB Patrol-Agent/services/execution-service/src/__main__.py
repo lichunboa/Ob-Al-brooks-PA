@@ -14,6 +14,7 @@ Execution Service - FastAPI 入口 V2.8.0
 import argparse
 import asyncio
 import logging
+import time
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -62,6 +63,35 @@ note_sync: Optional[NoteSync] = None
 evolution_mgr: Optional[EvolutionManager] = None
 position_patrol: Optional[PositionPatrol] = None
 _periodic_task: Optional[asyncio.Task] = None
+_can_trade_cache: dict[str, dict] = {}
+_size_calc_cache: dict[str, dict] = {}
+_symbol_info_cache: dict[str, dict] = {}
+
+
+def _exchange_block_payload() -> dict:
+    """统一读取执行层交易所阻断状态。"""
+    if not executor:
+        return {
+            "blocked": False,
+            "code": "",
+            "reason": "",
+            "detail": "",
+            "exchange": EXCHANGE,
+            "updated_at": "",
+        }
+    payload = executor.get_exchange_block_status()
+    block_exchange = str(payload.get("exchange") or getattr(executor, "exchange_name", EXCHANGE)).strip().lower()
+    current_exchange = str(getattr(executor, "exchange_name", EXCHANGE) or EXCHANGE).strip().lower()
+    if payload.get("blocked") and block_exchange != current_exchange:
+        return {
+            "blocked": False,
+            "code": "",
+            "reason": "",
+            "detail": "",
+            "exchange": current_exchange,
+            "updated_at": "",
+        }
+    return payload
 
 
 def _pick_cash_balance(balances: list[Balance]) -> Optional[Balance]:
@@ -72,6 +102,123 @@ def _pick_cash_balance(balances: list[Balance]) -> Optional[Balance]:
         if matched:
             return matched
     return balances[0] if balances else None
+
+
+def _build_account_summary_from_snapshot(
+    balance: Optional[Balance],
+    positions: list[Position],
+    open_orders: list[OpenOrder],
+) -> Optional[AccountSummary]:
+    """用已拉到的快照构建账户摘要，避免重复压 cTrader 接口。"""
+    if not balance:
+        return None
+    position_value = sum(position.quantity * position.mark_price for position in positions)
+    return AccountSummary(
+        total_balance=balance.balance,
+        available_balance=balance.available,
+        total_unrealized_pnl=balance.unrealized_pnl,
+        total_margin_balance=balance.total_margin_balance or balance.balance,
+        position_count=len(positions),
+        total_position_value=position_value,
+        open_order_count=len(open_orders),
+        today_realized_pnl=0.0,
+        today_trade_count=0,
+        today_commission=0.0,
+        margin_ratio=balance.margin_ratio,
+        can_trade=True,
+    )
+
+
+async def _safe_get_positions(timeout_seconds: float = 3.5) -> tuple[list[Position], str | None]:
+    """优先读取实时持仓，超时则返回错误描述供上层回退。"""
+    if not executor:
+        return [], "服务未就绪"
+    try:
+        positions = await asyncio.wait_for(executor.get_positions(), timeout=timeout_seconds)
+        return positions, None
+    except asyncio.TimeoutError:
+        logger.warning("读取实时持仓超时，回退到缓存口径")
+        return [], "timed out"
+    except Exception as exc:
+        logger.warning("读取实时持仓失败，回退到缓存口径: %s", exc)
+        return [], str(exc)
+
+
+def _load_cached_can_trade(bot_id: str, *, max_age_seconds: float = 8.0) -> dict | None:
+    cached = _can_trade_cache.get(bot_id)
+    if not isinstance(cached, dict):
+        return None
+    cached_at = float(cached.get("_cached_at") or 0.0)
+    if cached_at <= 0 or time.time() - cached_at > max_age_seconds:
+        return None
+    payload = dict(cached)
+    payload.pop("_cached_at", None)
+    return payload
+
+
+def _store_cached_can_trade(bot_id: str, payload: dict) -> None:
+    snapshot = dict(payload)
+    snapshot["_cached_at"] = time.time()
+    _can_trade_cache[bot_id] = snapshot
+
+
+def _size_cache_key(
+    bot_id: str,
+    symbol: str | None,
+    entry_price: float,
+    stop_loss: float,
+    risk_percent: float,
+    intent: str,
+) -> str:
+    """把仓位计算请求标准化成短时缓存键。"""
+    normalized_symbol = str(symbol or "").strip().upper()
+    normalized_intent = str(intent or "").strip().upper()
+    return "|".join(
+        (
+            str(bot_id or "").strip(),
+            normalized_symbol,
+            f"{float(entry_price or 0.0):.8f}",
+            f"{float(stop_loss or 0.0):.8f}",
+            f"{float(risk_percent or 0.0):.4f}",
+            normalized_intent,
+        )
+    )
+
+
+def _load_cached_size_calc(cache_key: str, *, max_age_seconds: float = 10.0) -> dict | None:
+    cached = _size_calc_cache.get(cache_key)
+    if not isinstance(cached, dict):
+        return None
+    cached_at = float(cached.get("_cached_at") or 0.0)
+    if cached_at <= 0 or time.time() - cached_at > max_age_seconds:
+        return None
+    payload = dict(cached)
+    payload.pop("_cached_at", None)
+    return payload
+
+
+def _store_cached_size_calc(cache_key: str, payload: dict) -> None:
+    snapshot = dict(payload)
+    snapshot["_cached_at"] = time.time()
+    _size_calc_cache[cache_key] = snapshot
+
+
+def _load_cached_symbol_info(symbol: str, *, max_age_seconds: float = 300.0) -> dict | None:
+    cached = _symbol_info_cache.get(str(symbol or "").strip().upper())
+    if not isinstance(cached, dict):
+        return None
+    cached_at = float(cached.get("_cached_at") or 0.0)
+    if cached_at <= 0 or time.time() - cached_at > max_age_seconds:
+        return None
+    payload = dict(cached)
+    payload.pop("_cached_at", None)
+    return payload
+
+
+def _store_cached_symbol_info(symbol: str, payload: dict) -> None:
+    snapshot = dict(payload)
+    snapshot["_cached_at"] = time.time()
+    _symbol_info_cache[str(symbol or "").strip().upper()] = snapshot
 
 
 @asynccontextmanager
@@ -87,8 +234,8 @@ async def lifespan(app: FastAPI):
         reconciliation = None
         order_tracker = None
         note_sync = None
-        position_patrol = None
-        logger.info("cTrader 模式：已跳过对账 / 订单追踪 / 持仓巡检初始化")
+        position_patrol = PositionPatrol(executor, trading_state)
+        logger.info("cTrader 模式：已跳过对账 / 订单追踪初始化，保留持仓巡检")
     else:
         reconciliation = TradeReconciliation(executor)
         order_tracker = OrderTracker(executor)
@@ -104,8 +251,10 @@ async def lifespan(app: FastAPI):
     if reconciliation:
         await run_startup_reconciliation(reconciliation=reconciliation)
 
-    # 启动时从币安 open orders + trades history 恢复 bot 映射
+    # 启动时从挂单、执行日志与本地映射恢复 bot 归属
     await recover_startup_bot_map(executor=executor)
+    # 启动时主动热身一次 open orders，恢复保护单注册表。
+    await executor.get_open_orders()
 
     # 启动时自动获取币安手续费率并更新到 bot allocation
     if EXCHANGE != "ctrader":
@@ -164,25 +313,31 @@ app.add_middleware(
 @app.get("/health")
 async def health():
     """健康检查"""
+    exchange_block = _exchange_block_payload()
+    status = "degraded" if exchange_block.get("blocked") else "healthy"
     return {
-        "status": "healthy",
+        "status": status,
         "mode": EXCHANGE_MODE,
         "exchange": EXCHANGE,
         "account_asset": ACCOUNT_ASSET,
         "service": "execution-service",
         "version": "4.1.0",
         "trading_enabled": trading_state.is_trading_enabled() if trading_state else False,
+        "exchange_blocked": bool(exchange_block.get("blocked")),
+        "exchange_block_code": exchange_block.get("code"),
+        "exchange_block_reason": exchange_block.get("reason"),
+        "exchange_block_updated_at": exchange_block.get("updated_at"),
     }
 
 
 # ========== K 线数据 (V4.0 阶段 1) ==========
 
 @app.get("/klines/{symbol}")
-@cached(ttl=60, key_prefix="klines")  # K 线缓存 60 秒
+@cached(ttl=15, key_prefix="klines")  # K 线缓存 15 秒，避免高频守候时数据滞后
 async def get_klines(
     symbol: str,
     interval: str = Query("1h", description="K线周期: 1m/5m/15m/30m/1h/4h/1d"),
-    limit: int = Query(50, ge=1, le=200, description="K线数量"),
+    limit: int = Query(50, ge=1, le=300, description="K线数量"),
 ):
     """获取 K 线数据（OHLCV + EMA20 + ATR14）— Agent 主动分析用"""
     if not executor:
@@ -191,7 +346,7 @@ async def get_klines(
 
 
 @app.get("/klines/{symbol}/multi")
-@cached(ttl=60, key_prefix="klines_multi")  # 多周期 K 线缓存 60 秒
+@cached(ttl=15, key_prefix="klines_multi")  # 多周期 K 线缓存 15 秒，避免高频守候时数据滞后
 async def get_multi_tf_klines(symbol: str):
     """多周期 K 线快照（patrol-l1 默认每周期 150 根）"""
     if not executor:
@@ -221,12 +376,37 @@ async def get_positions():
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
     positions = await executor.get_positions()
+    missing_symbols = [
+        p.symbol
+        for p in positions
+        if (
+            not executor.get_position_bot_ids(p.symbol)
+            or not str(getattr(p, "strategy", "") or "").strip()
+            or str(getattr(p, "strategy", "") or "").strip().lower() == "auto"
+        )
+    ]
+    if positions and missing_symbols:
+        try:
+            recovered = await executor.recover_bot_map()
+            logger.info(
+                "positions 路由触发 bot 映射自愈: 缺失 %s 个品种, 恢复订单 %s / 持仓 %s",
+                len({str(item) for item in missing_symbols}),
+                recovered.get("recovered_orders", 0),
+                recovered.get("recovered_positions", 0),
+            )
+        except Exception as exc:
+            logger.warning("positions 路由自愈 bot 映射失败: %s", exc)
     result = []
     for p in positions:
         d = p.model_dump()
         bot_ids = executor.get_position_bot_ids(p.symbol)
         d["bot_ids"] = bot_ids
         d["bot_id"] = bot_ids[0] if bot_ids else None  # 向后兼容
+        strategy = executor.get_position_strategy(p.symbol, d["bot_id"])
+        if strategy and str(strategy).strip().lower() != "auto":
+            d["strategy"] = str(strategy)
+        elif d.get("strategy") in ("auto", "", None):
+            d["strategy"] = None
         result.append(d)
     return result
 
@@ -236,7 +416,30 @@ async def get_open_orders(symbol: Optional[str] = None):
     """获取挂单"""
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
-    return await executor.get_open_orders(symbol)
+    orders = await executor.get_open_orders(symbol)
+    if orders:
+        missing_strategy = [
+            item
+            for item in orders
+            if not str(getattr(item, "strategy", "") or "").strip()
+            or str(getattr(item, "strategy", "") or "").strip().lower() == "auto"
+        ]
+        if missing_strategy:
+            try:
+                await executor.recover_bot_map()
+                orders = await executor.get_open_orders(symbol)
+            except Exception as exc:
+                logger.warning("orders 路由自愈策略归属失败: %s", exc)
+    result = []
+    for item in orders:
+        payload = item.model_dump()
+        strategy = executor.get_order_strategy(payload.get("order_id", ""))
+        if strategy and str(strategy).strip().lower() != "auto":
+            payload["strategy"] = str(strategy)
+        elif payload.get("strategy") in ("auto", "", None):
+            payload["strategy"] = None
+        result.append(payload)
+    return result
 
 
 @app.get("/trades/history")
@@ -261,6 +464,71 @@ async def get_account_summary():
     return summary
 
 
+@app.get("/trading/live-context/{bot_id}")
+async def get_live_context(
+    bot_id: str,
+    symbols: Optional[str] = Query(None, description="逗号分隔品种列表"),
+):
+    """给 runtime / 实盘链提供统一账户上下文与品种约束。"""
+    if not executor or not trading_state:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+
+    allocation = trading_state.get_allocation(bot_id)
+    if allocation is None:
+        raise HTTPException(status_code=404, detail=f"未知机器人: {bot_id}")
+
+    balances = await executor.get_balance()
+    cash_balance = _pick_cash_balance(balances)
+    if EXCHANGE == "ctrader":
+        positions = await executor.get_positions()
+        open_orders = await executor.get_open_orders()
+        account_summary = _build_account_summary_from_snapshot(cash_balance, positions, open_orders)
+    else:
+        account_summary = await executor.get_account_summary()
+
+    requested_symbols: list[str] = []
+    if symbols:
+        requested_symbols = [
+            item.strip()
+            for item in str(symbols).replace(";", ",").split(",")
+            if item.strip()
+        ]
+
+    requested_leverage = float(allocation.get("max_leverage", 1) or 1)
+    exchange_block = _exchange_block_payload()
+    account_summary_payload = account_summary.model_dump() if account_summary else None
+    if isinstance(account_summary_payload, dict) and exchange_block.get("blocked"):
+        account_summary_payload["can_trade"] = False
+        account_summary_payload["exchange_block_reason"] = exchange_block.get("reason")
+    symbol_constraints = [
+        executor.get_symbol_constraints(symbol, desired_leverage=requested_leverage)
+        for symbol in requested_symbols
+    ]
+    max_margin_cost, max_margin_notional = trading_state.get_per_order_margin_limit(
+        bot_id,
+        leverage_override=requested_leverage,
+    )
+
+    return {
+        "bot_id": bot_id,
+        "exchange": EXCHANGE,
+        "mode": EXCHANGE_MODE,
+        "account_asset": ACCOUNT_ASSET,
+        "trading_enabled": trading_state.state.trading_enabled,
+        "account_balance": trading_state.get_account_balance(),
+        "account_available": trading_state.get_account_available(),
+        "effective_available_margin": trading_state.get_available_margin(bot_id),
+        "cash_balance": cash_balance.model_dump() if cash_balance else None,
+        "account_summary": account_summary_payload,
+        "allocation": allocation,
+        "requested_symbols": requested_symbols,
+        "symbol_constraints": symbol_constraints,
+        "max_margin_cost_per_order": max_margin_cost,
+        "max_margin_notional_per_order": max_margin_notional,
+        "exchange_block": exchange_block,
+    }
+
+
 # ========== 交易操作 ==========
 
 @app.post("/order", response_model=OrderResponse)
@@ -270,6 +538,17 @@ async def place_order(request: OrderRequest):
     """下单"""
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
+    exchange_block = _exchange_block_payload()
+    if exchange_block.get("blocked") and not request.reduce_only:
+        reason = str(exchange_block.get("reason") or exchange_block.get("code") or "EXCHANGE_BLOCKED")
+        return OrderResponse(
+            success=False,
+            symbol=request.symbol,
+            side=request.side.value,
+            quantity=request.quantity,
+            status="EXCHANGE_BLOCKED",
+            message=f"交易所阻断: {reason}",
+        )
     # 从 bot allocation 获取风控参数
     max_pos = 10
     daily_loss = 0.0
@@ -285,6 +564,10 @@ async def place_order(request: OrderRequest):
         # 自动应用 bot 配置的杠杆（agent 未传时使用配置值）
         if not request.leverage:
             request.leverage = alloc.get("max_leverage", 1)
+        if request.symbol:
+            constraints = executor.get_symbol_constraints(request.symbol, desired_leverage=request.leverage)
+            effective_leverage = int(float(constraints.get("effective_leverage") or request.leverage or 1))
+            request.leverage = effective_leverage
 
         # 单笔成本限制：账户总额 * 百分比，再按杠杆折算为最大名义价值。
         account_balance = trading_state.get_account_balance()
@@ -354,62 +637,26 @@ async def cancel_all_orders(symbol: Optional[str] = None):
 @app.post("/orders/cleanup-stale")
 async def cleanup_stale_orders():
     """
-    清理残留的 reduce_only 委托单（V7.1 修复 Testnet 问题）
+    手动触发残留委托单清理。
 
-    问题：Binance Testnet 的 SL/TP 单触发后，对手方委托单不会自动撤销
-    解决：遍历所有挂单，取消没有对应持仓的 reduce_only 单
+    与持仓巡检复用同一套口径：
+    - 无持仓的保护单直接清
+    - 同品种保护单重复时只保留最新一张
+    - 无持仓的重复首仓挂单只保留最新一张
     """
-    if not executor:
+    if not executor or not position_patrol:
         raise HTTPException(status_code=503, detail="服务未就绪")
 
     try:
-        # 1. 获取当前持仓
         positions = await executor.get_positions()
-        position_symbols = {pos.symbol for pos in positions}
-
-        # 2. 获取所有挂单
+        active_symbols = {pos.symbol for pos in positions}
         open_orders = await executor.get_open_orders()
-
-        # 3. 找出没有对应持仓的 reduce_only 单
-        stale_orders = []
-        for order in open_orders:
-            # 检查是否是 reduce_only 单（SL/TP）
-            if order.reduce_only or order.order_type in ('STOP_MARKET', 'TAKE_PROFIT_MARKET', 'STOP', 'TAKE_PROFIT'):
-                # 检查是否有对应持仓
-                if order.symbol not in position_symbols:
-                    stale_orders.append(order)
-
-        # 4. 取消残留委托单
-        cancelled = []
-        failed = []
-        for order in stale_orders:
-            try:
-                # 使用 ccxt 的 cancel_order
-                executor.exchange.cancel_order(order.order_id, order.symbol)
-                cancelled.append({
-                    "symbol": order.symbol,
-                    "order_id": order.order_id,
-                    "type": order.order_type,
-                    "side": order.side,
-                })
-                logger.info(f"[清理] 取消残留委托单: {order.symbol} {order.order_type} {order.order_id}")
-            except Exception as e:
-                failed.append({
-                    "symbol": order.symbol,
-                    "order_id": order.order_id,
-                    "error": str(e),
-                })
-                logger.warning(f"[清理] 取消失败 {order.symbol} {order.order_id}: {e}")
+        cleaned = await position_patrol._cleanup_stale_orders(active_symbols, open_orders)
 
         return {
             "success": True,
-            "total_stale": len(stale_orders),
-            "cancelled": len(cancelled),
-            "failed": len(failed),
-            "details": {
-                "cancelled": cancelled,
-                "failed": failed,
-            }
+            "total_open_orders_before": len(open_orders),
+            "cleaned": cleaned,
         }
 
     except Exception as e:
@@ -688,18 +935,69 @@ async def can_bot_trade(bot_id: str):
     if not trading_state or not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
 
-    # 获取实时持仓数
-    all_positions = await executor.get_positions()
-    bot_positions = _filter_bot_positions(bot_id, all_positions)
-    can_trade, reason = trading_state.can_bot_trade(bot_id, live_position_count=len(bot_positions))
     allocation = trading_state.get_allocation(bot_id)
+    if allocation is None:
+        raise HTTPException(status_code=404, detail=f"未知机器人: {bot_id}")
 
-    return {
+    cached_response = _load_cached_can_trade(bot_id, max_age_seconds=6.0)
+    if (
+        cached_response
+        and isinstance(cached_response.get("exchange_block"), dict)
+        and not cached_response["exchange_block"].get("blocked")
+    ):
+        reason = str(cached_response.get("reason") or "").strip().lower()
+        if reason in {"ok", "ok (cached_positions)", "ok (cached_positions_timeout)", "ok (cached_positions_error)"}:
+            cached_response["data_mode"] = "cached_can_trade_result"
+            return cached_response
+
+    position_fetch_error: str | None = None
+    if EXCHANGE == "ctrader":
+        all_positions, position_fetch_error = await _safe_get_positions(timeout_seconds=3.5)
+    else:
+        all_positions = await executor.get_positions()
+
+    bot_positions = _filter_bot_positions(bot_id, all_positions)
+    live_position_count = len(bot_positions)
+    data_mode = "live_positions"
+
+    # cTrader 偶发慢响应时，回退到最近一次已同步的持仓快照，避免 runtime 把 transport 抖动误判成风控阻断。
+    if EXCHANGE == "ctrader" and position_fetch_error:
+        live_position_count = int(allocation.get("current_positions", 0) or 0)
+        data_mode = "cached_positions_timeout" if "timed out" in position_fetch_error.lower() else "cached_positions_error"
+    elif EXCHANGE == "ctrader" and live_position_count == 0:
+        cached_count = int(allocation.get("current_positions", 0) or 0)
+        if cached_count > 0:
+            live_position_count = cached_count
+            data_mode = "cached_positions"
+
+    can_trade, reason = trading_state.can_bot_trade(bot_id, live_position_count=live_position_count)
+    if data_mode == "cached_positions" and reason == "OK":
+        reason = "OK (cached_positions)"
+    if data_mode in {"cached_positions_timeout", "cached_positions_error"} and reason == "OK":
+        reason = f"OK ({data_mode})"
+    exchange_block = _exchange_block_payload()
+    if exchange_block.get("blocked"):
+        can_trade = False
+        reason = str(exchange_block.get("code") or "EXCHANGE_BLOCKED")
+
+    response = {
         "can_trade": can_trade,
         "reason": reason,
         "bot_id": bot_id,
-        "allocation": allocation
+        "allocation": allocation,
+        "data_mode": data_mode,
+        "live_position_count": live_position_count,
+        "exchange_block": exchange_block,
     }
+    if position_fetch_error:
+        response["position_fetch_error"] = position_fetch_error
+        cached_response = _load_cached_can_trade(bot_id)
+        if cached_response and str(response.get("reason") or "").strip().lower() not in {"ok", "ok (cached_positions)", "ok (cached_positions_timeout)", "ok (cached_positions_error)"}:
+            cached_response["data_mode"] = "cached_can_trade_result"
+            cached_response["position_fetch_error"] = position_fetch_error
+            return cached_response
+    _store_cached_can_trade(bot_id, response)
+    return response
 
 
 @app.post("/trading/sync")
@@ -741,17 +1039,37 @@ async def calculate_position_size(
     symbol: Optional[str] = Query(None, description="交易品种"),
     entry_price: float = Query(..., description="入场价格"),
     stop_loss: float = Query(..., description="止损价格"),
-    risk_percent: float = Query(0.3, description="风险百分比"),
+    risk_percent: float = Query(0.4, description="风险百分比"),
     intent: str = Query("", description="交易意图，如 ADD_ON / SCALE_IN / PYRAMID_ADD"),
 ):
     """计算仓位大小"""
     if not trading_state:
         raise HTTPException(status_code=503, detail="服务未就绪")
+    cache_key = _size_cache_key(bot_id, symbol, entry_price, stop_loss, risk_percent, intent)
+    cached_response = _load_cached_size_calc(cache_key, max_age_seconds=12.0)
+    if cached_response:
+        cached_response["data_mode"] = "cached_size_result"
+        return cached_response
 
     bot_positions = []
+    position_fetch_error: str | None = None
+    position_fetch_mode = "live_positions"
     if executor and symbol:
-        all_positions = await executor.get_positions()
+        if EXCHANGE == "ctrader":
+            all_positions, position_fetch_error = await _safe_get_positions(timeout_seconds=3.5)
+            if position_fetch_error:
+                position_fetch_mode = "cached_positions_timeout" if "timed out" in position_fetch_error.lower() else "cached_positions_error"
+        else:
+            all_positions = await executor.get_positions()
         bot_positions = _filter_bot_positions(bot_id, all_positions)
+
+    leverage_override = None
+    symbol_constraints = None
+    if executor and symbol and trading_state:
+        alloc = trading_state.state.allocations.get(bot_id, {})
+        requested_leverage = float(alloc.get("max_leverage", 1) or 1)
+        symbol_constraints = executor.get_symbol_constraints(symbol, desired_leverage=requested_leverage)
+        leverage_override = float(symbol_constraints.get("effective_leverage") or requested_leverage or 1)
 
     details = trading_state.calculate_position_budget(
         bot_id,
@@ -761,6 +1079,7 @@ async def calculate_position_size(
         symbol=symbol,
         intent=intent,
         bot_positions=bot_positions,
+        leverage_override=leverage_override,
     )
     quantity = float(details.get("quantity") or 0.0)
     effective_notional = float(details.get("effective_notional") or 0.0)
@@ -775,7 +1094,11 @@ async def calculate_position_size(
     normalized_symbol = symbol
 
     if executor and symbol:
-        symbol_info = executor.get_symbol_info(symbol)
+        symbol_info = _load_cached_symbol_info(symbol)
+        if not symbol_info:
+            symbol_info = executor.get_symbol_info(symbol)
+            if isinstance(symbol_info, dict) and symbol_info:
+                _store_cached_symbol_info(symbol, symbol_info)
         normalized_symbol = str(symbol_info.get("symbol") or symbol)
         raw_quantity = executor.account_notional_to_quantity(
             symbol,
@@ -800,6 +1123,12 @@ async def calculate_position_size(
                 effective_notional = 0.0
                 margin_cost = 0.0
                 explanation = f"{explanation} | 最小下单单位的保证金成本 ${snapped_margin_cost:.2f} 超过上限 ${max_margin_cost:.2f}"
+            elif symbol_constraints and float(symbol_constraints.get("min_notional") or 0.0) > 0 and snapped_notional + 1e-9 < float(symbol_constraints.get("min_notional") or 0.0):
+                min_notional = float(symbol_constraints.get("min_notional") or 0.0)
+                quantity = 0.0
+                effective_notional = 0.0
+                margin_cost = 0.0
+                explanation = f"{explanation} | 规格贴合后名义价值 ${snapped_notional:.2f} 小于最小成交额 ${min_notional:.2f}"
             else:
                 quantity = snapped_quantity
                 effective_notional = snapped_notional
@@ -809,7 +1138,7 @@ async def calculate_position_size(
                     f"名义 ${effective_notional:.2f}, 保证金成本 ${margin_cost:.2f}"
                 )
 
-    return {
+    response = {
         "bot_id": bot_id,
         "symbol": normalized_symbol,
         "quantity": quantity,
@@ -830,7 +1159,19 @@ async def calculate_position_size(
         "symbol_risk_used": float(details.get("symbol_risk_used") or 0.0),
         "symbol_risk_remaining": float(details.get("symbol_risk_remaining") or 0.0),
         "symbol_info": symbol_info,
+        "symbol_constraints": symbol_constraints,
     }
+    if position_fetch_error:
+        response["position_fetch_error"] = position_fetch_error
+        response["position_fetch_mode"] = position_fetch_mode
+        if cached_response and float(cached_response.get("quantity") or 0.0) > 0:
+            merged = dict(cached_response)
+            merged["position_fetch_error"] = position_fetch_error
+            merged["position_fetch_mode"] = position_fetch_mode
+            merged["data_mode"] = "cached_size_result"
+            return merged
+    _store_cached_size_calc(cache_key, response)
+    return response
 
 
 # ========== 阈值管理 (V2.6.1 新增) ==========
@@ -941,15 +1282,15 @@ async def get_orphaned_positions():
 
 @app.post("/trading/recover-bot-map")
 async def recover_bot_map():
-    """触发从文件+币安恢复 order/position bot 映射（解决孤儿持仓）"""
+    """触发从文件+交易所+执行日志恢复 order/position bot 映射。"""
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
     try:
         # 1. 从文件重新加载（支持外部修改后热更新）
         executor._position_bot_map = executor._load_position_bot_map()
         from_file = len(executor._position_bot_map)
-        # 2. 从币安 clientOrderId 补充恢复
-        result = await executor.recover_bot_map_from_binance()
+        # 2. 从交易所挂单与执行日志补充恢复
+        result = await executor.recover_bot_map()
         return {
             "success": True,
             "from_file": from_file,
@@ -976,6 +1317,15 @@ async def track_all_orders():
         }
     """
     if not order_tracker:
+        if EXCHANGE == "ctrader":
+            return {
+                "checked_at": __import__('datetime').datetime.now(
+                    __import__('datetime').timezone.utc
+                ).isoformat(),
+                "status_changes": [],
+                "notifications": [],
+                "message": "cTrader 模式未启用订单追踪，返回空结果",
+            }
         raise HTTPException(status_code=503, detail="订单追踪服务未就绪")
 
     try:
@@ -1067,6 +1417,10 @@ async def get_bot_summary(bot_id: str):
 
     # 交易检查（传入实时持仓数，不依赖 current_positions 缓存）
     can_trade, reason = trading_state.can_bot_trade(bot_id, live_position_count=len(bot_positions))
+    exchange_block = _exchange_block_payload()
+    if exchange_block.get("blocked"):
+        can_trade = False
+        reason = str(exchange_block.get("code") or "EXCHANGE_BLOCKED")
 
     # 冷却期
     cooldowns = {}
@@ -1127,6 +1481,7 @@ async def get_bot_summary(bot_id: str):
         "remaining_positions": max(0, remaining_pos),
         "can_trade": can_trade,
         "can_trade_reason": reason,
+        "exchange_block": exchange_block,
         "risk_status": {
             "daily_loss_remaining": limit_remaining,
             "daily_loss_ok": limit_ok,
@@ -1220,61 +1575,14 @@ async def modify_stop_loss(
     new_stop_loss: float = Query(..., description="新止损价"),
     bot_id: Optional[str] = Query(None, description="机器人ID"),
 ):
-    """修改止损价 (V3.8 P1: 使用软件止损，巡检执行)"""
+    """修改止损价：优先使用交易所原生止损。"""
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
-    if not position_patrol:
-        raise HTTPException(status_code=503, detail="巡检未就绪")
-
-    try:
-        # 验证持仓存在（V4.1: 模糊匹配，兼容 SOLUSDT / SOLUSDT:USDT / SOL/USDT:USDT）
-        positions = await executor.get_positions()
-        norm_input = executor._norm_symbol_base(symbol)
-        pos = next((p for p in positions if executor._norm_symbol_base(p.symbol) == norm_input), None)
-        if not pos:
-            raise HTTPException(status_code=404, detail=f"未找到 {symbol} 持仓")
-
-        # 用持仓中的实际 symbol 做后续操作
-        pos_symbol = pos.symbol
-        old_sl = position_patrol._sl_placed.get(pos_symbol) or position_patrol._sl_placed.get(symbol)
-
-        # 尝试取消原生止损单（真实账户可能有，Demo 忽略错误）
-        try:
-            open_orders = await executor.get_open_orders(pos_symbol)
-            for order in open_orders:
-                if order.order_type in ('STOP_MARKET', 'STOP'):
-                    if order.reduce_only:
-                        ccxt_sym = executor._normalize_symbol_for_ccxt(pos_symbol)
-                        executor.exchange.cancel_order(order.order_id, ccxt_sym)
-                        logger.info(f"已取消原生止损单: {order.order_id}")
-        except Exception as e:
-            logger.debug(f"取消原生止损单跳过: {e}")
-
-        # 更新软件止损 (sl_placed.json) — 用持仓的实际 symbol
-        position_patrol._sl_placed[pos_symbol] = new_stop_loss
-        position_patrol._save_sl_placed()
-
-        # 同步移动止损状态
-        if pos_symbol in position_patrol._trailing_state:
-            position_patrol._trailing_state[pos_symbol]["current_sl"] = new_stop_loss
-            logger.info(f"同步移动止损状态: {pos_symbol} → {new_stop_loss}")
-
-        logger.info(
-            f"止损已更新: {symbol} {old_sl} → {new_stop_loss} (软件止损)"
-        )
-
-        return {
-            "success": True,
-            "symbol": symbol,
-            "old_stop_loss": old_sl,
-            "new_stop_loss": new_stop_loss,
-            "mode": "software",
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"修改止损失败: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    result = await executor.modify_stop_loss(symbol, new_stop_loss, bot_id=bot_id)
+    if not result.get("success"):
+        status = 404 if result.get("status") == "NOT_FOUND" else 500
+        raise HTTPException(status_code=status, detail=result.get("message") or result.get("status"))
+    return result
 
 
 @app.post("/order/{symbol}/modify-tp")

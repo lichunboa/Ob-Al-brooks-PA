@@ -59,6 +59,492 @@ class ExecutionOrderMixin:
             logger.warning("刷新市场约束失败 %s: %s", symbol, exc)
             return False
 
+    @staticmethod
+    def _sanitize_client_order_token(value: Any, max_len: int, *, keep_dash: bool = False) -> str:
+        """把客户端订单号片段压到交易所安全字符集合。"""
+        cleaned = "".join(
+            ch
+            for ch in str(value or "")
+            if ch.isalnum() or (keep_dash and ch == "-")
+        )
+        return cleaned[:max_len]
+
+    def _build_client_order_id(self, bot_id: str, symbol: str) -> str:
+        """构造唯一且可回查的客户端订单号。"""
+        bot_token = self._sanitize_client_order_token(bot_id, 9, keep_dash=True) or "bot"
+        symbol_token = self._sanitize_client_order_token(self._norm_symbol_base(symbol).upper(), 6) or "SYMBOL"
+        timestamp_token = str(int(time.time() * 1000))
+        nonce_token = f"{time.time_ns() % 100:02d}"
+        return f"AB_{bot_token}_{symbol_token}_{timestamp_token}{nonce_token}"[:36]
+
+    @staticmethod
+    def _normalize_exchange_order_status(value: Any) -> str:
+        """统一交易所订单状态字符串，便于二次确认。"""
+        return str(value or "").strip().lower()
+
+    def _binance_market_id(self, symbol: str) -> str:
+        """把标准 symbol 转成币安原生 market id。"""
+        market = self._load_market_descriptor(symbol)
+        market_id = str(market.get("id") or "").upper().replace(":", "")
+        if not market_id:
+            market_id = self._norm_symbol_base(symbol).upper()
+        return market_id
+
+    @staticmethod
+    def _order_matches_identifier(order: Any, order_id: str = "", client_order_id: str = "") -> bool:
+        """同时兼容 orderId 与 clientOrderId 两种回查口径。"""
+        payload = order if isinstance(order, dict) else {}
+        info = payload.get("info") if isinstance(payload.get("info"), dict) else {}
+        order_id_text = str(order_id or "").strip()
+        client_order_id_text = str(client_order_id or "").strip()
+        if order_id_text:
+            candidates = (
+                payload.get("id"),
+                payload.get("orderId"),
+                payload.get("algoId"),
+                info.get("orderId"),
+                info.get("algoId"),
+                info.get("id"),
+            )
+            if any(str(candidate or "").strip() == order_id_text for candidate in candidates):
+                return True
+        if client_order_id_text:
+            candidates = (
+                payload.get("clientOrderId"),
+                payload.get("clientAlgoId"),
+                payload.get("client_order_id"),
+                info.get("clientOrderId"),
+                info.get("clientAlgoId"),
+                info.get("origClientOrderId"),
+            )
+            if any(str(candidate or "").strip() == client_order_id_text for candidate in candidates):
+                return True
+        return False
+
+    @staticmethod
+    def _extract_binance_order_status(payload: dict[str, Any]) -> str:
+        """统一提取普通单 / 条件单状态。"""
+        info = payload.get("info") if isinstance(payload.get("info"), dict) else {}
+        raw_status = str(
+            payload.get("status")
+            or info.get("status")
+            or payload.get("algoStatus")
+            or info.get("algoStatus")
+            or ""
+        ).strip().upper()
+        mapping = {
+            "NEW": "new",
+            "OPEN": "open",
+            "WORKING": "open",
+            "PARTIALLY_FILLED": "partially_filled",
+            "FILLED": "filled",
+            "CANCELED": "canceled",
+            "CANCELLED": "canceled",
+            "REJECTED": "rejected",
+            "EXPIRED": "expired",
+            "FINISHED": "filled",
+        }
+        return mapping.get(raw_status, str(raw_status or "").lower())
+
+    def _load_native_binance_order(
+        self,
+        order_id: str,
+        symbol: str,
+        client_order_id: str = "",
+    ) -> dict[str, Any]:
+        """直接用币安原生接口回查，优先按订单号，必要时回退到 clientOrderId。"""
+        native_fetch = getattr(self.exchange, "fapiPrivateGetOrder", None)
+        if not callable(native_fetch):
+            return {}
+        market_id = self._binance_market_id(symbol)
+        if not market_id or (not order_id and not client_order_id):
+            return {}
+
+        queries: list[tuple[str, dict[str, Any]]] = []
+        if order_id:
+            queries.append(("native_get_order", {"symbol": market_id, "orderId": order_id}))
+        if client_order_id:
+            queries.append(("native_get_order_by_client_id", {"symbol": market_id, "origClientOrderId": client_order_id}))
+
+        last_error: Exception | None = None
+        for op_name, params in queries:
+            try:
+                raw_order = self._call_with_time_sync(op_name, native_fetch, params)
+            except Exception as exc:
+                last_error = exc
+                continue
+            if not isinstance(raw_order, dict) or not raw_order:
+                continue
+            try:
+                parsed = self.exchange.parse_order(raw_order)
+                return parsed if isinstance(parsed, dict) else raw_order
+            except Exception:
+                return raw_order
+        if last_error is not None:
+            raise last_error
+        return {}
+
+    def _load_native_binance_all_orders(self, symbol: str, limit: int = 50) -> list[dict[str, Any]]:
+        """直接拉取币安原生历史订单，补足 ccxt 在 demo 环境下的漏回读。"""
+        native_all = getattr(self.exchange, "fapiPrivateGetAllOrders", None)
+        if not callable(native_all):
+            return []
+        market_id = self._binance_market_id(symbol)
+        if not market_id:
+            return []
+        raw_orders = self._call_with_time_sync(
+            "native_all_orders",
+            native_all,
+            {"symbol": market_id, "limit": max(1, int(limit or 50))},
+        )
+        if not isinstance(raw_orders, list) or not raw_orders:
+            return []
+        parsed_orders: list[dict[str, Any]] = []
+        for raw_order in raw_orders:
+            if not isinstance(raw_order, dict) or not raw_order:
+                continue
+            try:
+                parsed = self.exchange.parse_order(raw_order)
+                parsed_orders.append(parsed if isinstance(parsed, dict) else raw_order)
+            except Exception:
+                parsed_orders.append(raw_order)
+        return parsed_orders
+
+    def _load_native_binance_algo_order(
+        self,
+        order_id: str,
+        symbol: str,
+        client_order_id: str = "",
+    ) -> dict[str, Any]:
+        """查询 Binance Demo 条件单。"""
+        native_fetch = getattr(self.exchange, "fapiPrivateGetAlgoOrder", None)
+        if not callable(native_fetch):
+            return {}
+        market_id = self._binance_market_id(symbol)
+        if not market_id or (not order_id and not client_order_id):
+            return {}
+        queries: list[tuple[str, dict[str, Any]]] = []
+        if order_id:
+            queries.append(("native_get_algo_order", {"symbol": market_id, "algoId": order_id}))
+        if client_order_id:
+            queries.append(("native_get_algo_order_by_client_id", {"symbol": market_id, "clientAlgoId": client_order_id}))
+        last_error: Exception | None = None
+        for op_name, params in queries:
+            try:
+                raw_order = self._call_with_time_sync(op_name, native_fetch, params)
+            except Exception as exc:
+                last_error = exc
+                continue
+            if isinstance(raw_order, dict) and raw_order:
+                return raw_order
+        if last_error is not None:
+            raise last_error
+        return {}
+
+    def _load_native_binance_open_algo_orders(self, symbol: str) -> list[dict[str, Any]]:
+        """查询当前 Binance Demo 条件单列表。"""
+        native_fetch = getattr(self.exchange, "fapiPrivateGetOpenAlgoOrders", None)
+        if not callable(native_fetch):
+            return []
+        market_id = self._binance_market_id(symbol)
+        if not market_id:
+            return []
+        raw_orders = self._call_with_time_sync(
+            "native_get_open_algo_orders",
+            native_fetch,
+            {"symbol": market_id},
+        )
+        return raw_orders if isinstance(raw_orders, list) else []
+
+    def _load_native_binance_all_algo_orders(self, symbol: str, limit: int = 50) -> list[dict[str, Any]]:
+        """查询 Binance Demo 条件单历史。"""
+        native_fetch = getattr(self.exchange, "fapiPrivateGetAllAlgoOrders", None)
+        if not callable(native_fetch):
+            return []
+        market_id = self._binance_market_id(symbol)
+        if not market_id:
+            return []
+        raw_orders = self._call_with_time_sync(
+            "native_get_all_algo_orders",
+            native_fetch,
+            {"symbol": market_id, "page": 1, "pageSize": max(1, int(limit or 50))},
+        )
+        return raw_orders if isinstance(raw_orders, list) else []
+
+    def _would_immediately_trigger(self, request: OrderRequest, reference_price: float, tick_size: float) -> bool:
+        """在提交到交易所前拦住会立刻触发的止损触发单。"""
+        if request.order_type != OrderType.STOP_MARKET:
+            return False
+        trigger_price = float(request.price or 0.0)
+        if trigger_price <= 0 or reference_price <= 0:
+            return False
+        tolerance = max(tick_size, reference_price * 1e-6)
+        if request.side == OrderSide.BUY:
+            return trigger_price <= reference_price + tolerance
+        return trigger_price >= reference_price - tolerance
+
+    def _load_order_reference_price(self, symbol: str, side: OrderSide) -> float:
+        """优先用实时盘口作为止损触发预检基准，避免拿计划价自己对自己比较。"""
+        if self.exchange_name == "ctrader":
+            try:
+                price = float(self.exchange.get_market_price(symbol) or 0.0)
+                if price > 0:
+                    return price
+            except Exception:
+                pass
+
+        if hasattr(self.exchange, "fetch_ticker"):
+            try:
+                ticker = self.exchange.fetch_ticker(symbol) or {}
+                bid = float((ticker or {}).get("bid") or 0.0)
+                ask = float((ticker or {}).get("ask") or 0.0)
+                mark = float((ticker or {}).get("mark") or (ticker or {}).get("markPrice") or 0.0)
+                last = float((ticker or {}).get("last") or 0.0)
+                if side == OrderSide.BUY:
+                    return ask or mark or last or bid
+                return bid or mark or last or ask
+            except Exception:
+                pass
+
+        if hasattr(self.exchange, "fetch_order_book"):
+            try:
+                order_book = self.exchange.fetch_order_book(symbol) or {}
+                bids = order_book.get("bids") or []
+                asks = order_book.get("asks") or []
+                best_bid = float(bids[0][0]) if bids else 0.0
+                best_ask = float(asks[0][0]) if asks else 0.0
+                if side == OrderSide.BUY:
+                    return best_ask or best_bid
+                return best_bid or best_ask
+            except Exception:
+                pass
+
+        return 0.0
+
+    def _maybe_convert_immediate_trigger_stop_to_market(
+        self,
+        request: OrderRequest,
+        reference_price: float,
+        tick_size: float,
+    ) -> tuple[OrderRequest, dict[str, Any] | None]:
+        """当 stop-entry 已被最新价轻微穿越时，按 Brooks 的跟进入场语义回退为市价。"""
+        if request.order_type != OrderType.STOP_MARKET or request.reduce_only:
+            return request, None
+
+        trigger_price = float(request.price or 0.0)
+        if trigger_price <= 0 or reference_price <= 0:
+            return request, None
+
+        tolerance = max(tick_size, reference_price * 1e-6)
+        if request.side == OrderSide.BUY:
+            cross_distance = max(0.0, reference_price - trigger_price)
+        else:
+            cross_distance = max(0.0, trigger_price - reference_price)
+
+        actual_risk = abs(trigger_price - float(request.stop_loss or 0.0))
+        max_chase_distance = max(tick_size * 4, actual_risk * 0.20 if actual_risk > 0 else 0.0)
+
+        context = {
+            "trigger_price": trigger_price,
+            "reference_price": reference_price,
+            "cross_distance": cross_distance,
+            "tolerance": tolerance,
+            "max_chase_distance": max_chase_distance,
+        }
+
+        if max_chase_distance > 0 and cross_distance <= max_chase_distance + tolerance:
+            adjusted_request = request.model_copy(update={"order_type": OrderType.MARKET, "price": None})
+            context["fallback"] = "MARKET"
+            return adjusted_request, context
+
+        context["fallback"] = "REJECT"
+        return request, context
+
+    @staticmethod
+    def _position_matches_request_side(request_side: OrderSide, position_side: Any) -> bool:
+        """判断实时持仓方向是否与请求方向一致。"""
+        normalized_position = str(position_side.value if isinstance(position_side, PositionSide) else position_side or "").upper()
+        if request_side == OrderSide.BUY:
+            return normalized_position in {"LONG", "BUY"}
+        return normalized_position in {"SHORT", "SELL"}
+
+    async def _confirm_primary_order(
+        self,
+        order_id: str,
+        symbol: str,
+        request: OrderRequest,
+        client_order_id: str = "",
+    ) -> tuple[bool, dict[str, Any]]:
+        """二次确认主开仓单是否真的存在于交易所。"""
+        last_payload: dict[str, Any] = {}
+        if not order_id:
+            return False, last_payload
+
+        for attempt in range(3):
+            if self.exchange_name == "binance":
+                try:
+                    native_order = self._load_native_binance_order(order_id, symbol, client_order_id)
+                    if native_order:
+                        last_payload = native_order
+                        status = self._extract_binance_order_status(native_order)
+                        if status in {"open", "new", "partially_filled", "partiallyfilled", "partial"}:
+                            return True, native_order
+                        if status in {"closed", "filled"} and not request.reduce_only:
+                            live_positions = await self.get_positions()
+                            for position in live_positions:
+                                if self._norm_symbol_base(position.symbol) != self._norm_symbol_base(symbol):
+                                    continue
+                                if not self._position_matches_request_side(request.side, position.side):
+                                    continue
+                                filled_price = float(getattr(position, "entry_price", 0.0) or 0.0)
+                                return True, {
+                                    **native_order,
+                                    "filled_price": filled_price or native_order.get("average") or native_order.get("price"),
+                                    "average": filled_price or native_order.get("average") or native_order.get("price"),
+                                    "status": native_order.get("status") or "filled",
+                                }
+                        if status in {"canceled", "cancelled", "expired", "rejected"}:
+                            return False, native_order
+                    else:
+                        logger.warning("主订单二次确认 native_get_order 未返回订单: %s %s attempt=%s", symbol, order_id, attempt + 1)
+                except Exception as exc:
+                    self._capture_exchange_block(exc)
+                    logger.warning("主订单二次确认 native_get_order 失败: %s %s attempt=%s", symbol, exc, attempt + 1)
+
+                try:
+                    native_algo_order = self._load_native_binance_algo_order(order_id, symbol, client_order_id)
+                    if native_algo_order:
+                        last_payload = native_algo_order
+                        status = self._extract_binance_order_status(native_algo_order)
+                        if status in {"open", "new", "partially_filled", "partiallyfilled", "partial"}:
+                            return True, native_algo_order
+                        if status in {"closed", "filled"} and not request.reduce_only:
+                            actual_order_id = str(native_algo_order.get("actualOrderId") or "").strip()
+                            if actual_order_id:
+                                try:
+                                    fetched_actual = self._call_with_time_sync("fetch_order", self.exchange.fetch_order, actual_order_id, symbol)
+                                    if isinstance(fetched_actual, dict) and fetched_actual:
+                                        return True, fetched_actual
+                                except Exception:
+                                    pass
+                            live_positions = await self.get_positions()
+                            for position in live_positions:
+                                if self._norm_symbol_base(position.symbol) != self._norm_symbol_base(symbol):
+                                    continue
+                                if not self._position_matches_request_side(request.side, position.side):
+                                    continue
+                                filled_price = float(getattr(position, "entry_price", 0.0) or 0.0)
+                                return True, {
+                                    **native_algo_order,
+                                    "filled_price": filled_price,
+                                    "average": filled_price,
+                                    "status": "filled",
+                                }
+                        if status in {"canceled", "cancelled", "expired", "rejected"}:
+                            return False, native_algo_order
+                except Exception as exc:
+                    self._capture_exchange_block(exc)
+                    logger.warning("主订单二次确认 native_get_algo_order 失败: %s %s attempt=%s", symbol, exc, attempt + 1)
+
+            try:
+                fetched = self._call_with_time_sync("fetch_order", self.exchange.fetch_order, order_id, symbol)
+                if isinstance(fetched, dict) and fetched:
+                    last_payload = fetched
+                    status = self._normalize_exchange_order_status(fetched.get("status"))
+                    if self.exchange_name != "binance" and status in {"open", "new", "closed", "filled", "partially_filled", "partiallyfilled", "partial"}:
+                        return True, fetched
+                    if self.exchange_name == "binance" and status in {"open", "new", "partially_filled", "partiallyfilled", "partial"}:
+                        return True, fetched
+            except Exception as exc:
+                self._capture_exchange_block(exc)
+                logger.warning("主订单二次确认 fetch_order 失败: %s %s attempt=%s", symbol, exc, attempt + 1)
+
+            try:
+                open_orders = self._call_with_time_sync("fetch_open_orders", self.exchange.fetch_open_orders, symbol)
+                for item in open_orders or []:
+                    if self._order_matches_identifier(item, order_id, client_order_id):
+                        return True, item or {}
+            except Exception as exc:
+                self._capture_exchange_block(exc)
+                logger.warning("主订单二次确认 fetch_open_orders 失败: %s %s attempt=%s", symbol, exc, attempt + 1)
+
+            try:
+                recent_orders = self._call_with_time_sync("fetch_orders", self.exchange.fetch_orders, symbol, None, 20)
+                for item in recent_orders or []:
+                    if not self._order_matches_identifier(item, order_id, client_order_id):
+                        continue
+                    last_payload = item or {}
+                    status = self._normalize_exchange_order_status((item or {}).get("status"))
+                    if status in {"open", "new", "closed", "filled", "partially_filled", "partiallyfilled", "partial"}:
+                        return True, item or {}
+                    if status in {"canceled", "cancelled", "expired", "rejected"}:
+                        return False, item or {}
+            except Exception as exc:
+                self._capture_exchange_block(exc)
+                logger.warning("主订单二次确认 fetch_orders 失败: %s %s attempt=%s", symbol, exc, attempt + 1)
+
+            if self.exchange_name == "binance":
+                try:
+                    native_orders = self._load_native_binance_all_orders(symbol, limit=50)
+                    for item in native_orders:
+                        if not self._order_matches_identifier(item, order_id, client_order_id):
+                            continue
+                        last_payload = item or {}
+                        status = self._normalize_exchange_order_status(
+                            (item or {}).get("status") or (item or {}).get("info", {}).get("status"),
+                        )
+                        if status in {"open", "new", "closed", "filled", "partially_filled", "partiallyfilled", "partial"}:
+                            return True, item or {}
+                        if status in {"canceled", "cancelled", "expired", "rejected"}:
+                            return False, item or {}
+                except Exception as exc:
+                    self._capture_exchange_block(exc)
+                    logger.warning("主订单二次确认 native_all_orders 失败: %s %s attempt=%s", symbol, exc, attempt + 1)
+
+                try:
+                    for item in self._load_native_binance_open_algo_orders(symbol):
+                        if not self._order_matches_identifier(item, order_id, client_order_id):
+                            continue
+                        last_payload = item or {}
+                        status = self._extract_binance_order_status(item or {})
+                        if status in {"open", "new", "partially_filled", "partiallyfilled", "partial"}:
+                            return True, item or {}
+                    for item in self._load_native_binance_all_algo_orders(symbol, limit=50):
+                        if not self._order_matches_identifier(item, order_id, client_order_id):
+                            continue
+                        last_payload = item or {}
+                        status = self._extract_binance_order_status(item or {})
+                        if status in {"open", "new", "closed", "filled", "partially_filled", "partiallyfilled", "partial"}:
+                            return True, item or {}
+                        if status in {"canceled", "cancelled", "expired", "rejected"}:
+                            return False, item or {}
+                except Exception as exc:
+                    self._capture_exchange_block(exc)
+                    logger.warning("主订单二次确认 algo_orders 失败: %s %s attempt=%s", symbol, exc, attempt + 1)
+
+                try:
+                    live_positions = await self.get_positions()
+                    for position in live_positions:
+                        if self._norm_symbol_base(position.symbol) != self._norm_symbol_base(symbol):
+                            continue
+                        if not self._position_matches_request_side(request.side, position.side):
+                            continue
+                        filled_price = float(getattr(position, "entry_price", 0.0) or 0.0)
+                        return True, {
+                            **last_payload,
+                            "filled_price": filled_price,
+                            "average": filled_price or last_payload.get("average") or last_payload.get("price"),
+                            "status": last_payload.get("status") or "filled",
+                        }
+                except Exception as exc:
+                    self._capture_exchange_block(exc)
+                    logger.warning("主订单二次确认 live_positions 失败: %s %s attempt=%s", symbol, exc, attempt + 1)
+
+            if attempt < 2:
+                await asyncio.sleep(0.6)
+
+        return False, last_payload
+
     async def place_order(
         self,
         request: OrderRequest,
@@ -81,15 +567,9 @@ class ExecutionOrderMixin:
                 status="SIZE_FAILED",
                 message="规格贴合后达不到最小下单单位",
             )
-        reference_price = float(request.price or 0.0)
-        if reference_price <= 0 and self.exchange_name == "ctrader":
-            reference_price = float(self.exchange.get_market_price(symbol) or 0.0)
-        if reference_price <= 0 and hasattr(self.exchange, "fetch_ticker"):
-            try:
-                ticker = self.exchange.fetch_ticker(symbol)
-                reference_price = float((ticker or {}).get("last") or 0.0)
-            except Exception:
-                reference_price = 0.0
+        reference_price = self._load_order_reference_price(symbol, request.side)
+        if reference_price <= 0:
+            reference_price = float(request.price or 0.0)
         symbol_constraints = self.get_symbol_constraints(symbol)
         min_notional = float(symbol_constraints.get("min_notional") or 0.0)
         if min_notional > 0 and reference_price > 0:
@@ -134,8 +614,42 @@ class ExecutionOrderMixin:
             protective_side = OrderSide.SELL.value if request.side == OrderSide.BUY else OrderSide.BUY.value
             price_update["take_profit"] = self.snap_price_to_symbol(symbol, float(request.take_profit), side=protective_side)
         request = request.model_copy(update=price_update)
+        planned_trigger_price = float(request.price) if request.price is not None else None
+        tick_size = float(symbol_constraints.get("tick_size") or 0.0)
+        if self.exchange_name == "binance" and self._would_immediately_trigger(request, reference_price, tick_size):
+            adjusted_request, immediate_trigger_context = self._maybe_convert_immediate_trigger_stop_to_market(
+                request,
+                reference_price,
+                tick_size,
+            )
+            if immediate_trigger_context and immediate_trigger_context.get("fallback") == "MARKET":
+                logger.info(
+                    "止损触发单已被最新价轻微穿越，按市价跟进入场: %s side=%s trigger=%s reference=%s cross=%s max=%s",
+                    symbol,
+                    request.side.value,
+                    immediate_trigger_context.get("trigger_price"),
+                    immediate_trigger_context.get("reference_price"),
+                    immediate_trigger_context.get("cross_distance"),
+                    immediate_trigger_context.get("max_chase_distance"),
+                )
+                request = adjusted_request
+            else:
+                return OrderResponse(
+                    success=False,
+                    symbol=symbol,
+                    side=request.side.value,
+                    quantity=request.quantity,
+                    price=float(request.price) if request.price is not None else None,
+                    status="WOULD_IMMEDIATELY_TRIGGER",
+                    message="提交前预检：该止损触发单会立即触发，且已超出允许跟进范围，已按失败处理",
+                    planned_price=planned_trigger_price,
+                    planned_stop_loss=request.stop_loss,
+                    planned_take_profit=request.take_profit,
+                    bot_id=request.bot_id,
+                )
         exchange_block = self.get_exchange_block_status()
-        if exchange_block.get("blocked") and not request.reduce_only:
+        block_exchange = str(exchange_block.get("exchange") or self.exchange_name).strip().lower()
+        if exchange_block.get("blocked") and block_exchange == str(self.exchange_name).strip().lower() and not request.reduce_only:
             reason = str(exchange_block.get("reason") or exchange_block.get("code") or "EXCHANGE_BLOCKED")
             return OrderResponse(
                 success=False,
@@ -219,9 +733,15 @@ class ExecutionOrderMixin:
 
         if self.exchange_name == "ctrader":
             try:
-                order_type = "LIMIT" if request.order_type == OrderType.LIMIT else "MARKET"
-                attach_stop_loss = request.stop_loss if order_type != "MARKET" else None
-                attach_take_profit = request.take_profit if order_type != "MARKET" else None
+                if request.order_type == OrderType.LIMIT:
+                    order_type = "LIMIT"
+                elif request.order_type == OrderType.STOP_MARKET:
+                    order_type = "STOP_MARKET"
+                else:
+                    order_type = "MARKET"
+                # cTrader 支持在下单时附带 SL/TP（包括 MARKET 单）
+                attach_stop_loss = request.stop_loss
+                attach_take_profit = request.take_profit
                 order = self.exchange.place_order(
                     symbol=symbol,
                     side=request.side.value,
@@ -263,7 +783,13 @@ class ExecutionOrderMixin:
                 order_id = str(order.get("order_id") or "")
                 strat = request.strategy or request.signal_source or "auto"
                 if request.bot_id:
-                    self._register_order(order_id, request.bot_id, symbol, strategy=strat)
+                    self._register_order(
+                        order_id,
+                        request.bot_id,
+                        symbol,
+                        strategy=strat,
+                        timeframe=request.timeframe,
+                    )
                     if not request.reduce_only:
                         self.register_position(
                             symbol,
@@ -271,39 +797,83 @@ class ExecutionOrderMixin:
                             strategy=strat,
                             quantity=request.quantity,
                             side=request.side.value,
+                            timeframe=request.timeframe or "",
                         )
                         await self._sync_bot_margin_state(request.bot_id)
 
                 native_protection_result: dict[str, Any] | None = None
+                desired_sl = request.stop_loss
+                desired_tp = request.take_profit
                 if not request.reduce_only and (request.stop_loss is not None or request.take_profit is not None):
                     target_position_id = order.get("position_id")
-                    for _attempt in range(3):
-                        native_protection_result = self.exchange.modify_position(
-                            symbol,
-                            stop_loss=request.stop_loss,
-                            take_profit=request.take_profit,
-                            position_id=target_position_id,
-                        )
-                        if native_protection_result.get("success"):
-                            verification = await self._verify_ctrader_position_protection(
-                                symbol,
-                                position_id=target_position_id,
-                                stop_loss=request.stop_loss,
-                                take_profit=request.take_profit,
+                    filled_price = float(order.get("filled_price") or 0.0)
+
+                    # 如果实际成交价和预期入场价不同，按实际成交价重算 SL/TP
+                    # 保持 risk 距离相同，但基于实际成交价偏移
+                    planned_entry = float(request.price or 0.0)
+                    if filled_price > 0 and planned_entry > 0 and abs(filled_price - planned_entry) > 1e-9:
+                        price_delta = filled_price - planned_entry
+                        if desired_sl is not None:
+                            desired_sl = round(desired_sl + price_delta, 10)
+                        if desired_tp is not None:
+                            desired_tp = round(desired_tp + price_delta, 10)
+                        # 几何校验：SL 和 TP 必须在入场价的正确侧
+                        side_is_buy = request.side.value.upper() in ("BUY", "LONG")
+                        if desired_sl is not None:
+                            if side_is_buy and desired_sl >= filled_price:
+                                desired_sl = None  # BUY 的 SL 不能 ≥ 入场价
+                            elif not side_is_buy and desired_sl <= filled_price:
+                                desired_sl = None  # SELL 的 SL 不能 ≤ 入场价
+                        if desired_tp is not None:
+                            if side_is_buy and desired_tp <= filled_price:
+                                desired_tp = None  # BUY 的 TP 不能 ≤ 入场价
+                            elif not side_is_buy and desired_tp >= filled_price:
+                                desired_tp = None  # SELL 的 TP 不能 ≥ 入场价
+                        if desired_sl is not None:
+                            desired_sl = self.snap_price_to_symbol(
+                                symbol, desired_sl,
+                                side=(OrderSide.SELL.value if side_is_buy else OrderSide.BUY.value),
                             )
-                            native_protection_result["verification"] = verification
-                            if verification.get("success"):
-                                break
-                            native_protection_result = {
-                                "success": False,
-                                "error": verification.get("error") or "保护位回读校验失败",
-                                "verification": verification,
-                            }
-                        await asyncio.sleep(0.4)
+                        if desired_tp is not None:
+                            desired_tp = self.snap_price_to_symbol(
+                                symbol, desired_tp,
+                                side=(OrderSide.SELL.value if side_is_buy else OrderSide.BUY.value),
+                            )
+                        logger.info(
+                            "SL/TP 按实际成交价重算: %s planned=%s filled=%s delta=%s sl=%s→%s tp=%s→%s",
+                            symbol, planned_entry, filled_price, price_delta,
+                            request.stop_loss, desired_sl, request.take_profit, desired_tp,
+                        )
+
+                    if desired_sl is not None or desired_tp is not None:
+                        for _attempt in range(3):
+                            native_protection_result = self.exchange.modify_position(
+                                symbol,
+                                stop_loss=desired_sl,
+                                take_profit=desired_tp,
+                                position_id=target_position_id,
+                            )
+                            if native_protection_result.get("success"):
+                                verification = await self._verify_ctrader_position_protection(
+                                    symbol,
+                                    position_id=target_position_id,
+                                    stop_loss=desired_sl,
+                                    take_profit=desired_tp,
+                                )
+                                native_protection_result["verification"] = verification
+                                if verification.get("success"):
+                                    break
+                                native_protection_result = {
+                                    "success": False,
+                                    "error": verification.get("error") or "保护位回读校验失败",
+                                    "verification": verification,
+                                }
+                            await asyncio.sleep(0.4)
                     if not native_protection_result or not native_protection_result.get("success"):
                         logger.warning(
-                            "cTrader 开仓后补改 SL/TP 失败: %s",
+                            "cTrader 开仓后补改 SL/TP 失败: %s sl=%s tp=%s",
                             (native_protection_result or {}).get("error"),
+                            desired_sl, desired_tp,
                         )
 
                 logger.info(
@@ -321,8 +891,22 @@ class ExecutionOrderMixin:
                     side=request.side.value,
                     quantity=request.quantity,
                     price=float(order.get("filled_price")) if order.get("filled_price") is not None else request.price,
+                    planned_price=request.price,
+                    filled_price=float(order.get("filled_price")) if order.get("filled_price") is not None else None,
                     status="PLACED",
                     message=None,
+                    planned_stop_loss=request.stop_loss,
+                    actual_stop_loss=(
+                        desired_sl
+                        if (native_protection_result or {}).get("success") and desired_sl is not None
+                        else request.stop_loss
+                    ),
+                    planned_take_profit=request.take_profit,
+                    actual_take_profit=(
+                        desired_tp
+                        if (native_protection_result or {}).get("success") and desired_tp is not None
+                        else request.take_profit
+                    ),
                     stop_loss_order_id=(
                         "native_position"
                         if (native_protection_result or {}).get("success") and request.stop_loss is not None
@@ -371,7 +955,7 @@ class ExecutionOrderMixin:
                 params.setdefault("params", {})["reduceOnly"] = True
 
             if current_request.bot_id:
-                client_id = f"AB_{current_request.bot_id}_{int(time.time())}"
+                client_id = self._build_client_order_id(current_request.bot_id, symbol)
                 params.setdefault("params", {})["newClientOrderId"] = client_id
 
             if native_attach_supported and not current_request.reduce_only:
@@ -390,6 +974,7 @@ class ExecutionOrderMixin:
         try:
             native_attach_supported = self.exchange_name == "okx"
             order_params = build_order_params(request)
+            requested_client_order_id = str((order_params.get("params") or {}).get("newClientOrderId") or "").strip()
             try:
                 order = self._call_with_time_sync("create_order", self.exchange.create_order, **order_params)
             except Exception as first_exc:
@@ -416,23 +1001,85 @@ class ExecutionOrderMixin:
                     )
                 request = refreshed_request
                 order_params = build_order_params(request)
+                requested_client_order_id = str((order_params.get("params") or {}).get("newClientOrderId") or "").strip()
                 order = self._call_with_time_sync("create_order_retry_constraints", self.exchange.create_order, **order_params)
-            self._clear_exchange_block_state("BINANCE_REGION_RESTRICTED")
 
             order_id = str(order.get("id"))
+            confirmed_order = dict(order)
+            exchange_confirmed = True
+            if self.exchange_name == "binance" and not request.reduce_only:
+                exchange_confirmed, verified_order = await self._confirm_primary_order(
+                    order_id,
+                    symbol,
+                    request,
+                    requested_client_order_id,
+                )
+                if verified_order:
+                    confirmed_order = {**order, **verified_order}
+                if not exchange_confirmed:
+                    exchange_block = self.get_exchange_block_status()
+                    if exchange_block.get("blocked"):
+                        reason = str(exchange_block.get("reason") or exchange_block.get("code") or "EXCHANGE_BLOCKED")
+                        return OrderResponse(
+                            success=False,
+                            order_id=order_id,
+                            symbol=symbol,
+                            side=request.side.value,
+                            quantity=request.quantity,
+                            price=float(order.get("price", 0)) if order.get("price") else None,
+                            status="EXCHANGE_BLOCKED",
+                            message=f"交易所阻断: {reason}",
+                            planned_price=float(request.price) if request.price is not None else None,
+                            planned_stop_loss=request.stop_loss,
+                            planned_take_profit=request.take_profit,
+                            exchange_confirmed=False,
+                            bot_id=request.bot_id,
+                        )
+                    logger.error("主订单未获交易所确认，按失败处理: %s %s", symbol, order_id)
+                    return OrderResponse(
+                        success=False,
+                        order_id=order_id,
+                        symbol=symbol,
+                        side=request.side.value,
+                        quantity=request.quantity,
+                        price=float(order.get("price", 0)) if order.get("price") else None,
+                        status="EXCHANGE_NOT_CONFIRMED",
+                        message="交易所未确认主订单，已按失败处理",
+                        planned_price=float(request.price) if request.price is not None else None,
+                        planned_stop_loss=request.stop_loss,
+                        planned_take_profit=request.take_profit,
+                        exchange_confirmed=False,
+                        bot_id=request.bot_id,
+                    )
+                self._clear_exchange_block_state("BINANCE_REGION_RESTRICTED")
+
+            order_status = self._normalize_exchange_order_status(confirmed_order.get("status"))
+            entry_filled = request.order_type == OrderType.MARKET or order_status in {"closed", "filled"}
+            filled_price = float(confirmed_order.get("average") or confirmed_order.get("filled_price") or confirmed_order.get("price") or 0) or None
+            planned_price = planned_trigger_price
 
             if request.bot_id:
                 strat = request.strategy or request.signal_source or "auto"
-                self._register_order(order_id, request.bot_id, symbol, strategy=strat)
-                if not request.reduce_only:
+                self._register_order(
+                    order_id,
+                    request.bot_id,
+                    symbol,
+                    strategy=strat,
+                    timeframe=request.timeframe,
+                )
+                if not request.reduce_only and entry_filled:
                     self.register_position(
                         symbol,
                         request.bot_id,
                         strategy=strat,
                         quantity=request.quantity,
                         side=request.side.value,
+                        timeframe=request.timeframe or "",
                     )
                     await self._sync_bot_margin_state(request.bot_id)
+
+            sl_embedded = bool(native_attach_supported and request.stop_loss and not request.reduce_only)
+            tp_embedded = bool(native_attach_supported and request.take_profit and not request.reduce_only)
 
             response = OrderResponse(
                 success=True,
@@ -440,13 +1087,17 @@ class ExecutionOrderMixin:
                 symbol=symbol,
                 side=request.side.value,
                 quantity=request.quantity,
-                price=float(order.get("price", 0)) if order.get("price") else None,
-                status=order.get("status") or "NEW",
+                price=float(confirmed_order.get("price", 0)) if confirmed_order.get("price") else None,
+                status=confirmed_order.get("status") or "NEW",
+                planned_price=planned_price,
+                filled_price=filled_price if entry_filled else None,
+                planned_stop_loss=request.stop_loss,
+                actual_stop_loss=request.stop_loss if sl_embedded else None,
+                planned_take_profit=request.take_profit,
+                actual_take_profit=request.take_profit if tp_embedded else None,
+                exchange_confirmed=exchange_confirmed,
                 bot_id=request.bot_id,
             )
-
-            sl_embedded = bool(native_attach_supported and request.stop_loss and not request.reduce_only)
-            tp_embedded = bool(native_attach_supported and request.take_profit and not request.reduce_only)
 
             if sl_embedded:
                 response.stop_loss_order_id = "embedded_native"
@@ -455,10 +1106,7 @@ class ExecutionOrderMixin:
                 response.take_profit_order_id = "embedded_native"
                 logger.info(f"原生止盈已嵌入主订单: {symbol} tp={request.take_profit}")
 
-            logger.info(f"订单已提交: {symbol} {request.side.value} {request.quantity} @ {order.get('price', 'MARKET')} [bot={request.bot_id or 'unknown'}]")
-
-            order_status = str(order.get("status") or "").lower()
-            entry_filled = request.order_type == OrderType.MARKET or order_status in {"closed", "filled"}
+            logger.info(f"订单已提交: {symbol} {request.side.value} {request.quantity} @ {confirmed_order.get('price', 'MARKET')} [bot={request.bot_id or 'unknown'}]")
 
             if not request.stop_loss and not request.reduce_only:
                 risk_pct = 0.02
@@ -486,6 +1134,8 @@ class ExecutionOrderMixin:
                         norm_sym = symbol.replace("/", "")
                         sl_data[norm_sym] = request.stop_loss
                         sl_file.write_text(json.dumps(sl_data, indent=2))
+                        response.planned_stop_loss = request.stop_loss
+                        response.actual_stop_loss = request.stop_loss
                         response.stop_loss_order_id = "software_sl"
                         logger.info(f"自动保护性软件止损已记录: {norm_sym} sl={request.stop_loss}")
                     except Exception as sl_exc:
@@ -521,6 +1171,8 @@ class ExecutionOrderMixin:
                         stop_price=request.stop_loss,
                     )
                     self._clear_software_stop_record(symbol)
+                    response.planned_stop_loss = request.stop_loss
+                    response.actual_stop_loss = request.stop_loss
                     logger.info(f"止损单已设置: {symbol} sl={request.stop_loss}")
                 except Exception as e:
                     self._capture_exchange_block(e)
@@ -541,6 +1193,8 @@ class ExecutionOrderMixin:
                             bot_id=request.bot_id,
                             strategy="tp_protect",
                         )
+                        response.planned_take_profit = request.take_profit
+                        response.actual_take_profit = request.take_profit
                         response.take_profit_order_id = tp_id
                         logger.warning(
                             "止盈单改用 LIMIT 兜底：%s tp=%s mark=%s note=%s",
@@ -576,6 +1230,8 @@ class ExecutionOrderMixin:
                             quantity=request.quantity,
                             stop_price=request.take_profit,
                         )
+                        response.planned_take_profit = request.take_profit
+                        response.actual_take_profit = request.take_profit
                         logger.info(f"止盈单已设置: {request.take_profit}")
                 except Exception as e:
                     self._capture_exchange_block(e)
@@ -669,6 +1325,7 @@ class ExecutionOrderMixin:
                                 strategy=effective_strategy,
                                 quantity=remaining_qty,
                                 side=pos.side.value,
+                                timeframe=getattr(pos, "timeframe", "") or "",
                             )
                     if effective_bot:
                         await self._sync_bot_margin_state(effective_bot)
@@ -740,6 +1397,7 @@ class ExecutionOrderMixin:
                             strategy=effective_strategy,
                             quantity=remaining_qty,
                             side=pos.side.value,
+                            timeframe=getattr(pos, "timeframe", "") or "",
                         )
                     rebuild_result = await self._rebuild_reduce_only_protection_orders(
                         pos,

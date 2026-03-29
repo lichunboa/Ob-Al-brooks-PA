@@ -1,7 +1,7 @@
 # AB Patrol 项目操作手册
 
 > 本文档面向 AI 编码 Agent，以当前仓库真实结构为准。
-> 更新于 2026-03-10。
+> 更新于 2026-03-28。
 
 ---
 
@@ -44,6 +44,18 @@ Al-brooks-PA/                          项目根目录
 
 - `docs/archive/` 与 `AB Patrol-Agent/docs/` 下部分带日期的历史文档，可能保留迁移前路径，仅用于回溯背景。
 - 任何当前操作、命令、路径判断，都以本文件和代码现状为准，不以历史快照为准。
+
+### 当前真实运行口径
+
+- live 决策主链默认以规则引擎为主，不再把 LLM 当作开仓必经链路。
+- 当前 live 开仓默认只使用 `15m` 交易周期。
+- `1h` 只做背景、边界与顺逆势语义，不直接触发开仓。
+- 当前 Web 主图是 `lightweight-charts + Python Brooks overlay`，不是静态图片链。
+- 当前图表已经是 `策略图 + 市场图` 双标签，并支持按组勾选 Brooks 信号图层。
+- 如需评估图表是否替换，优先看：
+  `AB Patrol-Agent/docs/CHART_STACK_AND_TRADECAT_EVALUATION_20260327.md`
+- 如需看当前已集成的信号目录、模板字段和可视化落位，优先看：
+  `AB Patrol-Agent/docs/BROOKS_SIGNAL_CATALOG_AND_TEMPLATE_VIS_20260328.md`
 
 ---
 
@@ -123,7 +135,7 @@ bash scripts/start.sh
 bash -n "AB Patrol-Agent/scripts/start.sh"
 
 # Python 语法
-python3 -m py_compile "AB Patrol-Agent/runtime/pa_runtime.py"
+uv run --no-project python -m py_compile "AB Patrol-Agent/runtime/pa_runtime.py"
 
 # Web 编译
 cd "AB Patrol-Web"
@@ -161,12 +173,50 @@ curl "http://127.0.0.1:8087/health"
 | Charts API | `AB Patrol-Web/src/app/api/charts/` | 图表文件读取与路径映射 |
 | Runtime API | `AB Patrol-Web/src/app/api/pa-bot/runtime/` | Patrol 运行态聚合接口 |
 
-### 3.3 知识库
+### 3.3 当前图表主链
+
+| 模块 | 路径 | 职责 |
+|:---|:---|:---|
+| 图表数据装配 | `AB Patrol-Agent/tools/diagnostics/trade_chart_data.py` | 组装 live / backtest 图表 payload |
+| Brooks 覆盖层 | `AB Patrol-Agent/tools/diagnostics/brooks_chart_overlay.py` | 计算 `H/L`、`ii/ioi/oo`、`MAG`、`MM`、边界位等图层 |
+| Web 图表组件 | `AB Patrol-Web/src/components/pa-bot/trade-chart-panel.tsx` | 用 `lightweight-charts` 渲染 K 线、按钮、图层与辅助线 |
+
+### 3.4 知识库
 
 | 模块 | 路径 | 职责 |
 |:---|:---|:---|
 | Canonical / S 文件 | `AB Console-Obsidian/` | Al Brooks 规则权威来源 |
 | Obsidian 插件 | `AB Console-Obsidian/.obsidian/plugins/al-brooks-console/src/` | 知识与控制台插件 |
+
+### 3.5 Al Brooks 原文资料目录
+
+- 当前统一使用的原文资料目录：
+  `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Obsidian/Categories 分类/Al brooks/al brooks参考资料agent专用版`
+- 之后如果文档里提到“原文资料目录”，都以上述 `agent专用版` 目录为准。
+
+### 3.6 当前权威文档
+
+- 仓库级：
+  - `AGENTS.md`
+  - `docs/README.md`
+  - `docs/CURRENT_TRADING_FLOW.md`
+- Patrol 级：
+  - `AB Patrol-Agent/docs/README.md`
+  - `AB Patrol-Agent/docs/CURRENT_TRADING_FLOW.md`
+  - `AB Patrol-Agent/docs/RUNTIME_FLOW.md`
+  - `AB Patrol-Agent/docs/CHART_STACK_AND_TRADECAT_EVALUATION_20260327.md`
+  - `AB Patrol-Agent/docs/BROOKS_SIGNAL_CATALOG_AND_TEMPLATE_VIS_20260328.md`
+
+### 3.7 当前 Web 口径
+
+- 当前 Web 必须把两层信息拆开显示：
+  - `当前轮次候选 / 可执行 / Gate 拒绝`
+  - `真实持仓 / 活动挂单 / 账户快照`
+- 当前图表必须支持：
+  - `策略图 / 市场图` 双标签
+  - 交易品种切换
+  - 周期切换
+  - 按组勾选 Brooks 信号
 
 ---
 

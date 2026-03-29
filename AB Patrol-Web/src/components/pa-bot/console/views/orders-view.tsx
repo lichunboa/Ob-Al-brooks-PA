@@ -3,29 +3,31 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Activity, Blocks, History, Image as ImageIcon, Layers3, ShieldCheck, TriangleAlert } from 'lucide-react';
 import type { RuntimeData } from '../types';
+import { isRealExecutionStatus } from '../derived';
+import { LIVE_CHART_DEFAULT_TIMEFRAME, listLiveChartTimeframes } from '../../../../lib/pa-bot/live-chart-timeframe';
 import { normalizeStrategyLabel } from '../../../../lib/pa-bot/runtime-schema';
+import { normalizeChartSymbol, normalizeSymbolKey } from '../../../../lib/pa-bot/runtime-symbols';
 import { TradeChartPanel, type TradeChartPayload } from '../../trade-chart-panel';
 import {
   BUTTON_GHOST_CLASS,
-  CompactEmptyState,
+  CARD_CLASS,
   DATA_VALUE_CLASS,
+  EmptyState,
   INPUT_CLASS,
   LABEL_CLASS,
   MetricCard,
   TABLE_CLASS,
   TABLE_HEAD_CLASS,
   TABLE_ROW_CLASS,
-  TABLE_STICKY_CELL_ALT_CLASS,
   TABLE_STICKY_CELL_CLASS,
   TABLE_STICKY_HEAD_CLASS,
   Section,
   TableScroll,
   TerminalBadge,
-  TERMINAL_STRIP_CLASS,
   cn,
   statusTone,
 } from '../ui';
-import { formatNumber, formatTime, translateStatusLabel } from '../formatters';
+import { formatNumber, formatTime, translateMarketStateLabel, translateSide, translateSourceLabel, translateStatusLabel } from '../formatters';
 
 type OrdersViewProps = {
   runtimeData: RuntimeData;
@@ -68,19 +70,61 @@ function normalizeStrategyText(value: string): string {
   return normalizeStrategyLabel(value);
 }
 
-function inferChartTimeframe(values: string[]): string {
-  const text = values.find(Boolean) || '';
-  const matched = text.match(/^(1m|5m|15m|1h|1d)/i);
-  return matched?.[1]?.toLowerCase() || '15m';
+function chartSymbol(value: string): string {
+  return normalizeChartSymbol(value);
+}
+
+function sameSymbol(left: string, right: string): boolean {
+  return normalizeSymbolKey(left) === normalizeSymbolKey(right);
+}
+
+function historyRowKey(item: RuntimeData['historicalOrders'][number]): string {
+  return `${item.loggedAt}-${item.symbol}-${item.type}-${item.orderId || ''}`;
+}
+
+function positionRowKey(item: RuntimeData['positions'][number]): string {
+  return `${item.exchange}-${item.symbol}-${normalizeStrategyText(item.strategy || '')}-${item.openedAt || ''}`;
+}
+
+type DisplayExecutionItem = RuntimeData['historicalOrders'][number] & {
+  plannedEntryPrice: number | null;
+  actualEntryPrice: number | null;
+  plannedStopLoss: number | null;
+  actualStopLoss: number | null;
+  plannedTakeProfit: number | null;
+  actualTakeProfit: number | null;
+};
+
+function pricesDiffer(left: number | null, right: number | null): boolean {
+  if (left === null || right === null) return false;
+  const tolerance = Math.max(1e-6, Math.abs(left) * 1e-5, Math.abs(right) * 1e-5);
+  return Math.abs(left - right) > tolerance;
+}
+
+function sameTradeDirection(eventSide: string, positionSide: string): boolean {
+  const normalizedEvent = String(eventSide || '').toUpperCase();
+  const normalizedPosition = String(positionSide || '').toUpperCase();
+  if (!normalizedEvent || !normalizedPosition) return true;
+  if (normalizedEvent === 'BUY') return normalizedPosition === 'LONG';
+  if (normalizedEvent === 'SELL') return normalizedPosition === 'SHORT';
+  return normalizedEvent === normalizedPosition;
+}
+
+function renderPrimaryWithPlan(primary: number | null, planned: number | null) {
+  return (
+    <div className="flex flex-col">
+      <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(primary, 5)}</div>
+      {pricesDiffer(primary, planned) ? (
+        <div className="mt-1 font-mono tabular-nums text-[11px] text-foreground-faint">计划 {formatNumber(planned, 5)}</div>
+      ) : null}
+    </div>
+  );
 }
 
 function isPrimaryReviewEvent(item: RuntimeData['historicalOrders'][number]): boolean {
   const type = String(item.type || '').toUpperCase();
-  const status = String(item.status || '').toUpperCase();
   const orderClass = String(item.orderClass || '').toUpperCase();
-  if (status === 'LOG_ONLY') return false;
-  if (status === 'LIVE_ENTRY_CONFLICT') return false;
-  if (status === 'DUPLICATE_SKIPPED') return false;
+  if (!isRealExecutionStatus(item.status)) return false;
   if (orderClass === 'MANAGEMENT') return false;
   return ['OPEN_ORDER', 'CLOSE_POSITION', 'PARTIAL_CLOSE', 'REDUCE_POSITION'].includes(type) || orderClass === 'ENTRY';
 }
@@ -91,6 +135,40 @@ function bucketTone(label: string): 'neutral' | 'info' | 'success' | 'warn' | 'd
   if (text.includes('持仓') || text.includes('挂单') || text.includes('冲突')) return 'warn';
   if (text.includes('保护')) return 'info';
   return 'neutral';
+}
+
+function compactActionReason(reason: string, message: string): string {
+  const source = `${reason || ''}\n${message || ''}`.trim();
+  if (!source) return '-';
+  const lines = source
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const preferred = lines.filter(
+    (line) =>
+      line.includes('[TRADE_GATE_PRECHECK]') ||
+      line.includes('R:R=') ||
+      line.includes('下单被拒绝') ||
+      line.includes('规则引擎升级') ||
+      line.includes('规则引擎:'),
+  );
+  const picked = preferred.length > 0 ? preferred : lines.slice(0, 3);
+  return picked.join(' / ');
+}
+
+function compactFinalStatus(status: string, message: string): string {
+  const normalizedStatus = String(status || '').trim();
+  const text = `${message || ''}`.trim();
+  if (!normalizedStatus && !text) return '-';
+  const headline = normalizedStatus || '未落库';
+  if (!text) return headline;
+  const picked = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => line.includes('immediately trigger') || line.includes('下单被拒绝') || line.includes('未确认') || line.includes('缺少同源止损止盈') || line.includes('R:R='));
+  const brief = (picked.length > 0 ? picked : text.split('\n').filter(Boolean).slice(0, 2)).join(' / ');
+  return `${headline} / ${brief}`;
 }
 
 function panelTone(panel: OrderPanelKey): 'neutral' | 'info' | 'success' | 'warn' | 'danger' {
@@ -114,15 +192,19 @@ export function OrdersView({
   const [activePanel, setActivePanel] = useState<OrderPanelKey>(defaultPanel);
   const [selectedRejectionLabel, setSelectedRejectionLabel] = useState('');
   const [selectedHistoryKey, setSelectedHistoryKey] = useState('');
+  const [selectedHistorySymbol, setSelectedHistorySymbol] = useState('');
   const [liveChart, setLiveChart] = useState<TradeChartPayload | null>(null);
   const [liveChartFocusKey, setLiveChartFocusKey] = useState('');
   const [liveChartLoading, setLiveChartLoading] = useState(false);
   const [liveChartError, setLiveChartError] = useState('');
+  const [liveChartTimeframe, setLiveChartTimeframe] = useState(LIVE_CHART_DEFAULT_TIMEFRAME);
   const [selectedPositionKey, setSelectedPositionKey] = useState('');
+  const [selectedPositionSymbol, setSelectedPositionSymbol] = useState('');
   const [positionChart, setPositionChart] = useState<TradeChartPayload | null>(null);
   const [positionChartFocusKey, setPositionChartFocusKey] = useState('');
   const [positionChartLoading, setPositionChartLoading] = useState(false);
   const [positionChartError, setPositionChartError] = useState('');
+  const [positionChartTimeframe, setPositionChartTimeframe] = useState(LIVE_CHART_DEFAULT_TIMEFRAME);
 
   const entryOrders = runtimeData.orders.filter((order) => order.orderClass === 'ENTRY');
   const protectionOrders = runtimeData.orders.filter((order) => order.orderClass === 'PROTECTION');
@@ -192,12 +274,37 @@ export function OrdersView({
     return true;
   }
 
+  function matchesCurrentAction(item: {
+    symbol?: string;
+    exchange?: string;
+    strategy?: string;
+    timeframe?: string;
+  }) {
+    const symbol = (item.symbol || '').toUpperCase();
+    const exchange = (item.exchange || '').toUpperCase();
+    const strategy = normalizeStrategyText(item.strategy || '');
+    const timeframe = String(item.timeframe || '').trim();
+    const query = symbolQuery.trim().toUpperCase();
+    if (query && !symbol.includes(query)) return false;
+    if (exchangeFilter !== 'ALL' && exchange !== exchangeFilter.toUpperCase()) return false;
+    if (strategyFilter !== 'ALL' && strategy !== strategyFilter) return false;
+    if (timeframeFilter !== 'ALL' && timeframe !== timeframeFilter) return false;
+    return true;
+  }
+
   const filteredPositions = runtimeData.positions.filter(matchesFilter);
   const filteredEntryOrders = entryOrders.filter(matchesFilter);
   const filteredProtectionOrders = protectionOrders.filter(matchesFilter);
   const filteredManagementActions = managementActions.filter(matchesFilter);
   const filteredHistoricalOrders = historicalOrders.filter(matchesFilter);
   const focusableHistoricalOrders = filteredHistoricalOrders.filter(isPrimaryReviewEvent);
+  const filteredCurrentActions = runtimeData.currentActions.filter(matchesCurrentAction).filter((item) => {
+    const reason = `${item.reason || ''} ${item.message || ''}`;
+    return item.type === 'OPEN_ORDER' || Boolean(item.candidateStage) || reason.includes('[TRADE_GATE_PRECHECK]');
+  });
+  const archivedHistoricalOrdersCount = filteredHistoricalOrders.filter(
+    (item) => String(item.status || '').toUpperCase() === 'HISTORICAL_ENTRY',
+  ).length;
   const filteredOccupiedSymbols = runtimeData.capacity.occupiedSymbols
     .filter(matchesSymbolExchange)
     .filter((item) => item.hasPosition || item.hasEntryOrder || item.hasProtectionOrder);
@@ -227,16 +334,88 @@ export function OrdersView({
       return counter;
     }, {}) || {};
   const selectedRejectionLeader = Object.entries(selectedRejectionTopSymbol).sort((left, right) => right[1] - left[1])[0] || null;
-  const selectedHistoryItem =
-    focusableHistoricalOrders.find((item) => `${item.loggedAt}-${item.symbol}-${item.type}-${item.orderId || ''}` === selectedHistoryKey) ||
-    focusableHistoricalOrders[0] ||
-    null;
+  const performance = runtimeData.performance;
+  const cleanupTotal =
+    (performance.total.cleanup.partialClosed || 0) +
+    (performance.total.cleanup.closeSuccess || 0) +
+    (performance.total.cleanup.sizeFailed || 0) +
+    (performance.total.cleanup.notFound || 0) +
+    (performance.total.cleanup.modifyFailed || 0) +
+    (performance.total.cleanup.modifySkipped || 0);
+  const selectedHistoryItem = selectedHistoryKey
+    ? focusableHistoricalOrders.find((item) => historyRowKey(item) === selectedHistoryKey) || null
+    : null;
   const selectedPositionItem =
     filteredPositions.find(
-      (item) => `${item.exchange}-${item.symbol}-${normalizeStrategyText(item.strategy || '')}-${item.openedAt || ''}` === selectedPositionKey,
+      (item) => positionRowKey(item) === selectedPositionKey,
     ) ||
     filteredPositions[0] ||
     null;
+  const positionSymbolOptions = useMemo(
+    () =>
+      uniqueOptions([
+        ...filteredPositions.map((item) => chartSymbol(item.symbol || '')),
+        ...runtimeData.currentActions.map((item) => chartSymbol(item.symbol || '')),
+        ...runtimeData.system.accounts.flatMap((item) => item.configuredSymbols || []),
+      ]),
+    [filteredPositions, runtimeData.currentActions, runtimeData.system.accounts],
+  );
+  const historySymbolOptions = useMemo(
+    () =>
+      uniqueOptions([
+        ...focusableHistoricalOrders.map((item) => chartSymbol(item.symbol || '')),
+        ...runtimeData.currentActions.map((item) => chartSymbol(item.symbol || '')),
+        ...runtimeData.system.accounts.flatMap((item) => item.configuredSymbols || []),
+      ]),
+    [focusableHistoricalOrders, runtimeData.currentActions, runtimeData.system.accounts],
+  );
+
+  function findMatchingLivePosition(item: RuntimeData['historicalOrders'][number]) {
+    const eventType = String(item.type || '').toUpperCase();
+    if (['CLOSE_POSITION', 'PARTIAL_CLOSE', 'REDUCE_POSITION'].includes(eventType)) {
+      return null;
+    }
+    const itemSymbol = (item.symbol || '').toUpperCase();
+    const itemExchange = (item.exchange || '').toUpperCase();
+    const itemStrategy = normalizeStrategyText(item.strategy || '');
+    return runtimeData.positions.find((position) => {
+      if ((position.symbol || '').toUpperCase() !== itemSymbol) return false;
+      if (itemExchange && (position.exchange || '').toUpperCase() !== itemExchange) return false;
+      if (!sameTradeDirection(item.side || '', position.side || '')) return false;
+      const positionStrategy = normalizeStrategyText(position.strategy || '');
+      if (itemStrategy && positionStrategy && itemStrategy !== positionStrategy) return false;
+      if (position.openedAt && item.loggedAt) {
+        const positionOpenedAt = Date.parse(position.openedAt);
+        const eventLoggedAt = Date.parse(item.loggedAt);
+        if (Number.isFinite(positionOpenedAt) && Number.isFinite(eventLoggedAt) && eventLoggedAt < positionOpenedAt - 5 * 60 * 1000) {
+          return false;
+        }
+      }
+      return true;
+    }) || null;
+  }
+
+  function buildDisplayExecutionItem(item: RuntimeData['historicalOrders'][number]): DisplayExecutionItem {
+    const livePosition = findMatchingLivePosition(item);
+    const plannedEntryPrice = item.plannedEntryPrice ?? item.entryPrice ?? null;
+    const actualEntryPrice = item.actualEntryPrice ?? livePosition?.entryPrice ?? null;
+    const plannedStopLoss = item.plannedStopLoss ?? item.stopLoss ?? null;
+    const actualStopLoss = item.actualStopLoss ?? livePosition?.stopLoss ?? null;
+    const plannedTakeProfit = item.plannedTakeProfit ?? item.takeProfit ?? null;
+    const actualTakeProfit = item.actualTakeProfit ?? livePosition?.takeProfit ?? null;
+    return {
+      ...item,
+      entryPrice: actualEntryPrice ?? plannedEntryPrice,
+      plannedEntryPrice,
+      actualEntryPrice,
+      stopLoss: actualStopLoss ?? plannedStopLoss,
+      plannedStopLoss,
+      actualStopLoss,
+      takeProfit: actualTakeProfit ?? plannedTakeProfit,
+      plannedTakeProfit,
+      actualTakeProfit,
+    };
+  }
 
   const panelItems: Array<{ key: OrderPanelKey; label: string; count: number }> = [
     { key: 'positions', label: '当前持仓', count: filteredPositions.length },
@@ -244,7 +423,7 @@ export function OrdersView({
     { key: 'protection', label: '保护单', count: filteredProtectionOrders.length },
     { key: 'management', label: '管理动作', count: filteredManagementActions.length },
     { key: 'occupancy', label: '同品种占用', count: filteredOccupiedSymbols.length },
-    { key: 'history', label: '历史订单', count: filteredHistoricalOrders.length },
+    { key: 'history', label: '历史订单', count: focusableHistoricalOrders.length },
     { key: 'rejections', label: '拒单原因', count: filteredRejectionDetails.reduce((sum, item) => sum + item.count, 0) },
   ];
 
@@ -272,35 +451,70 @@ export function OrdersView({
     if (focusableHistoricalOrders.length === 0) {
       setSelectedHistoryKey('');
       setLiveChart(null);
+      setLiveChartFocusKey('');
+      setLiveChartError('');
+      return;
+    }
+    if (!selectedHistoryKey) {
+      setLiveChart(null);
+      setLiveChartFocusKey('');
       setLiveChartError('');
       return;
     }
     const exists = focusableHistoricalOrders.some(
-      (item) => `${item.loggedAt}-${item.symbol}-${item.type}-${item.orderId || ''}` === selectedHistoryKey,
+      (item) => historyRowKey(item) === selectedHistoryKey,
     );
     if (!exists) {
-      const fallback = focusableHistoricalOrders[0];
-      setSelectedHistoryKey(`${fallback.loggedAt}-${fallback.symbol}-${fallback.type}-${fallback.orderId || ''}`);
+      setSelectedHistoryKey('');
+      setLiveChart(null);
+      setLiveChartFocusKey('');
+      setLiveChartError('');
     }
   }, [focusableHistoricalOrders, selectedHistoryKey]);
 
   useEffect(() => {
+    if (selectedHistoryItem?.symbol) {
+      const nextSymbol = chartSymbol(selectedHistoryItem.symbol);
+      setSelectedHistorySymbol((current) => (current === nextSymbol ? current : nextSymbol));
+      return;
+    }
+    if (historySymbolOptions.length === 0) {
+      setSelectedHistorySymbol('');
+      return;
+    }
+    setSelectedHistorySymbol((current) => (current && historySymbolOptions.includes(current) ? current : historySymbolOptions[0]));
+  }, [historySymbolOptions, selectedHistoryItem]);
+
+  useEffect(() => {
     if (filteredPositions.length === 0) {
       setSelectedPositionKey('');
-      setPositionChart(null);
-      setPositionChartError('');
+      if (!selectedPositionSymbol) {
+        setPositionChart(null);
+        setPositionChartError('');
+      }
       return;
     }
     const exists = filteredPositions.some(
-      (item) => `${item.exchange}-${item.symbol}-${normalizeStrategyText(item.strategy || '')}-${item.openedAt || ''}` === selectedPositionKey,
+      (item) => positionRowKey(item) === selectedPositionKey,
     );
     if (!exists) {
       const fallback = filteredPositions[0];
-      setSelectedPositionKey(
-        `${fallback.exchange}-${fallback.symbol}-${normalizeStrategyText(fallback.strategy || '')}-${fallback.openedAt || ''}`,
-      );
+      setSelectedPositionKey(positionRowKey(fallback));
     }
-  }, [filteredPositions, selectedPositionKey]);
+  }, [filteredPositions.length, filteredPositions[0]?.symbol, filteredPositions[0]?.openedAt, selectedPositionKey, selectedPositionSymbol]);
+
+  useEffect(() => {
+    if (selectedPositionItem?.symbol) {
+      const nextSymbol = chartSymbol(selectedPositionItem.symbol);
+      setSelectedPositionSymbol((current) => (current === nextSymbol ? current : nextSymbol));
+      return;
+    }
+    if (positionSymbolOptions.length === 0) {
+      setSelectedPositionSymbol('');
+      return;
+    }
+    setSelectedPositionSymbol((current) => (current && positionSymbolOptions.includes(current) ? current : positionSymbolOptions[0]));
+  }, [positionSymbolOptions, selectedPositionItem]);
 
   const summaryCards = [
     {
@@ -330,6 +544,103 @@ export function OrdersView({
     },
   ];
 
+  function renderCurrentActionSection() {
+    const actionFailureCounts = filteredCurrentActions.reduce<Record<string, number>>(
+      (counter, item) => {
+        const bucket = item.failureBucket || 'other';
+        counter[bucket] = (counter[bucket] || 0) + 1;
+        return counter;
+      },
+      {},
+    );
+    return (
+      <Section title="当前轮次动作" icon={Activity} subtitle="实时展示本轮候选、可执行与被 trade gate 拒绝的动作，不再只看历史执行链。">
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-4 md:grid-cols-4 xl:grid-cols-10">
+            <MetricCard label="当前周期" value={runtimeData.summary.cycleId || '-'} sub={`数据源：${translateSourceLabel(runtimeData.system.sourceLabel || '-')}`} />
+            <MetricCard label="周期年龄" value={runtimeData.health.cycleAgeSeconds !== null ? `${runtimeData.health.cycleAgeSeconds}s` : '-'} sub={runtimeData.summary.marketSummary || '暂无市场摘要'} />
+            <MetricCard label="下轮扫描" value={runtimeData.nextScan.inSeconds !== null ? `${runtimeData.nextScan.inSeconds}s` : '-'} sub={runtimeData.nextScan.reasonText || '等待下一轮'} />
+            <MetricCard label="实时动作" value={String(filteredCurrentActions.length)} sub={filteredCurrentActions.length > 0 ? '含候选 / gate 拒绝 / 可执行动作' : '当前轮次没有可展示动作'} />
+            <MetricCard label="Trade Gate 拒绝" value={String(actionFailureCounts.trade_gate || 0)} sub="门禁通过前被拒绝" />
+            <MetricCard label="语义预检拦截" value={String(actionFailureCounts.semantic_precheck || 0)} sub="候选态或语义串线" />
+            <MetricCard label="立即触发失败" value={String(actionFailureCounts.immediate_trigger || 0)} sub="交易所判定会立刻触发" />
+            <MetricCard label="模板缺保护" value={String(actionFailureCounts.missing_protection || 0)} sub="缺少同源止损止盈" />
+            <MetricCard label="交易所未确认" value={String(actionFailureCounts.exchange_not_confirmed || 0)} sub="回执成功但交易所未确认" />
+            <MetricCard label="交易所阻断" value={String(actionFailureCounts.exchange_blocked || 0)} sub="账户或区域硬阻断" />
+          </div>
+          {filteredCurrentActions.length === 0 ? (
+            <EmptyState text="当前轮次没有候选、可执行或被 trade gate 拒绝的动作。页面顶部的刷新时间会继续证明运行态仍在更新。" />
+          ) : (
+            <div className={TABLE_CLASS}>
+              <TableScroll className="max-h-[360px]">
+                <div className={cn(TABLE_HEAD_CLASS, 'sticky top-0 z-10 hidden grid-cols-[0.68fr_0.42fr_0.74fr_0.4fr_0.48fr_0.48fr_0.58fr_0.52fr_0.52fr_0.52fr_0.5fr_1fr] gap-3 bg-surface px-4 py-3 md:grid')}>
+                  <div className={cn('md:sticky md:left-0', TABLE_STICKY_HEAD_CLASS)}>合约</div>
+                  <div>市场</div>
+                  <div>策略</div>
+                  <div>背景</div>
+                  <div>候选阶段</div>
+                  <div>最终结果</div>
+                  <div>失败分类</div>
+                  <div>入场</div>
+                  <div>止损</div>
+                  <div>止盈</div>
+                  <div>执行模式</div>
+                  <div>结果</div>
+                </div>
+                {filteredCurrentActions.map((item, index) => (
+                  <article
+                    key={`${item.symbol}-${item.strategy}-${item.candidateStage}-${index}`}
+                    className={cn(
+                      'grid gap-3 px-4 py-3.5 md:grid-cols-[0.68fr_0.42fr_0.74fr_0.4fr_0.48fr_0.48fr_0.58fr_0.52fr_0.52fr_0.52fr_0.5fr_1fr]',
+                      TABLE_ROW_CLASS,
+                      index > 0 && 'border-t',
+                      index % 2 === 1 && 'bg-white/[0.015]',
+                    )}
+                  >
+                    <div className={cn('md:sticky md:left-0', TABLE_STICKY_CELL_CLASS)}>
+                      <div className="text-sm font-semibold text-foreground">{item.symbol}</div>
+                      <div className="mt-1 text-xs text-foreground-faint">{item.timeframe || '未标注周期'}</div>
+                    </div>
+                    <div className="text-sm text-foreground">{item.exchange || '-'}</div>
+                    <div className="text-sm text-foreground">{normalizeStrategyText(item.strategy || '') || '-'}</div>
+                    <div className="text-sm text-foreground">{translateMarketStateLabel(item.marketState || '-')}</div>
+                    <div>
+                      <TerminalBadge className={statusTone(item.candidateStage || item.type || '-')}>
+                        {translateStatusLabel(item.candidateStage || item.type || '-')}
+                      </TerminalBadge>
+                    </div>
+                    <div>
+                      <TerminalBadge className={statusTone(item.finalStatus || (item.liveOrder || item.livePosition ? 'OPEN' : 'WAIT'))}>
+                        {translateStatusLabel(item.finalStatus || (item.liveOrder || item.livePosition ? 'OPEN' : 'WAIT'))}
+                      </TerminalBadge>
+                    </div>
+                    <div>
+                      {item.failureLabel ? (
+                        <TerminalBadge kind={item.failureBucket === 'exchange_blocked' || item.failureBucket === 'exchange_not_confirmed' ? 'danger' : item.failureBucket === 'trade_gate' || item.failureBucket === 'semantic_precheck' ? 'warn' : 'info'}>
+                          {item.failureLabel}
+                        </TerminalBadge>
+                      ) : (
+                        <span className="text-xs text-foreground-faint">-</span>
+                      )}
+                    </div>
+                    <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(item.entryPrice, 5)}</div>
+                    <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(item.stopLoss, 5)}</div>
+                    <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(item.takeProfit, 5)}</div>
+                    <div className="text-sm text-foreground">{item.executionMode || '-'}</div>
+                    <div className="space-y-1 text-sm leading-6 text-foreground-muted">
+                      <div>{compactActionReason(item.reason, item.message)}</div>
+                      <div className="text-[11px] text-foreground-faint">{compactFinalStatus(item.finalStatus, item.finalMessage)}</div>
+                    </div>
+                  </article>
+                ))}
+              </TableScroll>
+            </div>
+          )}
+        </div>
+      </Section>
+    );
+  }
+
   function resetFilters() {
     setSymbolQuery('');
     setExchangeFilter('ALL');
@@ -358,25 +669,37 @@ export function OrdersView({
   }
 
   function baseUrlForSymbol(symbol: string): string {
+    const symbolKey = normalizeSymbolKey(symbol);
     const matched = runtimeData.system.accounts.find((account) =>
-      (account.configuredSymbols || []).map((item) => item.toUpperCase()).includes(symbol.toUpperCase()),
+      (account.configuredSymbols || []).some((item) => normalizeSymbolKey(item) === symbolKey),
     );
-    return matched?.baseUrl || runtimeData.system.accounts[0]?.baseUrl || 'http://127.0.0.1:8095';
+    if (matched?.baseUrl) {
+      return matched.baseUrl;
+    }
+    const preferredExchange = chartSymbol(symbol).endsWith('USDT') ? 'binance' : 'ctrader';
+    return (
+      runtimeData.system.accounts.find((account) => String(account.exchange || '').trim().toLowerCase() === preferredExchange)?.baseUrl ||
+      runtimeData.system.accounts[0]?.baseUrl ||
+      (preferredExchange === 'binance' ? 'http://127.0.0.1:8093' : 'http://127.0.0.1:8092')
+    );
   }
 
   function collectFocusedHistoryEvents(target: RuntimeData['historicalOrders'][number]) {
-    const focusKey = `${target.loggedAt}-${target.symbol}-${target.type}-${target.orderId || ''}`;
-    const targetOrderId = String(target.orderId || '').trim();
-    const events = targetOrderId
-      ? filteredHistoricalOrders.filter((item) => String(item.orderId || '').trim() === targetOrderId)
-      : [target];
+    const decoratedTarget = buildDisplayExecutionItem(target);
+    const focusKey = `${decoratedTarget.loggedAt}-${decoratedTarget.symbol}-${decoratedTarget.type}-${decoratedTarget.orderId || ''}`;
+    const targetOrderId = String(decoratedTarget.orderId || '').trim();
+    const events = (
+      targetOrderId
+        ? filteredHistoricalOrders.filter((item) => String(item.orderId || '').trim() === targetOrderId)
+        : [target]
+    ).map((item) => buildDisplayExecutionItem(item));
     const eventIndex = Math.max(
       0,
       events.findIndex(
         (item) =>
-          item.loggedAt === target.loggedAt &&
-          item.type === target.type &&
-          String(item.orderId || '') === String(target.orderId || ''),
+          item.loggedAt === decoratedTarget.loggedAt &&
+          item.type === decoratedTarget.type &&
+          String(item.orderId || '') === String(decoratedTarget.orderId || ''),
       ),
     );
     return {
@@ -418,13 +741,15 @@ export function OrdersView({
 
     const relatedHistory = historicalOrders
       .filter(matchesPositionChain)
-      .map((item) => ({ ...item, orderId: item.orderId || syntheticOrderId }));
+      .map((item) => buildDisplayExecutionItem({ ...item, orderId: item.orderId || syntheticOrderId }));
     const relatedManagement = managementActions
       .filter(matchesPositionChain)
-      .map((item) => ({
-        ...item,
-        orderId: item.orderId || syntheticOrderId,
-      }));
+      .map((item) =>
+        buildDisplayExecutionItem({
+          ...item,
+          orderId: item.orderId || syntheticOrderId,
+        }),
+      );
     const relatedProtection = protectionOrders
       .filter(matchesPositionChain)
       .map((item) => ({
@@ -441,9 +766,15 @@ export function OrdersView({
         marketState: item.marketState,
         timeframeSignals: item.timeframeSignals,
         entryPrice: item.entryPrice,
+        plannedEntryPrice: item.entryPrice,
+        actualEntryPrice: target.entryPrice,
         eventPrice: item.stopPrice || item.price || item.entryPrice,
         stopLoss: item.stopLoss,
+        plannedStopLoss: item.stopLoss,
+        actualStopLoss: target.stopLoss,
         takeProfit: item.takeProfit,
+        plannedTakeProfit: item.takeProfit,
+        actualTakeProfit: target.takeProfit,
         quantity: item.quantity,
         orderId: item.orderId || syntheticOrderId,
         orderClass: item.orderClass,
@@ -465,9 +796,15 @@ export function OrdersView({
       marketState: target.marketState,
       timeframeSignals: target.timeframeSignals,
       entryPrice: target.entryPrice,
+      plannedEntryPrice: target.entryPrice,
+      actualEntryPrice: target.entryPrice,
       eventPrice: target.markPrice || target.entryPrice,
       stopLoss: target.stopLoss,
+      plannedStopLoss: target.stopLoss,
+      actualStopLoss: target.stopLoss,
       takeProfit: target.takeProfit,
+      plannedTakeProfit: target.takeProfit,
+      actualTakeProfit: target.takeProfit,
       quantity: target.quantity,
       orderId: syntheticOrderId,
       orderClass: 'ENTRY',
@@ -486,9 +823,11 @@ export function OrdersView({
     };
   }
 
-  async function generateLiveChart(target: RuntimeData['historicalOrders'][number]) {
+  async function generateLiveChart(target: RuntimeData['historicalOrders'][number], timeframe: string = liveChartTimeframe) {
     const { focusKey, eventIndex, events } = collectFocusedHistoryEvents(target);
+    const requestSymbol = chartSymbol(target.symbol);
     setSelectedHistoryKey(focusKey);
+    setSelectedHistorySymbol(requestSymbol);
     setLiveChartLoading(true);
     setLiveChartError('');
     try {
@@ -496,9 +835,9 @@ export function OrdersView({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          symbol: target.symbol,
-          timeframe: inferChartTimeframe(target.timeframeSignals || []),
-          baseUrl: baseUrlForSymbol(target.symbol),
+          symbol: requestSymbol,
+          timeframe,
+          baseUrl: baseUrlForSymbol(requestSymbol),
           events,
           eventIndex,
         }),
@@ -508,7 +847,7 @@ export function OrdersView({
         throw new Error(payload.error || `HTTP ${response.status}`);
       }
       setLiveChart(payload.chart as TradeChartPayload);
-      setLiveChartFocusKey(focusKey);
+      setLiveChartFocusKey(`${focusKey}|${timeframe}`);
     } catch (chartError) {
       setLiveChart(null);
       setLiveChartFocusKey('');
@@ -518,9 +857,42 @@ export function OrdersView({
     }
   }
 
-  async function generatePositionChart(target: RuntimeData['positions'][number]) {
+  async function generateHistorySymbolOverview(symbol: string, timeframe: string = liveChartTimeframe) {
+    const normalizedSymbol = chartSymbol(symbol);
+    setSelectedHistorySymbol(normalizedSymbol);
+    setSelectedHistoryKey('');
+    setLiveChartLoading(true);
+    setLiveChartError('');
+    try {
+      const response = await fetch('/api/pa-bot/live-chart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          symbol: normalizedSymbol,
+          timeframe,
+          baseUrl: baseUrlForSymbol(normalizedSymbol),
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || `HTTP ${response.status}`);
+      }
+      setLiveChart(payload.chart as TradeChartPayload);
+      setLiveChartFocusKey(`symbol:${normalizedSymbol}|${timeframe}`);
+    } catch (chartError) {
+      setLiveChart(null);
+      setLiveChartFocusKey('');
+      setLiveChartError(chartError instanceof Error ? chartError.message : '实时信号总览生成失败');
+    } finally {
+      setLiveChartLoading(false);
+    }
+  }
+
+  async function generatePositionChart(target: RuntimeData['positions'][number], timeframe: string = positionChartTimeframe) {
     const { focusKey, eventIndex, events } = collectFocusedPositionEvents(target);
+    const requestSymbol = chartSymbol(target.symbol);
     setSelectedPositionKey(focusKey);
+    setSelectedPositionSymbol(requestSymbol);
     setPositionChartLoading(true);
     setPositionChartError('');
     try {
@@ -528,9 +900,9 @@ export function OrdersView({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          symbol: target.symbol,
-          timeframe: inferChartTimeframe(target.timeframeSignals || []),
-          baseUrl: baseUrlForSymbol(target.symbol),
+          symbol: requestSymbol,
+          timeframe,
+          baseUrl: baseUrlForSymbol(requestSymbol),
           events,
           eventIndex,
         }),
@@ -540,7 +912,7 @@ export function OrdersView({
         throw new Error(payload.error || `HTTP ${response.status}`);
       }
       setPositionChart(payload.chart as TradeChartPayload);
-      setPositionChartFocusKey(focusKey);
+      setPositionChartFocusKey(`${focusKey}|${timeframe}`);
     } catch (chartError) {
       setPositionChart(null);
       setPositionChartFocusKey('');
@@ -550,54 +922,129 @@ export function OrdersView({
     }
   }
 
+  async function generatePositionSymbolOverview(symbol: string, timeframe: string = positionChartTimeframe) {
+    const normalizedSymbol = chartSymbol(symbol);
+    setSelectedPositionSymbol(normalizedSymbol);
+    setSelectedPositionKey('');
+    setPositionChartLoading(true);
+    setPositionChartError('');
+    try {
+      const response = await fetch('/api/pa-bot/live-chart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          symbol: normalizedSymbol,
+          timeframe,
+          baseUrl: baseUrlForSymbol(normalizedSymbol),
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || `HTTP ${response.status}`);
+      }
+      setPositionChart(payload.chart as TradeChartPayload);
+      setPositionChartFocusKey(`symbol:${normalizedSymbol}|${timeframe}`);
+    } catch (chartError) {
+      setPositionChart(null);
+      setPositionChartFocusKey('');
+      setPositionChartError(chartError instanceof Error ? chartError.message : '实时信号总览生成失败');
+    } finally {
+      setPositionChartLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (!selectedHistoryItem || !selectedHistoryKey) {
+      if (!selectedHistorySymbol) {
+        return;
+      }
+      const focusKey = `symbol:${selectedHistorySymbol}|${liveChartTimeframe}`;
+      if (liveChartLoading || liveChartFocusKey === focusKey) {
+        return;
+      }
+      void generateHistorySymbolOverview(selectedHistorySymbol, liveChartTimeframe);
       return;
     }
-    if (liveChartLoading || liveChartFocusKey === selectedHistoryKey) {
+    if (liveChartLoading || liveChartFocusKey === `${selectedHistoryKey}|${liveChartTimeframe}`) {
       return;
     }
-    void generateLiveChart(selectedHistoryItem);
-  }, [selectedHistoryKey, selectedHistoryItem, liveChartFocusKey, liveChartLoading]);
+    void generateLiveChart(buildDisplayExecutionItem(selectedHistoryItem), liveChartTimeframe);
+  }, [selectedHistoryKey, selectedHistoryItem, selectedHistorySymbol, liveChartFocusKey, liveChartLoading, liveChartTimeframe]);
 
   useEffect(() => {
     if (!selectedPositionItem || !selectedPositionKey) {
+      if (!selectedPositionSymbol) {
+        return;
+      }
+      const focusKey = `symbol:${selectedPositionSymbol}|${positionChartTimeframe}`;
+      if (positionChartLoading || positionChartFocusKey === focusKey) {
+        return;
+      }
+      void generatePositionSymbolOverview(selectedPositionSymbol, positionChartTimeframe);
       return;
     }
-    if (positionChartLoading || positionChartFocusKey === selectedPositionKey) {
+    if (positionChartLoading || positionChartFocusKey === `${selectedPositionKey}|${positionChartTimeframe}`) {
       return;
     }
-    void generatePositionChart(selectedPositionItem);
-  }, [selectedPositionItem, selectedPositionKey, positionChartFocusKey, positionChartLoading]);
+    void generatePositionChart(selectedPositionItem, positionChartTimeframe);
+  }, [selectedPositionItem, selectedPositionKey, selectedPositionSymbol, positionChartFocusKey, positionChartLoading, positionChartTimeframe]);
+
+  useEffect(() => {
+    if (filteredPositions.length > 0) {
+      return;
+    }
+    if (!selectedPositionSymbol || positionChartLoading || positionChart || positionChartError) {
+      return;
+    }
+    void generatePositionSymbolOverview(selectedPositionSymbol, positionChartTimeframe);
+  }, [filteredPositions.length, positionChart, positionChartError, positionChartLoading, positionChartTimeframe, selectedPositionSymbol]);
 
   function renderPositionsPanel() {
     return (
       <Section title="当前持仓" icon={Layers3} subtitle="实仓 + 保护位 + 策略上下文。">
-        {filteredPositions.length === 0 ? (
-          <CompactEmptyState text="当前没有持仓。" />
-        ) : (
-          <div className="space-y-5">
-            <TradeChartPanel
-              eyebrow="当前持仓图"
-              title={selectedPositionItem ? `${selectedPositionItem.symbol} · ${normalizeStrategyText(selectedPositionItem.strategy || '') || selectedPositionItem.side}` : '未选择持仓'}
-              badgeText={selectedPositionItem ? `${selectedPositionItem.symbol} · ${inferChartTimeframe(selectedPositionItem.timeframeSignals || [])}` : undefined}
-              helperText={`当前聚焦单一持仓链，按持仓快照 + 同策略管理/保护动作聚合，不再把所有订单挤在一张图里。`}
-              chart={positionChart}
-              loading={positionChartLoading}
-              error={positionChartError}
-              emptyText="选择一笔当前持仓后，这里会生成对应的 K 线与入场/止损/止盈图。"
-              imageAlt={positionChart?.focusTitle || '当前持仓图表'}
-              onRefresh={selectedPositionItem ? () => void generatePositionChart(selectedPositionItem) : undefined}
-              refreshDisabled={!selectedPositionItem || positionChartLoading}
-              refreshLabel="生成图表"
-              chartHeight={1040}
-            />
+        <div className="flex flex-col gap-5">
+          <TradeChartPanel
+            eyebrow="当前持仓图"
+            title={selectedPositionItem ? `${chartSymbol(selectedPositionItem.symbol)} · ${normalizeStrategyText(selectedPositionItem.strategy || '') || selectedPositionItem.side}` : selectedPositionSymbol ? `${selectedPositionSymbol} · 实时信号总览` : '未选择持仓'}
+            badgeText={selectedPositionItem ? `${chartSymbol(selectedPositionItem.symbol)} · ${positionChartTimeframe}` : selectedPositionSymbol ? `${selectedPositionSymbol} · ${positionChartTimeframe}` : undefined}
+            helperText={selectedPositionItem ? `当前聚焦单一持仓链，按持仓快照 + 同策略管理/保护动作聚合，不再把所有订单挤在一张图里。` : `当前没有持仓时，也可以直接切换到交易池品种，生成实时信号总览图。`}
+            chart={positionChart}
+            loading={positionChartLoading}
+            error={positionChartError}
+            emptyText="选择一笔当前持仓，或直接切换交易品种，这里会生成对应的 K 线与实时信号图。"
+            imageAlt={positionChart?.focusTitle || '当前持仓图表'}
+            onRefresh={selectedPositionItem ? () => void generatePositionChart(selectedPositionItem, positionChartTimeframe) : selectedPositionSymbol ? () => void generatePositionSymbolOverview(selectedPositionSymbol, positionChartTimeframe) : undefined}
+            refreshDisabled={(!selectedPositionItem && !selectedPositionSymbol) || positionChartLoading}
+            refreshLabel="生成图表"
+            chartHeight={1040}
+            timeframeOptions={[...listLiveChartTimeframes()]}
+            selectedTimeframe={positionChartTimeframe}
+            onSelectTimeframe={(value) => setPositionChartTimeframe(value as typeof positionChartTimeframe)}
+            symbolOptions={positionSymbolOptions}
+            selectedSymbol={selectedPositionSymbol}
+            onSelectSymbol={(symbol) => {
+              setSelectedPositionSymbol(symbol);
+              const fallback =
+                filteredPositions.find((item) => sameSymbol(item.symbol || '', symbol) && positionRowKey(item) === selectedPositionKey) ||
+                filteredPositions.find((item) => sameSymbol(item.symbol || '', symbol)) ||
+                null;
+              if (fallback) {
+                setSelectedPositionKey(positionRowKey(fallback));
+                return;
+              }
+              setSelectedPositionKey('');
+              void generatePositionSymbolOverview(symbol, positionChartTimeframe);
+            }}
+          />
+          {filteredPositions.length === 0 ? (
+            <EmptyState text="当前没有持仓，已切换为交易品种实时信号视角。" />
+          ) : (
             <div className={TABLE_CLASS}>
             <TableScroll className="max-h-[420px]">
               <div
                 className={cn(
                   TABLE_HEAD_CLASS,
-                  'sticky top-0 z-10 hidden grid-cols-[0.86fr_0.4fr_0.4fr_0.82fr_0.78fr_0.62fr_0.62fr_0.62fr_0.42fr_0.5fr_0.42fr] gap-3 bg-[#0a1016]/95 px-4 py-3 md:grid',
+                  'sticky top-0 z-10 hidden grid-cols-[0.86fr_0.4fr_0.4fr_0.82fr_0.78fr_0.62fr_0.62fr_0.62fr_0.42fr_0.5fr_0.42fr] gap-3 bg-surface px-4 py-3 md:grid',
                 )}
               >
                 <div className={cn('md:sticky md:left-0', TABLE_STICKY_HEAD_CLASS)}>合约</div>
@@ -620,31 +1067,31 @@ export function OrdersView({
                     TABLE_ROW_CLASS,
                     index > 0 && 'border-t',
                     index % 2 === 1 && 'bg-white/[0.015]',
-                    `${position.exchange}-${position.symbol}-${normalizeStrategyText(position.strategy || '')}-${position.openedAt || ''}` === selectedPositionKey &&
+                    positionRowKey(position) === selectedPositionKey &&
                       'bg-cyan-400/[0.04]',
                   )}
                   onClick={() => void generatePositionChart(position)}
                 >
-                  <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_ALT_CLASS : TABLE_STICKY_CELL_CLASS)}>
-                    <div className="text-sm font-semibold text-white">{position.symbol}</div>
-                    <div className="mt-1 text-xs text-slate-500">
+                  <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_CLASS : TABLE_STICKY_CELL_CLASS)}>
+                    <div className="text-sm font-semibold text-foreground">{position.symbol}</div>
+                    <div className="mt-1 text-xs text-foreground-faint">
                       {position.exchange || '-'} · {formatTime(position.openedAt)}
                     </div>
                   </div>
-                  <div className="text-sm text-slate-200">{position.side || '-'}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(position.quantity, 6)}</div>
-                  <div className="text-sm text-slate-200">{normalizeStrategyText(position.strategy || '') || '-'}</div>
-                  <div className="text-sm text-slate-300">{timeframeText(position.timeframeSignals)}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(position.entryPrice, 5)}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(position.stopLoss, 5)}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(position.takeProfit, 5)}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(position.leverage, 0)}x</div>
-                  <div className={cn('font-mono tabular-nums text-sm font-medium', (position.unrealizedPnl || 0) >= 0 ? 'text-emerald-300' : 'text-rose-300')}>
+                  <div className="text-sm text-foreground">{translateSide(position.side)}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(position.quantity, 6)}</div>
+                  <div className="text-sm text-foreground">{normalizeStrategyText(position.strategy || '') || '-'}</div>
+                  <div className="text-sm text-foreground-muted">{timeframeText(position.timeframeSignals)}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(position.entryPrice, 5)}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(position.stopLoss, 5)}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(position.takeProfit, 5)}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(position.leverage, 0)}x</div>
+                  <div className={cn('font-mono tabular-nums text-sm font-medium', (position.unrealizedPnl || 0) >= 0 ? 'text-success' : 'text-danger')}>
                     {formatNumber(position.unrealizedPnl, 2)}
                   </div>
                   <div>
                     <button type="button" className={BUTTON_GHOST_CLASS} onClick={() => void generatePositionChart(position)}>
-                      <ImageIcon className="h-4 w-4" />
+                      <ImageIcon className="size-4" />
                       看图
                     </button>
                   </div>
@@ -652,8 +1099,8 @@ export function OrdersView({
               ))}
             </TableScroll>
           </div>
-          </div>
-        )}
+          )}
+        </div>
       </Section>
     );
   }
@@ -662,11 +1109,11 @@ export function OrdersView({
     return (
       <Section title="首仓挂单" icon={Blocks} subtitle="等待成交的首次入场委托。">
         {filteredEntryOrders.length === 0 ? (
-          <CompactEmptyState text="当前没有首仓挂单。" />
+          <EmptyState text="当前没有首仓挂单。" />
         ) : (
           <div className={TABLE_CLASS}>
             <TableScroll className="max-h-[440px]">
-              <div className={cn(TABLE_HEAD_CLASS, 'sticky top-0 z-10 hidden grid-cols-[0.82fr_0.38fr_0.38fr_0.48fr_0.62fr_0.62fr_0.62fr_0.82fr_0.8fr_0.44fr] gap-3 bg-[#0a1016]/95 px-4 py-3 md:grid')}>
+              <div className={cn(TABLE_HEAD_CLASS, 'sticky top-0 z-10 hidden grid-cols-[0.82fr_0.38fr_0.38fr_0.48fr_0.62fr_0.62fr_0.62fr_0.82fr_0.8fr_0.44fr] gap-3 bg-surface px-4 py-3 md:grid')}>
                 <div className={cn('md:sticky md:left-0', TABLE_STICKY_HEAD_CLASS)}>挂单</div>
                 <div>方向</div>
                 <div>数量</div>
@@ -688,18 +1135,18 @@ export function OrdersView({
                     index % 2 === 1 && 'bg-white/[0.015]',
                   )}
                 >
-                  <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_ALT_CLASS : TABLE_STICKY_CELL_CLASS)}>
-                    <div className="text-sm font-semibold text-white">{order.symbol}</div>
-                    <div className="mt-1 text-xs text-slate-500">{formatTime(order.createdAt || order.loggedAt)}</div>
+                  <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_CLASS : TABLE_STICKY_CELL_CLASS)}>
+                    <div className="text-sm font-semibold text-foreground">{order.symbol}</div>
+                    <div className="mt-1 text-xs text-foreground-faint">{formatTime(order.createdAt || order.loggedAt)}</div>
                   </div>
-                  <div className="text-sm text-slate-200">{order.side || '-'}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(order.quantity, 6)}</div>
-                  <div className="text-sm text-slate-200">{order.orderType || '-'}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(order.price, 5)}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(order.stopLoss, 5)}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(order.takeProfit, 5)}</div>
-                  <div className="text-sm text-slate-200">{normalizeStrategyText(order.strategy || '') || '-'}</div>
-                  <div className="text-sm text-slate-300">{timeframeText(order.timeframeSignals)}</div>
+                  <div className="text-sm text-foreground">{translateSide(order.side)}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(order.quantity, 6)}</div>
+                  <div className="text-sm text-foreground">{order.orderType || '-'}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(order.price, 5)}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(order.stopLoss, 5)}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(order.takeProfit, 5)}</div>
+                  <div className="text-sm text-foreground">{normalizeStrategyText(order.strategy || '') || '-'}</div>
+                  <div className="text-sm text-foreground-muted">{timeframeText(order.timeframeSignals)}</div>
                   <div>
                     <TerminalBadge className={statusTone(order.status || '-')}>{translateStatusLabel(order.status || '-')}</TerminalBadge>
                   </div>
@@ -716,11 +1163,11 @@ export function OrdersView({
     return (
       <Section title="保护单" icon={ShieldCheck} subtitle="止损 / 止盈条件委托。">
         {filteredProtectionOrders.length === 0 ? (
-          <CompactEmptyState text="当前没有保护单。" />
+          <EmptyState text="当前没有保护单。" />
         ) : (
           <div className={TABLE_CLASS}>
             <TableScroll className="max-h-[440px]">
-              <div className={cn(TABLE_HEAD_CLASS, 'sticky top-0 z-10 hidden grid-cols-[0.82fr_0.44fr_0.36fr_0.38fr_0.62fr_0.62fr_0.66fr_0.82fr_0.44fr] gap-3 bg-[#0a1016]/95 px-4 py-3 md:grid')}>
+              <div className={cn(TABLE_HEAD_CLASS, 'sticky top-0 z-10 hidden grid-cols-[0.82fr_0.44fr_0.36fr_0.38fr_0.62fr_0.62fr_0.66fr_0.82fr_0.44fr] gap-3 bg-surface px-4 py-3 md:grid')}>
                 <div className={cn('md:sticky md:left-0', TABLE_STICKY_HEAD_CLASS)}>保护单</div>
                 <div>类别</div>
                 <div>方向</div>
@@ -741,21 +1188,21 @@ export function OrdersView({
                     index % 2 === 1 && 'bg-white/[0.015]',
                   )}
                 >
-                  <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_ALT_CLASS : TABLE_STICKY_CELL_CLASS)}>
-                    <div className="text-sm font-semibold text-white">{order.symbol}</div>
-                    <div className="mt-1 text-xs text-slate-500">{formatTime(order.createdAt || order.loggedAt)}</div>
+                  <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_CLASS : TABLE_STICKY_CELL_CLASS)}>
+                    <div className="text-sm font-semibold text-foreground">{order.symbol}</div>
+                    <div className="mt-1 text-xs text-foreground-faint">{formatTime(order.createdAt || order.loggedAt)}</div>
                   </div>
                   <div>
                     <TerminalBadge kind={order.protectionKind === 'TAKE_PROFIT' ? 'success' : 'warn'}>
                       {protectionKindLabel(order.protectionKind)}
                     </TerminalBadge>
                   </div>
-                  <div className="text-sm text-slate-200">{order.side || '-'}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(order.quantity, 6)}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(order.stopPrice, 5)}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(order.entryPrice, 5)}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(order.stopLoss, 5)} / {formatNumber(order.takeProfit, 5)}</div>
-                  <div className="text-sm text-slate-200">{normalizeStrategyText(order.strategy || '') || '-'}</div>
+                  <div className="text-sm text-foreground">{translateSide(order.side)}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(order.quantity, 6)}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(order.stopPrice, 5)}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(order.entryPrice, 5)}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(order.stopLoss, 5)} / {formatNumber(order.takeProfit, 5)}</div>
+                  <div className="text-sm text-foreground">{normalizeStrategyText(order.strategy || '') || '-'}</div>
                   <div>
                     <TerminalBadge className={statusTone(order.status || '-')}>{translateStatusLabel(order.status || '-')}</TerminalBadge>
                   </div>
@@ -772,11 +1219,11 @@ export function OrdersView({
     return (
       <Section title="管理动作" icon={Activity} subtitle="止损止盈调整、部分平仓与管理链动作。">
         {filteredManagementActions.length === 0 ? (
-          <CompactEmptyState text="当前没有管理动作。" />
+          <EmptyState text="当前没有管理动作。" />
         ) : (
           <div className={TABLE_CLASS}>
             <TableScroll className="max-h-[440px]">
-              <div className={cn(TABLE_HEAD_CLASS, 'sticky top-0 z-10 hidden grid-cols-[0.7fr_0.42fr_0.42fr_0.82fr_0.72fr_0.62fr_0.62fr_0.62fr_0.9fr_0.44fr] gap-3 bg-[#0a1016]/95 px-4 py-3 md:grid')}>
+              <div className={cn(TABLE_HEAD_CLASS, 'sticky top-0 z-10 hidden grid-cols-[0.7fr_0.42fr_0.42fr_0.82fr_0.72fr_0.62fr_0.62fr_0.62fr_0.9fr_0.44fr] gap-3 bg-surface px-4 py-3 md:grid')}>
                 <div className={cn('md:sticky md:left-0', TABLE_STICKY_HEAD_CLASS)}>时间 / 合约</div>
                 <div>动作</div>
                 <div>数量</div>
@@ -789,8 +1236,11 @@ export function OrdersView({
                 <div>状态</div>
               </div>
               {filteredManagementActions.map((item, index) => (
+                (() => {
+                  const displayItem = buildDisplayExecutionItem(item);
+                  return (
                 <article
-                  key={`${item.loggedAt}-${item.symbol}-${item.type}-${index}`}
+                  key={`${displayItem.loggedAt}-${displayItem.symbol}-${displayItem.type}-${index}`}
                   className={cn(
                     'grid gap-3 px-4 py-3.5 md:grid-cols-[0.7fr_0.42fr_0.42fr_0.82fr_0.72fr_0.62fr_0.62fr_0.62fr_0.9fr_0.44fr]',
                     TABLE_ROW_CLASS,
@@ -798,22 +1248,24 @@ export function OrdersView({
                     index % 2 === 1 && 'bg-white/[0.015]',
                   )}
                 >
-                  <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_ALT_CLASS : TABLE_STICKY_CELL_CLASS)}>
-                    <div className="text-sm font-semibold text-white">{item.symbol || '系统事件'}</div>
-                    <div className="mt-1 text-xs text-slate-500">{formatTime(item.loggedAt)}</div>
+                  <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_CLASS : TABLE_STICKY_CELL_CLASS)}>
+                    <div className="text-sm font-semibold text-foreground">{displayItem.symbol || '系统事件'}</div>
+                    <div className="mt-1 text-xs text-foreground-faint">{formatTime(displayItem.loggedAt)}</div>
                   </div>
-                  <div className="text-sm text-slate-200">{item.type || '-'}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(item.quantity, 6)}</div>
-                  <div className="text-sm text-slate-200">{normalizeStrategyText(item.strategy || '') || '-'}</div>
-                  <div className="text-sm text-slate-300">{timeframeText(item.timeframeSignals)}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(item.stopLoss, 5)}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(item.takeProfit, 5)}</div>
-                  <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(item.entryPrice, 5)}</div>
-                  <div className="text-sm leading-6 text-slate-300">{item.message || '-'}</div>
+                  <div className="text-sm text-foreground">{displayItem.type || '-'}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground">{formatNumber(displayItem.quantity, 6)}</div>
+                  <div className="text-sm text-foreground">{normalizeStrategyText(displayItem.strategy || '') || '-'}</div>
+                  <div className="text-sm text-foreground-muted">{timeframeText(displayItem.timeframeSignals)}</div>
+                  {renderPrimaryWithPlan(displayItem.stopLoss, displayItem.plannedStopLoss)}
+                  {renderPrimaryWithPlan(displayItem.takeProfit, displayItem.plannedTakeProfit)}
+                  {renderPrimaryWithPlan(displayItem.entryPrice, displayItem.plannedEntryPrice)}
+                  <div className="text-sm leading-6 text-foreground-muted">{displayItem.message || '-'}</div>
                   <div>
-                    <TerminalBadge className={statusTone(item.status || '-')}>{translateStatusLabel(item.status || '-')}</TerminalBadge>
+                    <TerminalBadge className={statusTone(displayItem.status || '-')}>{translateStatusLabel(displayItem.status || '-')}</TerminalBadge>
                   </div>
                 </article>
+                  );
+                })()
               ))}
             </TableScroll>
           </div>
@@ -826,11 +1278,11 @@ export function OrdersView({
     return (
       <Section title="同品种占用" icon={Blocks} subtitle="哪些合约正在被持仓、首仓挂单或保护单占用，并因此拦掉了新的首仓。">
         {filteredOccupiedSymbols.length === 0 ? (
-          <CompactEmptyState text="当前没有同品种占用记录。" />
+          <EmptyState text="当前没有同品种占用记录。" />
         ) : (
           <div className={TABLE_CLASS}>
             <TableScroll className="max-h-[360px]">
-              <div className={cn(TABLE_HEAD_CLASS, 'sticky top-0 z-10 hidden grid-cols-[0.78fr_0.42fr_0.78fr_0.42fr_0.66fr_0.5fr] gap-3 bg-[#0a1016]/95 px-4 py-3 md:grid')}>
+              <div className={cn(TABLE_HEAD_CLASS, 'sticky top-0 z-10 hidden grid-cols-[0.78fr_0.42fr_0.78fr_0.42fr_0.66fr_0.5fr] gap-3 bg-surface px-4 py-3 md:grid')}>
                 <div className={cn('md:sticky md:left-0', TABLE_STICKY_HEAD_CLASS)}>合约</div>
                 <div>交易所</div>
                 <div>占用来源</div>
@@ -848,15 +1300,15 @@ export function OrdersView({
                     index % 2 === 1 && 'bg-white/[0.015]',
                   )}
                 >
-                  <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_ALT_CLASS : TABLE_STICKY_CELL_CLASS)}>
-                    <div className="text-sm font-semibold text-white">{item.symbol}</div>
-                    <div className="mt-1 text-xs text-slate-500">
+                  <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_CLASS : TABLE_STICKY_CELL_CLASS)}>
+                    <div className="text-sm font-semibold text-foreground">{item.symbol}</div>
+                    <div className="mt-1 text-xs text-foreground-faint">
                       {item.hasPosition ? '已有持仓' : '空仓'} · {item.hasEntryOrder ? '有首仓挂单' : '无首仓挂单'}
                     </div>
                   </div>
-                  <div className="text-sm text-slate-200">{item.exchange || '-'}</div>
+                  <div className="text-sm text-foreground">{item.exchange || '-'}</div>
                   <div className="flex flex-wrap gap-2">
-                    {item.occupiedBy.length > 0 ? item.occupiedBy.map((label) => <TerminalBadge key={`${item.symbol}-${label}`} kind={label === '保护单' ? 'info' : 'warn'}>{label}</TerminalBadge>) : <span className="text-sm text-slate-500">无</span>}
+                    {item.occupiedBy.length > 0 ? item.occupiedBy.map((label) => <TerminalBadge key={`${item.symbol}-${label}`} kind={label === '保护单' ? 'info' : 'warn'}>{label}</TerminalBadge>) : <span className="text-sm text-foreground-faint">无</span>}
                   </div>
                   <div className="font-mono tabular-nums text-sm font-semibold text-amber-200">{formatNumber(item.blockedConflictCount, 0)}</div>
                   <div className="flex items-center gap-2">
@@ -866,11 +1318,11 @@ export function OrdersView({
                         style={{ width: `${Math.max(8, (item.blockedConflictCount / maxBlockedConflictCount) * 100)}%` }}
                       />
                     </div>
-                    <div className="font-mono tabular-nums text-xs text-slate-500">
+                    <div className="font-mono tabular-nums text-xs text-foreground-faint">
                       {Math.round((item.blockedConflictCount / maxBlockedConflictCount) * 100)}%
                     </div>
                   </div>
-                  <div className="text-sm text-slate-400">
+                  <div className="text-sm text-foreground-muted">
                     {item.blockedConflictCount > 0 ? `最近因此拦掉 ${formatNumber(item.blockedConflictCount, 0)} 次新机会` : '当前未形成新冲突'}
                   </div>
                 </article>
@@ -885,28 +1337,50 @@ export function OrdersView({
   function renderHistoryPanel() {
     return (
       <Section title="历史订单" icon={History} subtitle={hiddenText}>
-        {focusableHistoricalOrders.length === 0 ? (
-          <CompactEmptyState text="当前没有历史订单。" />
-        ) : (
-          <div className="space-y-5">
-            <TradeChartPanel
-              eyebrow="实盘复盘图"
-              title={selectedHistoryItem ? `${selectedHistoryItem.symbol} · ${normalizeStrategyText(selectedHistoryItem.strategy || '') || selectedHistoryItem.type}` : '未选择事件'}
-              badgeText={selectedHistoryItem ? `${selectedHistoryItem.symbol} · ${inferChartTimeframe(selectedHistoryItem.timeframeSignals || [])}` : undefined}
-              helperText={`当前仅聚焦单笔主事件，已从 ${filteredHistoricalOrders.length} 条历史事件中过滤出 ${focusableHistoricalOrders.length} 条主事件。`}
-              chart={liveChart}
-              loading={liveChartLoading}
-              error={liveChartError}
-              emptyText="选择一笔历史订单后，下方会生成聚焦该订单链的 K 线标注图。"
-              imageAlt={liveChart?.focusTitle || '实盘复盘图表'}
-              onRefresh={selectedHistoryItem ? () => void generateLiveChart(selectedHistoryItem) : undefined}
-              refreshDisabled={!selectedHistoryItem || liveChartLoading}
-              refreshLabel="生成图表"
-              chartHeight={1040}
-            />
+        <div className="flex flex-col gap-5">
+          <TradeChartPanel
+            eyebrow="实盘复盘图"
+            title={selectedHistoryItem ? `${chartSymbol(selectedHistoryItem.symbol)} · ${normalizeStrategyText(selectedHistoryItem.strategy || '') || selectedHistoryItem.type}` : selectedHistorySymbol ? `${selectedHistorySymbol} · 实时信号总览` : '未选择事件'}
+            badgeText={selectedHistoryItem ? `${chartSymbol(selectedHistoryItem.symbol)} · ${liveChartTimeframe}` : selectedHistorySymbol ? `${selectedHistorySymbol} · ${liveChartTimeframe}` : undefined}
+            helperText={
+              selectedHistoryItem
+                ? `当前仅聚焦单笔主事件，图表围绕事件时间 ${formatTime(selectedHistoryItem.loggedAt)} 展开，用于复盘而不是表示当前实时信号。历史表格优先显示交易所实值，次行显示当时计划价。已从 ${filteredHistoricalOrders.length} 条历史事件中过滤出 ${focusableHistoricalOrders.length} 条主事件，并剔除了 ${archivedHistoricalOrdersCount} 条已不在交易所活动中的旧挂单事件。`
+                : `当前没有选中历史主事件时，会直接按交易品种生成实时信号总览图。已从 ${filteredHistoricalOrders.length} 条历史事件中过滤出 ${focusableHistoricalOrders.length} 条主事件，并剔除了 ${archivedHistoricalOrdersCount} 条已不在交易所活动中的旧挂单事件。`
+            }
+            chart={liveChart}
+            loading={liveChartLoading}
+            error={liveChartError}
+            emptyText="点击下方历史主事件，或直接切换交易品种，这里会生成对应的实盘图。"
+            imageAlt={liveChart?.focusTitle || '实盘复盘图表'}
+            onRefresh={selectedHistoryItem ? () => void generateLiveChart(buildDisplayExecutionItem(selectedHistoryItem), liveChartTimeframe) : selectedHistorySymbol ? () => void generateHistorySymbolOverview(selectedHistorySymbol, liveChartTimeframe) : undefined}
+            refreshDisabled={(!selectedHistoryItem && !selectedHistorySymbol) || liveChartLoading}
+            refreshLabel="生成图表"
+            chartHeight={1040}
+            timeframeOptions={[...listLiveChartTimeframes()]}
+            selectedTimeframe={liveChartTimeframe}
+            onSelectTimeframe={(value) => setLiveChartTimeframe(value as typeof liveChartTimeframe)}
+            symbolOptions={historySymbolOptions}
+            selectedSymbol={selectedHistorySymbol}
+            onSelectSymbol={(symbol) => {
+              setSelectedHistorySymbol(symbol);
+              const fallback =
+                focusableHistoricalOrders.find((item) => sameSymbol(item.symbol || '', symbol) && historyRowKey(item) === selectedHistoryKey) ||
+                focusableHistoricalOrders.find((item) => sameSymbol(item.symbol || '', symbol)) ||
+                null;
+              if (fallback) {
+                setSelectedHistoryKey(historyRowKey(fallback));
+                return;
+              }
+              setSelectedHistoryKey('');
+              void generateHistorySymbolOverview(symbol, liveChartTimeframe);
+            }}
+          />
+          {focusableHistoricalOrders.length === 0 ? (
+            <EmptyState text="当前没有历史订单，已切换为交易品种实时信号视角。" />
+          ) : (
             <div className={TABLE_CLASS}>
               <TableScroll className="max-h-[520px]">
-                <div className={cn(TABLE_HEAD_CLASS, 'sticky top-0 z-10 hidden grid-cols-[0.72fr_0.42fr_0.42fr_0.82fr_0.78fr_0.56fr_0.56fr_0.56fr_0.44fr_0.9fr_0.42fr] gap-3 bg-[#0a1016]/95 px-4 py-3 md:grid')}>
+                <div className={cn(TABLE_HEAD_CLASS, 'sticky top-0 z-10 hidden grid-cols-[0.72fr_0.42fr_0.42fr_0.82fr_0.78fr_0.56fr_0.56fr_0.56fr_0.44fr_0.9fr_0.42fr] gap-3 bg-surface px-4 py-3 md:grid')}>
                   <div className={cn('md:sticky md:left-0', TABLE_STICKY_HEAD_CLASS)}>时间 / 合约</div>
                   <div>分类</div>
                   <div>动作</div>
@@ -920,7 +1394,8 @@ export function OrdersView({
                   <div>图表</div>
                 </div>
                 {focusableHistoricalOrders.map((item, index) => {
-                  const rowKey = `${item.loggedAt}-${item.symbol}-${item.type}-${item.orderId || index}`;
+                  const displayItem = buildDisplayExecutionItem(item);
+                  const rowKey = historyRowKey(displayItem);
                   const active = rowKey === selectedHistoryKey;
                   return (
                     <article
@@ -932,34 +1407,34 @@ export function OrdersView({
                         index % 2 === 1 && 'bg-white/[0.015]',
                         active && 'bg-cyan-400/[0.04]',
                       )}
-                      onClick={() => void generateLiveChart(item)}
+                      onClick={() => void generateLiveChart(displayItem)}
                     >
-                      <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_ALT_CLASS : TABLE_STICKY_CELL_CLASS)}>
-                        <div className="text-sm font-semibold text-white">{item.symbol || '系统事件'}</div>
-                        <div className="mt-1 text-xs text-slate-500">{formatTime(item.loggedAt)}</div>
+                      <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_CLASS : TABLE_STICKY_CELL_CLASS)}>
+                        <div className="text-sm font-semibold text-foreground">{displayItem.symbol || '系统事件'}</div>
+                        <div className="mt-1 text-xs text-foreground-faint">{formatTime(displayItem.loggedAt)}</div>
                       </div>
                       <div>
-                        <TerminalBadge kind={item.orderClass === 'PROTECTION' ? 'info' : item.orderClass === 'MANAGEMENT' ? 'success' : 'neutral'}>
-                          {orderClassLabel(item.orderClass)}
+                        <TerminalBadge kind={displayItem.orderClass === 'PROTECTION' ? 'info' : displayItem.orderClass === 'MANAGEMENT' ? 'success' : 'neutral'}>
+                          {orderClassLabel(displayItem.orderClass)}
                         </TerminalBadge>
                       </div>
-                      <div className="text-sm text-slate-200">{item.type || '-'}</div>
-                      <div className="text-sm text-slate-200">{normalizeStrategyText(item.strategy || '') || '-'}</div>
-                      <div className="text-sm text-slate-300">{timeframeText(item.timeframeSignals)}</div>
-                      <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(item.entryPrice, 5)}</div>
-                      <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(item.stopLoss, 5)}</div>
-                      <div className="font-mono tabular-nums text-sm text-slate-200">{formatNumber(item.takeProfit, 5)}</div>
+                      <div className="text-sm text-foreground">{displayItem.type || '-'}</div>
+                      <div className="text-sm text-foreground">{normalizeStrategyText(displayItem.strategy || '') || '-'}</div>
+                      <div className="text-sm text-foreground-muted">{timeframeText(displayItem.timeframeSignals)}</div>
+                      {renderPrimaryWithPlan(displayItem.entryPrice, displayItem.plannedEntryPrice)}
+                      {renderPrimaryWithPlan(displayItem.stopLoss, displayItem.plannedStopLoss)}
+                      {renderPrimaryWithPlan(displayItem.takeProfit, displayItem.plannedTakeProfit)}
                       <div>
-                        <TerminalBadge className={statusTone(item.status || '-')}>{translateStatusLabel(item.status || '-')}</TerminalBadge>
+                        <TerminalBadge className={statusTone(displayItem.status || '-')}>{translateStatusLabel(displayItem.status || '-')}</TerminalBadge>
                       </div>
-                      <div className="text-sm leading-6 text-slate-300">{item.message || '-'}</div>
+                      <div className="text-sm leading-6 text-foreground-muted">{displayItem.message || '-'}</div>
                       <div>
                         <button
                           type="button"
                           className={BUTTON_GHOST_CLASS}
-                          onClick={() => void generateLiveChart(item)}
+                          onClick={() => void generateLiveChart(displayItem)}
                         >
-                          <ImageIcon className="h-4 w-4" />
+                          <ImageIcon className="size-4" />
                           看图
                         </button>
                       </div>
@@ -968,8 +1443,8 @@ export function OrdersView({
                 })}
               </TableScroll>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </Section>
     );
   }
@@ -978,9 +1453,9 @@ export function OrdersView({
     return (
       <Section title="拒单原因" icon={TriangleAlert} subtitle="按原因聚合最近被拦下的订单，点开可以直接看是哪一笔、为什么被拦。">
         {filteredRejectionDetails.length === 0 ? (
-          <CompactEmptyState text="当前没有拒单记录。" />
+          <EmptyState text="当前没有拒单记录。" />
         ) : (
-          <div className="space-y-5">
+          <div className="flex flex-col gap-5">
             <div className="grid gap-4 md:grid-cols-3">
               <MetricCard label="拒单总数" value={String(totalRejected)} sub={topRejectionBucket ? `最高频：${topRejectionBucket.label}` : '当前无拒单'} />
               <MetricCard label="当前桶" value={activeRejectionBucket ? String(activeRejectionBucket.count) : '0'} sub={activeRejectionBucket?.label || '未选择原因'} />
@@ -988,8 +1463,8 @@ export function OrdersView({
             </div>
             <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
             <div className={TABLE_CLASS}>
-              <div className="border-b border-[#17212b] px-4 py-3 text-[10px] uppercase tracking-[0.22em] text-slate-500">拒单汇总</div>
-              <div className="space-y-1 p-2">
+              <div className="border-b border-[#17212b] px-4 py-3 text-[10px] uppercase tracking-[0.22em] text-foreground-faint">拒单汇总</div>
+              <div className="flex flex-col gap-1 p-2">
                 {filteredRejectionDetails.map((bucket) => {
                   const active = activeRejectionBucket?.label === bucket.label;
                   return (
@@ -998,13 +1473,13 @@ export function OrdersView({
                       type="button"
                       onClick={() => setSelectedRejectionLabel(bucket.label)}
                       className={cn(
-                        'flex w-full items-center justify-between rounded-[12px] px-3 py-3 text-left transition',
+                        'flex w-full items-center justify-between rounded-lg px-3 py-3 text-left transition',
                         active ? 'bg-white/[0.06] shadow-[inset_0_0_0_1px_rgba(124,201,179,0.14)]' : 'hover:bg-white/[0.035]',
                       )}
                     >
                       <div className="min-w-0">
-                        <div className="text-sm font-medium text-white">{bucket.label}</div>
-                        <div className="mt-1 text-xs text-slate-500">{bucket.entries.length} 条最近样本</div>
+                        <div className="text-sm font-medium text-foreground">{bucket.label}</div>
+                        <div className="mt-1 text-xs text-foreground-faint">{bucket.entries.length} 条最近样本</div>
                       </div>
                       <TerminalBadge kind={bucketTone(bucket.label)}>{bucket.count}</TerminalBadge>
                     </button>
@@ -1016,14 +1491,14 @@ export function OrdersView({
               <div className="border-b border-[#17212b] px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">拒单明细</div>
-                    <div className="mt-1 text-sm text-slate-300">{activeRejectionBucket?.label || '未选择原因'}</div>
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-foreground-faint">拒单明细</div>
+                    <div className="mt-1 text-sm text-foreground-muted">{activeRejectionBucket?.label || '未选择原因'}</div>
                   </div>
                   <TerminalBadge kind={bucketTone(activeRejectionBucket?.label || '')}>{activeRejectionBucket?.count || 0}</TerminalBadge>
                 </div>
               </div>
               <TableScroll className="max-h-[420px]">
-                <div className={cn(TABLE_HEAD_CLASS, 'sticky top-0 z-10 hidden grid-cols-[0.7fr_0.5fr_0.4fr_0.42fr_0.42fr_1fr] gap-3 bg-[#0a1016]/95 px-4 py-3 md:grid')}>
+                <div className={cn(TABLE_HEAD_CLASS, 'sticky top-0 z-10 hidden grid-cols-[0.7fr_0.5fr_0.4fr_0.42fr_0.42fr_1fr] gap-3 bg-surface px-4 py-3 md:grid')}>
                   <div className={cn('md:sticky md:left-0', TABLE_STICKY_HEAD_CLASS)}>时间 / 合约</div>
                   <div>交易所</div>
                   <div>状态</div>
@@ -1041,19 +1516,19 @@ export function OrdersView({
                       index % 2 === 1 && 'bg-white/[0.015]',
                     )}
                   >
-                    <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_ALT_CLASS : TABLE_STICKY_CELL_CLASS)}>
-                      <div className="text-sm font-semibold text-white">{entry.symbol || '系统事件'}</div>
-                      <div className="mt-1 text-xs text-slate-500">{formatTime(entry.loggedAt)}</div>
+                    <div className={cn('md:sticky md:left-0', index % 2 === 1 ? TABLE_STICKY_CELL_CLASS : TABLE_STICKY_CELL_CLASS)}>
+                      <div className="text-sm font-semibold text-foreground">{entry.symbol || '系统事件'}</div>
+                      <div className="mt-1 text-xs text-foreground-faint">{formatTime(entry.loggedAt)}</div>
                     </div>
-                    <div className="text-sm text-slate-200">{entry.exchange || '-'}</div>
+                    <div className="text-sm text-foreground">{entry.exchange || '-'}</div>
                     <div>
                       <TerminalBadge className={statusTone(entry.status || '-')}>{translateStatusLabel(entry.status || '-')}</TerminalBadge>
                     </div>
-                    <div className="text-sm text-slate-200">{entry.type || '-'}</div>
+                    <div className="text-sm text-foreground">{entry.type || '-'}</div>
                     <div>
                       <TerminalBadge kind={bucketTone(activeRejectionBucket?.label || '')}>{activeRejectionBucket?.label || '-'}</TerminalBadge>
                     </div>
-                    <div className="text-sm leading-6 text-slate-300">{entry.message || '-'}</div>
+                    <div className="text-sm leading-6 text-foreground-muted">{entry.message || '-'}</div>
                   </article>
                 ))}
               </TableScroll>
@@ -1076,8 +1551,8 @@ export function OrdersView({
   }
 
   return (
-    <div className="space-y-5">
-      <div className={cn(TERMINAL_STRIP_CLASS, 'grid gap-3 px-4 py-3 md:grid-cols-[1.1fr_repeat(3,minmax(0,0.7fr))_auto]')}>
+    <div className="flex flex-col gap-5">
+      <div className={cn(CARD_CLASS, 'grid gap-3 px-4 py-3 md:grid-cols-[1.1fr_repeat(3,minmax(0,0.7fr))_auto]')}>
         <label className="flex min-w-0 flex-col gap-2">
           <span className={LABEL_CLASS}>搜索 Symbol</span>
           <input
@@ -1141,23 +1616,23 @@ export function OrdersView({
 
       <div className="flex min-h-8 flex-wrap items-center gap-2">
         {activeFilters.length === 0 ? (
-          <span className="text-xs text-slate-500">当前未启用过滤，显示全部订单视图。</span>
+          <span className="text-xs text-foreground-faint">当前未启用过滤，显示全部订单视图。</span>
         ) : (
           activeFilters.map((item) => (
             <button
               key={item.key}
               type="button"
               onClick={() => clearSingleFilter(item.key)}
-              className="inline-flex items-center gap-2 rounded-full bg-white/[0.04] px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/[0.07]"
+              className="inline-flex items-center gap-2 rounded-full bg-white/[0.04] px-3 py-1.5 text-xs text-foreground-muted transition hover:bg-white/[0.07]"
             >
               <span>{item.label}</span>
-              <span className="text-slate-500">清除</span>
+              <span className="text-foreground-faint">清除</span>
             </button>
           ))
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-foreground-faint">
         <span>正式 live 策略：</span>
         {liveStrategyCatalog.map((item) => (
           <TerminalBadge key={item.key} kind="info">
@@ -1184,7 +1659,7 @@ export function OrdersView({
               {runtimeData.execution.exchangeBlockReason || blockedAccounts[0]?.exchangeBlockReason || '执行链已识别到账户级交易所阻断'}
             </span>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-400">
+          <div className="mt-2 flex flex-wrap gap-2 text-xs text-foreground-muted">
             {blockedAccounts.map((account) => (
               <span key={`${account.exchange}-${account.accountId || account.label || 'unknown'}`}>
                 {account.label || account.exchange} · {account.exchangeBlockCode || 'EXCHANGE_BLOCKED'}
@@ -1210,16 +1685,73 @@ export function OrdersView({
             <article key={item.label} className={cn('px-4 py-3.5', index > 0 && 'border-t border-[#17212b] md:border-l md:border-t-0')}>
               <div className={LABEL_CLASS}>{item.label}</div>
               <div className={cn(DATA_VALUE_CLASS, 'mt-2 text-[24px] font-semibold tracking-[-0.04em]')}>{item.value}</div>
-              <div className="mt-1 text-xs text-slate-500">{item.sub}</div>
+              <div className="mt-1 text-xs text-foreground-faint">{item.sub}</div>
             </article>
           ))}
         </div>
       </div>
 
+      <Section title="近两天统计" icon={History} subtitle={performance.rangeLabel || '近两天真实成交与清理统计'}>
+        <div className="grid gap-4 md:grid-cols-4 xl:grid-cols-6">
+          <MetricCard label="已实现成交" value={String(performance.total.realizedTradeCount)} sub="只统计有 realized_pnl 的真实成交" />
+          <MetricCard label="胜率" value={`${formatNumber(performance.total.winRatePct, 2)}%`} sub={`${performance.total.wins} 胜 / ${performance.total.losses} 负`} />
+          <MetricCard label="盈利因子" value={performance.total.profitFactor === null ? '-' : formatNumber(performance.total.profitFactor, 2)} sub={`毛利 ${formatNumber(performance.total.grossProfit, 2)} / 毛亏 ${formatNumber(performance.total.grossLoss, 2)}`} />
+          <MetricCard label="净已实现" value={formatNumber(performance.total.netRealized, 2)} sub={`手续费 ${formatNumber(performance.total.commission, 2)}`} />
+          <MetricCard label="清理动作" value={String(cleanupTotal)} sub={`成功 ${performance.total.cleanup.closeSuccess + performance.total.cleanup.partialClosed} / 异常 ${performance.total.cleanup.sizeFailed + performance.total.cleanup.notFound + performance.total.cleanup.modifyFailed}`} />
+          <MetricCard label="交易明细行" value={String(performance.total.tradeRows)} sub="两交易所 trade history 合计行数" />
+        </div>
+        <div className="mt-4 grid gap-3 xl:grid-cols-2">
+          {performance.exchanges.map((item) => (
+            <div key={item.exchange} className={CARD_CLASS}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">{item.label || item.exchange.toUpperCase()}</div>
+                  <div className="mt-1 text-xs text-foreground-faint">{item.startAt ? `${formatTime(item.startAt)} 起` : '近两天窗口'}</div>
+                </div>
+                <TerminalBadge kind={item.realizedTradeCount > 0 ? 'info' : 'neutral'}>
+                  {item.realizedTradeCount > 0 ? '有成交' : '无已实现成交'}
+                </TerminalBadge>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <div>
+                  <div className={LABEL_CLASS}>胜率</div>
+                  <div className="mt-1 font-mono tabular-nums text-lg text-foreground">{formatNumber(item.winRatePct, 2)}%</div>
+                </div>
+                <div>
+                  <div className={LABEL_CLASS}>盈利因子</div>
+                  <div className="mt-1 font-mono tabular-nums text-lg text-foreground">{item.profitFactor === null ? '-' : formatNumber(item.profitFactor, 2)}</div>
+                </div>
+                <div>
+                  <div className={LABEL_CLASS}>净已实现</div>
+                  <div className="mt-1 font-mono tabular-nums text-lg text-foreground">{formatNumber(item.netRealized, 2)}</div>
+                </div>
+              </div>
+              <div className="mt-3 grid gap-2 md:grid-cols-2">
+                <div className="rounded-lg border border-border bg-black/10 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-foreground-faint">成交</div>
+                  <div className="mt-1 text-sm text-foreground">{item.wins} 胜 / {item.losses} 负 / {item.tradeRows} 行</div>
+                </div>
+                <div className="rounded-lg border border-border bg-black/10 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-foreground-faint">清理</div>
+                  <div className="mt-1 text-sm text-foreground">
+                    成功 {item.cleanup.closeSuccess + item.cleanup.partialClosed} / 过小失败 {item.cleanup.sizeFailed} / 未找到 {item.cleanup.notFound}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-foreground-faint">
+                改单失败 {item.cleanup.modifyFailed}，改单跳过 {item.cleanup.modifySkipped}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {renderCurrentActionSection()}
+
       <div className="grid gap-4 xl:grid-cols-[0.96fr_1.04fr]">
         <Section title="拒单原因统计卡" icon={TriangleAlert} subtitle="最近窗口里最常拦下订单的原因。">
           {topRejectionBuckets.length === 0 ? (
-            <CompactEmptyState text="当前没有拒单样本。" />
+            <EmptyState text="当前没有拒单样本。" />
           ) : (
             <div className={TABLE_CLASS}>
               <div className={cn(TABLE_HEAD_CLASS, 'grid grid-cols-[0.82fr_1fr_auto] gap-3 px-4 py-3')}>
@@ -1241,8 +1773,8 @@ export function OrdersView({
                   )}
                 >
                   <div className="min-w-0">
-                    <div className="truncate text-sm text-white">{bucket.label}</div>
-                    <div className="mt-1 text-xs text-slate-500">{bucket.entries.length} 条最近样本</div>
+                    <div className="truncate text-sm text-foreground">{bucket.label}</div>
+                    <div className="mt-1 text-xs text-foreground-faint">{bucket.entries.length} 条最近样本</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-white/[0.05]">
@@ -1255,7 +1787,7 @@ export function OrdersView({
                       {Math.round((bucket.count / maxRejectedCount) * 100)}%
                     </TerminalBadge>
                   </div>
-                  <div className="font-mono tabular-nums text-sm text-slate-300">{bucket.count}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground-muted">{bucket.count}</div>
                 </button>
               ))}
             </div>
@@ -1264,7 +1796,7 @@ export function OrdersView({
 
         <Section title="占用冲突趋势" icon={Blocks} subtitle="当前真的在占用中的合约，以及它们拦掉新首仓的热度。">
           {topOccupiedSymbols.length === 0 ? (
-            <CompactEmptyState text="当前没有同品种占用冲突。" />
+            <EmptyState text="当前没有同品种占用冲突。" />
           ) : (
             <div className={TABLE_CLASS}>
               <div className={cn(TABLE_HEAD_CLASS, 'grid grid-cols-[0.72fr_0.9fr_1fr_auto] gap-3 px-4 py-3')}>
@@ -1287,8 +1819,8 @@ export function OrdersView({
                   )}
                 >
                   <div className="min-w-0">
-                    <div className="truncate text-sm text-white">{item.symbol}</div>
-                    <div className="mt-1 text-xs text-slate-500">{item.exchange || '-'}</div>
+                    <div className="truncate text-sm text-foreground">{item.symbol}</div>
+                    <div className="mt-1 text-xs text-foreground-faint">{item.exchange || '-'}</div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {item.occupiedBy.map((label) => (
@@ -1304,11 +1836,11 @@ export function OrdersView({
                         style={{ width: `${Math.max(10, (item.blockedConflictCount / maxBlockedConflictCount) * 100)}%` }}
                       />
                     </div>
-                    <span className="font-mono tabular-nums text-xs text-slate-500">
+                    <span className="font-mono tabular-nums text-xs text-foreground-faint">
                       {Math.round((item.blockedConflictCount / maxBlockedConflictCount) * 100)}%
                     </span>
                   </div>
-                  <div className="font-mono tabular-nums text-sm text-slate-300">{item.blockedConflictCount}</div>
+                  <div className="font-mono tabular-nums text-sm text-foreground-muted">{item.blockedConflictCount}</div>
                 </button>
               ))}
             </div>
@@ -1316,7 +1848,7 @@ export function OrdersView({
         </Section>
       </div>
 
-      <div className={cn(TERMINAL_STRIP_CLASS, 'flex flex-wrap gap-2 px-3 py-3')}>
+      <div className={cn(CARD_CLASS, 'flex flex-wrap gap-2 px-3 py-3')}>
         {panelItems.map((item) => {
           const active = activePanel === item.key;
           return (
@@ -1326,7 +1858,7 @@ export function OrdersView({
               onClick={() => setActivePanel(item.key)}
               className={cn(
                 'inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm transition',
-                active ? 'bg-white/[0.08] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]' : 'bg-white/[0.028] text-slate-300 hover:bg-white/[0.05]',
+                active ? 'bg-white/[0.08] text-foreground shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]' : 'bg-white/[0.028] text-foreground-muted hover:bg-white/[0.05]',
               )}
             >
               <span>{item.label}</span>
@@ -1338,10 +1870,10 @@ export function OrdersView({
         })}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-foreground-faint">
         <TerminalBadge kind={panelTone(activePanel)}>{panelItems.find((item) => item.key === activePanel)?.label || '当前分组'}</TerminalBadge>
         <span>过滤后：</span>
-        <span className="font-mono tabular-nums text-slate-300">
+        <span className="font-mono tabular-nums text-foreground-muted">
           {panelItems.find((item) => item.key === activePanel)?.count || 0}
         </span>
         <span>条记录</span>

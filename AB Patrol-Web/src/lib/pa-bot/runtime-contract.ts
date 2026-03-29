@@ -77,9 +77,15 @@ export type RuntimeExecutionEventRecord = {
   marketState: string;
   timeframeSignals: string[];
   entryPrice: number | null;
+  plannedEntryPrice?: number | null;
+  actualEntryPrice?: number | null;
   eventPrice: number | null;
   stopLoss: number | null;
+  plannedStopLoss?: number | null;
+  actualStopLoss?: number | null;
   takeProfit: number | null;
+  plannedTakeProfit?: number | null;
+  actualTakeProfit?: number | null;
   quantity: number | null;
   orderId: string;
   orderClass: string;
@@ -169,9 +175,9 @@ export function normalizeRuntimePosition(
     exchange: asString(position.exchange),
     side: asString(position.side),
     quantity: asNumber(position.quantity) ?? asNumber(position.contracts) ?? asNumber(position.size),
-    entryPrice: asNumber(position.entry_price) ?? context.entryPrice ?? null,
-    markPrice: asNumber(position.mark_price),
-    unrealizedPnl: asNumber(position.unrealized_pnl),
+    entryPrice: asNumber(position.entry_price) ?? asNumber(position.entryPrice) ?? context.entryPrice ?? null,
+    markPrice: asNumber(position.mark_price) ?? asNumber(position.markPrice),
+    unrealizedPnl: asNumber(position.unrealized_pnl) ?? asNumber(position.unrealizedPnl),
     leverage: asNumber(position.leverage),
     stopLoss: asNumber(position.stop_loss) ?? context.stopLoss ?? null,
     takeProfit: asNumber(position.take_profit) ?? context.takeProfit ?? null,
@@ -241,9 +247,15 @@ export function normalizeRuntimeExecutionEvent(
     marketState: context.marketState || asString(event.marketState) || asString(event.market_state),
     timeframeSignals: context.timeframeSignals || asStringArray(event.timeframeSignals),
     entryPrice: context.entryPrice ?? asNumber(event.entryPrice),
+    plannedEntryPrice: context.plannedEntryPrice ?? asNumber(event.plannedEntryPrice),
+    actualEntryPrice: context.actualEntryPrice ?? asNumber(event.actualEntryPrice),
     eventPrice: context.eventPrice ?? asNumber(event.eventPrice) ?? asNumber(event.price),
     stopLoss: context.stopLoss ?? asNumber(event.stopLoss),
+    plannedStopLoss: context.plannedStopLoss ?? asNumber(event.plannedStopLoss),
+    actualStopLoss: context.actualStopLoss ?? asNumber(event.actualStopLoss),
     takeProfit: context.takeProfit ?? asNumber(event.takeProfit),
+    plannedTakeProfit: context.plannedTakeProfit ?? asNumber(event.plannedTakeProfit),
+    actualTakeProfit: context.actualTakeProfit ?? asNumber(event.actualTakeProfit),
     quantity: context.quantity ?? asNumber(event.quantity),
     orderId: asString(event.orderId) || asString(event.order_id),
     orderClass: context.orderClass || asString(event.orderClass) || asString(event.order_class),

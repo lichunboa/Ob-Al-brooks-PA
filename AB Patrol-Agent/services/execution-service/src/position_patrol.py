@@ -10,16 +10,15 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from .config import SHARED_WORKSPACE
 
 logger = logging.getLogger(__name__)
 
 SL_PLACED_FILE = SHARED_WORKSPACE / "sl_placed.json"
-
-# 默认保护性止损百分比
-DEFAULT_STOP_PCT = 0.02
+JOURNAL_FILE = Path(__file__).resolve().parents[3] / "data" / "pa_trader" / "journal" / "execution_log.jsonl"
+RUNTIME_STATE_FILE = Path(__file__).resolve().parents[3] / "data" / "pa_trader" / "state" / "runtime_state.json"
 
 
 class PositionPatrol:
@@ -31,6 +30,7 @@ class PositionPatrol:
     SCALP_MIN_SECS = 600     # 最少 10 分钟（~1 根 15m K 线，原 3 分钟太短）
     SCALP_MAX_SECS = 5400    # 最多 90 分钟
     SCALP_MIN_PROFIT = 0.005  # 最低 0.5% 浮盈触发（原 0.3%，覆盖手续费+保留利润）
+    ENTRY_ORDER_STALE_SECS = 1800  # 无持仓的首仓挂单最多保留 30 分钟，避免旧候选无限悬挂
 
     def __init__(self, executor, trading_state):
         self.executor = executor
@@ -52,6 +52,10 @@ class PositionPatrol:
         self._sl_fix_timestamps: dict[str, datetime] = {}
         # V3.4: _sl_placed 连续缺席计数（连续 3 次确认才删除，防 API 偶发超时误删）
         self._sl_absent_count: dict[str, int] = {}
+        # 最近成功开仓的保护单缓存，避免每轮重复扫 journal。
+        self._protection_targets_cache: dict[tuple[str, str, str, str], dict[str, float | None]] = {}
+        self._protection_targets_mtime: float = 0.0
+        self._protection_runtime_mtime: float = 0.0
 
     @staticmethod
     def _load_sl_placed() -> dict[str, float]:
@@ -68,6 +72,11 @@ class PositionPatrol:
             SL_PLACED_FILE.write_text(json.dumps(self._sl_placed, indent=2))
         except Exception as e:
             logger.warning(f"保存 sl_placed 失败: {e}")
+
+    @staticmethod
+    def _protection_key(pos) -> str:
+        """同品种多仓时优先按 position_id 做保护单冷却键。"""
+        return str(getattr(pos, "position_id", "") or getattr(pos, "symbol", ""))
 
     def get_status(self) -> dict:
         """返回巡检状态摘要"""
@@ -90,21 +99,30 @@ class PositionPatrol:
                   "scalp_closed": 0, "trailing_moved": 0, "errors": []}
         try:
             positions = await self.executor.get_positions()
+            open_orders = await self.executor.get_open_orders()
             if not positions:
                 # 不清理 position_bot_map（可能只是 API 超时）
                 # 仅清理巡检内部状态
                 for sym in list(self._position_first_seen.keys()):
                     del self._position_first_seen[sym]
                 self._trailing_state.clear()
+                # 无持仓时仍要继续清理残留委托单。
+                # 否则 Binance Demo 上旧首仓挂单会永久残留，持续阻塞同品种新信号。
+                stale_cleaned = await self._cleanup_stale_orders(set(), open_orders)
+                if stale_cleaned > 0:
+                    report["stale_orders_cleaned"] = stale_cleaned
                 return report
 
-            open_orders = await self.executor.get_open_orders()
             stop_map = self._build_stop_order_map(open_orders)
+            take_profit_map = self._build_take_profit_order_map(open_orders)
 
-            # Demo 模式兜底：fetch_open_orders 可能不返回 STOP_MARKET
-            # 用 fetch_orders 查最近订单补充 stop_map
-            if not stop_map and positions:
-                stop_map = self._supplement_stop_map_via_fetch_orders(positions)
+            # Demo 模式兜底：fetch_open_orders 可能漏掉 reduce-only 条件单。
+            if positions and (not stop_map or not take_profit_map):
+                extra_stop_map, extra_take_profit_map = self._supplement_reduce_only_maps_via_fetch_orders(positions)
+                if extra_stop_map:
+                    stop_map = extra_stop_map
+                if extra_take_profit_map:
+                    take_profit_map = extra_take_profit_map
 
             active_symbols = set()
 
@@ -113,8 +131,10 @@ class PositionPatrol:
             bot_stats = {}  # bot_id -> {"count": 0, "margin": 0.0}
 
             for pos in positions:
-                norm_sym = pos.symbol  # 已经是 SOLUSDT:USDT 格式
-                active_symbols.add(norm_sym)
+                norm_sym = pos.symbol
+                # 统一转换成 position_bot_map 使用的 key，避免外汇现货这类无 `:USDT`
+                # 后缀的持仓被误判成“已平仓残留”而被清理掉。
+                active_symbols.add(self.executor._norm_position_key(norm_sym))
                 # V3.9.2: 支持多 bot 同品种 — 每个 bot 各计一次持仓
                 bot_ids = self.executor.get_position_bot_ids(norm_sym)
 
@@ -150,6 +170,8 @@ class PositionPatrol:
                 bot_id = self.executor.get_position_bot_id(norm_sym)
                 alloc = (self.trading_state.get_allocation(bot_id)
                          if bot_id else None)
+                has_native_stop = bool(getattr(pos, "native_stop_loss", False) and getattr(pos, "stop_loss", None))
+                has_native_take_profit = bool(getattr(pos, "native_take_profit", False) and getattr(pos, "take_profit", None))
                 # 1. 裸仓检测
                 # V3.5: _sl_placed 交叉验证
                 # Demo 模式下 stop_market 不可查询，用入场价变化检测：
@@ -157,26 +179,31 @@ class PositionPatrol:
                 # 说明持仓已变化（加仓/部分平仓），需重新补挂
                 if norm_sym in self._sl_placed:
                     recorded_sl = self._sl_placed[norm_sym]
-                    risk_pct = DEFAULT_STOP_PCT
-                    if alloc:
-                        risk_pct = alloc.get(
-                            "risk_percent", 2.0) / 100
-                    from .models import PositionSide
-                    if pos.side == PositionSide.LONG:
-                        expected_sl = pos.entry_price * (1 - risk_pct)
+                    targets = self._lookup_protection_targets(pos)
+                    expected_sl = float(targets.get("stop_loss") or 0) or None
+                    if expected_sl is None:
+                        logger.info(f"[巡检] {norm_sym} 未找到同源止损模板，清理旧的软件止损缓存")
+                        del self._sl_placed[norm_sym]
+                        self._save_sl_placed()
                     else:
-                        expected_sl = pos.entry_price * (1 + risk_pct)
-                    drift = (abs(recorded_sl - expected_sl)
-                             / max(expected_sl, 1))
-                    if drift > 0.01:
+                        drift = (abs(recorded_sl - expected_sl) / max(abs(expected_sl), 1e-8))
+                        if drift <= 0.01:
+                            expected_sl = None
+                    if expected_sl is not None:
                         logger.info(
                             f"[巡检] {norm_sym} 入场价变化，"
                             f"止损需更新: 记录={recorded_sl:.2f}"
                             f" 应设={expected_sl:.2f}")
                         del self._sl_placed[norm_sym]
                         self._save_sl_placed()
-                if norm_sym not in stop_map and norm_sym not in self._sl_placed:
-                    fixed = await self._fix_naked_position(pos, alloc)
+                if self.executor.exchange_name == "ctrader":
+                    # cTrader 以持仓原生 SL/TP 为准，不能让旧的软件止损缓存短路原生补挂。
+                    needs_stop_fix = not has_native_stop
+                else:
+                    needs_stop_fix = (not has_native_stop and norm_sym not in stop_map and norm_sym not in self._sl_placed)
+                needs_take_profit_fix = (not has_native_take_profit and norm_sym not in take_profit_map)
+                if needs_stop_fix or needs_take_profit_fix:
+                    fixed = await self._fix_position_protection(pos, alloc, needs_stop_fix, needs_take_profit_fix)
                     if fixed:
                         report["naked_fixed"] += 1
 
@@ -250,14 +277,31 @@ class PositionPatrol:
         """构建 {norm_symbol: [stop_orders]} 映射"""
         stop_map: dict[str, list] = {}
         for order in open_orders:
+            # Binance Demo 的条件单查询经常漏掉交易所侧条件单。
+            # execution.get_open_orders() 会补上本地注册的保护单 stub，
+            # 巡检层必须把这些 stub 也视作已存在的止损单，否则会每轮重复补挂。
             if order.order_type in ('STOP_MARKET', 'STOP'):
                 sym = order.symbol
                 stop_map.setdefault(sym, []).append(order)
         return stop_map
 
-    def _supplement_stop_map_via_fetch_orders(self, positions) -> dict[str, list]:
-        """Demo 模式兜底：通过 fetch_orders 查最近订单中的 STOP_MARKET"""
+    def _build_take_profit_order_map(
+        self, open_orders: list
+    ) -> dict[str, list]:
+        """构建 {norm_symbol: [take_profit_orders]} 映射"""
+        take_profit_map: dict[str, list] = {}
+        for order in open_orders:
+            # 同上：本地注册的 reduce-only 止盈 stub 也要参与巡检映射，
+            # 否则 patrol 会误判成“没有止盈单”，不断重复补挂/改单。
+            if order.order_type in ('TAKE_PROFIT_MARKET', 'TAKE_PROFIT'):
+                sym = order.symbol
+                take_profit_map.setdefault(sym, []).append(order)
+        return take_profit_map
+
+    def _supplement_reduce_only_maps_via_fetch_orders(self, positions) -> tuple[dict[str, list], dict[str, list]]:
+        """Demo 模式兜底：通过 fetch_orders 查最近订单中的 reduce-only 止损/止盈。"""
         stop_map: dict[str, list] = {}
+        take_profit_map: dict[str, list] = {}
         seen_symbols = set()
         for pos in positions:
             norm_sym = pos.symbol
@@ -270,7 +314,10 @@ class PositionPatrol:
                 for o in recent:
                     otype = str(o.get('type', '')).lower()
                     ostatus = str(o.get('status', '')).lower()
-                    if otype in ('stop_market', 'stop') and ostatus in ('open', 'new'):
+                    if ostatus not in ('open', 'new'):
+                        continue
+
+                    if otype in ('stop_market', 'stop'):
                         # 构造简易对象供后续使用
                         class _StopStub:
                             def __init__(self, oid, sym, sp):
@@ -281,49 +328,391 @@ class PositionPatrol:
                         sp = float(o.get('stopPrice') or o.get('info', {}).get('stopPrice') or 0)
                         stop_map.setdefault(norm_sym, []).append(
                             _StopStub(str(o.get('id')), norm_sym, sp))
+                    elif otype in ('take_profit_market', 'take_profit'):
+                        class _TakeProfitStub:
+                            def __init__(self, oid, sym, sp):
+                                self.order_id = oid
+                                self.symbol = sym
+                                self.stop_price = sp
+                                self.order_type = otype.upper()
+                        sp = float(o.get('stopPrice') or o.get('info', {}).get('stopPrice') or 0)
+                        take_profit_map.setdefault(norm_sym, []).append(
+                            _TakeProfitStub(str(o.get('id')), norm_sym, sp))
             except Exception as e:
                 logger.debug(f"[巡检] fetch_orders 补充查询失败 {norm_sym}: {e}")
-        if stop_map:
-            logger.info(f"[巡检] Demo 模式 fetch_orders 补充发现止损单: {list(stop_map.keys())}")
-        return stop_map
+        if stop_map or take_profit_map:
+            logger.info(
+                "[巡检] Demo 模式 fetch_orders 补充发现保护单: stop=%s tp=%s",
+                list(stop_map.keys()),
+                list(take_profit_map.keys()),
+            )
+        return stop_map, take_profit_map
 
-    async def _fix_naked_position(self, pos, alloc) -> bool:
-        """为裸仓设置软件止损（记录止损价，由巡检轮询执行）"""
+    @staticmethod
+    def _normalize_cache_marker(value: object) -> str:
+        """统一保护价缓存键的文本标识。"""
+        return str(value or "").strip().lower()
+
+    @staticmethod
+    def _normalize_trade_side(value: object) -> str:
+        text = str(value or "").strip().upper()
+        if text in {"BUY", "LONG"} or text.endswith("LONG"):
+            return "BUY"
+        if text in {"SELL", "SHORT"} or text.endswith("SHORT"):
+            return "SELL"
+        return ""
+
+    @staticmethod
+    def _to_price(value: object) -> float | None:
+        try:
+            price = float(value or 0)
+        except (TypeError, ValueError):
+            return None
+        return price if price > 0 else None
+
+    def _cache_protection_targets(
+        self,
+        cache: dict[tuple[str, str, str, str], dict[str, float | None]],
+        *,
+        symbol: object,
+        side: object,
+        strategy: object,
+        timeframe: object,
+        entry_price: object,
+        stop_loss: object,
+        take_profit: object,
+    ) -> None:
+        normalized_symbol = self.executor._norm_position_key(str(symbol or "").upper().strip())
+        normalized_side = self._normalize_trade_side(side)
+        if not normalized_symbol or normalized_side not in {"BUY", "SELL"}:
+            return
+        payload_entry = {
+            "entry_price": self._to_price(entry_price),
+            "stop_loss": self._to_price(stop_loss),
+            "take_profit": self._to_price(take_profit),
+            "strategy": self._normalize_cache_marker(strategy) or None,
+            "timeframe": self._normalize_cache_marker(timeframe) or None,
+        }
+        if payload_entry["stop_loss"] is None and payload_entry["take_profit"] is None:
+            return
+        strategy_key = payload_entry["strategy"] or ""
+        timeframe_key = payload_entry["timeframe"] or ""
+        cache[(normalized_symbol, normalized_side, strategy_key, timeframe_key)] = payload_entry
+        cache[(normalized_symbol, normalized_side, strategy_key, "")] = payload_entry
+        cache[(normalized_symbol, normalized_side, "", timeframe_key)] = payload_entry
+        cache[(normalized_symbol, normalized_side, "", "")] = payload_entry
+
+    @staticmethod
+    def _protection_geometry_valid(
+        side: object,
+        entry_price: object,
+        stop_loss: object | None = None,
+        take_profit: object | None = None,
+    ) -> bool:
+        direction = str(side or "").strip().upper()
+        entry = PositionPatrol._to_price(entry_price) or 0.0
+        stop = PositionPatrol._to_price(stop_loss) or 0.0
+        target = PositionPatrol._to_price(take_profit) or 0.0
+        if direction in {"LONG"}:
+            direction = "BUY"
+        elif direction in {"SHORT"}:
+            direction = "SELL"
+        if entry <= 0 or direction not in {"BUY", "SELL"}:
+            return False
+        if stop > 0:
+            if direction == "BUY" and not stop < entry:
+                return False
+            if direction == "SELL" and not stop > entry:
+                return False
+        if target > 0:
+            if direction == "BUY" and not target > entry:
+                return False
+            if direction == "SELL" and not target < entry:
+                return False
+        return stop > 0 or target > 0
+
+    @staticmethod
+    def _translate_protection_targets(
+        side: object,
+        live_entry: object,
+        template_entry: object,
+        stop_loss: object | None,
+        take_profit: object | None,
+    ) -> dict[str, float | None]:
+        direction = str(side or "").strip().upper()
+        if direction == "LONG":
+            direction = "BUY"
+        elif direction == "SHORT":
+            direction = "SELL"
+        live_entry_price = PositionPatrol._to_price(live_entry) or 0.0
+        template_entry_price = PositionPatrol._to_price(template_entry) or 0.0
+        stop = PositionPatrol._to_price(stop_loss) or 0.0
+        target = PositionPatrol._to_price(take_profit) or 0.0
+        translated_stop: float | None = None
+        translated_target: float | None = None
+        if live_entry_price <= 0 or template_entry_price <= 0 or direction not in {"BUY", "SELL"}:
+            return {"stop_loss": None, "take_profit": None}
+        if direction == "BUY":
+            if stop > 0 and stop < template_entry_price:
+                translated_stop = live_entry_price - (template_entry_price - stop)
+            if target > 0 and target > template_entry_price:
+                translated_target = live_entry_price + (target - template_entry_price)
+        else:
+            if stop > 0 and stop > template_entry_price:
+                translated_stop = live_entry_price + (stop - template_entry_price)
+            if target > 0 and target < template_entry_price:
+                translated_target = live_entry_price - (template_entry_price - target)
+        return {
+            "stop_loss": translated_stop if translated_stop and translated_stop > 0 else None,
+            "take_profit": translated_target if translated_target and translated_target > 0 else None,
+        }
+
+    def _refresh_protection_targets_cache(self) -> None:
+        """从执行日志刷新最近成功开仓的 SL/TP 目标。"""
+        try:
+            journal_mtime = JOURNAL_FILE.stat().st_mtime
+        except FileNotFoundError:
+            journal_mtime = 0.0
+        except Exception as exc:
+            logger.debug(f"[巡检] 读取保护单 journal mtime 失败: {exc}")
+            journal_mtime = self._protection_targets_mtime
+
+        try:
+            runtime_mtime = RUNTIME_STATE_FILE.stat().st_mtime
+        except FileNotFoundError:
+            runtime_mtime = 0.0
+        except Exception as exc:
+            logger.debug(f"[巡检] 读取 runtime_state mtime 失败: {exc}")
+            runtime_mtime = self._protection_runtime_mtime
+
+        if journal_mtime <= self._protection_targets_mtime and runtime_mtime <= self._protection_runtime_mtime:
+            return
+
+        cache: dict[tuple[str, str, str, str], dict[str, float | None]] = {}
+        if journal_mtime > 0:
+            with JOURNAL_FILE.open("r", encoding="utf-8") as handle:
+                for raw_line in handle:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    try:
+                        payload = json.loads(line)
+                    except Exception:
+                        continue
+                    if payload.get("type") != "OPEN_ORDER":
+                        continue
+                    if not payload.get("success") and str(payload.get("status") or "").upper() != "DUPLICATE_SKIPPED":
+                        continue
+                    snapshot = payload.get("action_snapshot") if isinstance(payload.get("action_snapshot"), dict) else {}
+                    symbol = str(snapshot.get("symbol") or "").upper()
+                    side = self._normalize_trade_side(snapshot.get("side"))
+                    if not symbol or side not in {"BUY", "SELL"}:
+                        continue
+                    self._cache_protection_targets(
+                        cache,
+                        symbol=symbol,
+                        side=side,
+                        strategy=snapshot.get("strategy"),
+                        timeframe=(
+                            snapshot.get("signal_timeframe")
+                            or snapshot.get("management_timeframe")
+                            or snapshot.get("reference_timeframe")
+                            or snapshot.get("timeframe")
+                        ),
+                        entry_price=snapshot.get("entry_price") or snapshot.get("entry"),
+                        stop_loss=snapshot.get("stop_loss") or snapshot.get("sl"),
+                        take_profit=snapshot.get("take_profit") or snapshot.get("tp"),
+                    )
+        if runtime_mtime > 0:
+            try:
+                runtime_payload = json.loads(RUNTIME_STATE_FILE.read_text(encoding="utf-8"))
+                position_seeds = runtime_payload.get("position_seeds") if isinstance(runtime_payload, dict) else {}
+                if isinstance(position_seeds, dict):
+                    for seed in position_seeds.values():
+                        if not isinstance(seed, dict):
+                            continue
+                        self._cache_protection_targets(
+                            cache,
+                            symbol=seed.get("symbol"),
+                            side=seed.get("direction") or seed.get("side"),
+                            strategy=seed.get("strategy"),
+                            timeframe=(
+                                seed.get("signal_timeframe")
+                                or seed.get("management_timeframe")
+                                or seed.get("reference_timeframe")
+                                or seed.get("timeframe")
+                            ),
+                            entry_price=seed.get("entry_price") or seed.get("entry"),
+                            stop_loss=seed.get("stop_loss") or seed.get("sl"),
+                            take_profit=seed.get("take_profit") or seed.get("tp"),
+                        )
+            except Exception as exc:
+                logger.warning(f"[巡检] 读取 runtime_state 保护模板失败: {exc}")
+        self._protection_targets_cache = cache
+        self._protection_targets_mtime = journal_mtime
+        self._protection_runtime_mtime = runtime_mtime
+
+    def _lookup_protection_targets(self, pos) -> dict[str, float | None]:
+        """返回当前持仓最近一次成功开仓的保护单目标。"""
+        self._refresh_protection_targets_cache()
+        side = self._normalize_trade_side(getattr(pos, "side", ""))
+        symbol = self.executor._norm_position_key(str(pos.symbol).upper())
+        strategy = self._normalize_cache_marker(getattr(pos, "strategy", None))
+        timeframe = self._normalize_cache_marker(getattr(pos, "timeframe", None))
+        lookup_keys = [
+            (symbol, side, strategy, timeframe),
+            (symbol, side, strategy, ""),
+            (symbol, side, "", timeframe),
+            (symbol, side, "", ""),
+        ]
+        for key in lookup_keys:
+            matched = self._protection_targets_cache.get(key)
+            if isinstance(matched, dict):
+                return matched
+        return {}
+
+    async def _fix_position_protection(self, pos, alloc, needs_stop_fix: bool, needs_take_profit_fix: bool) -> bool:
+        """为缺保护单的持仓补挂原生止损/止盈。"""
         try:
             # V3.4: 冷却期检查 — 同一品种 5 分钟内不重复
             now = datetime.now(timezone.utc)
-            last_fix = self._sl_fix_timestamps.get(pos.symbol)
+            protection_key = self._protection_key(pos)
+            last_fix = self._sl_fix_timestamps.get(protection_key)
             if last_fix and (now - last_fix).total_seconds() < 300:
                 return False
-
-            risk_pct = DEFAULT_STOP_PCT
-            if alloc:
-                risk_pct = alloc.get("risk_percent", 2.0) / 100
 
             entry = pos.entry_price
             if entry <= 0:
                 return False
 
-            from .models import PositionSide
-            if pos.side == PositionSide.LONG:
-                sl_price = round(entry * (1 - risk_pct), 2)
-            else:
-                sl_price = round(entry * (1 + risk_pct), 2)
+            targets = self._lookup_protection_targets(pos)
+            template_entry = self._to_price(targets.get("entry_price"))
+            sl_price = self._to_price(targets.get("stop_loss"))
+            tp_price = self._to_price(targets.get("take_profit"))
+            side = self._normalize_trade_side(getattr(pos, "side", ""))
+            translated = self._translate_protection_targets(side, entry, template_entry, sl_price, tp_price)
+            template_entry_mismatch = bool(
+                template_entry
+                and abs(template_entry - entry) > max(abs(entry) * 1e-6, 1e-8)
+            )
+            if template_entry_mismatch:
+                if needs_stop_fix and translated.get("stop_loss") is not None:
+                    logger.info(
+                        "[巡检] 保护模板与真实成交价不一致，平移止损后补挂: %s template_entry=%s live_entry=%s old_sl=%s new_sl=%s",
+                        pos.symbol,
+                        template_entry,
+                        entry,
+                        sl_price,
+                        translated.get("stop_loss"),
+                    )
+                    sl_price = translated.get("stop_loss")
+                if needs_take_profit_fix and translated.get("take_profit") is not None:
+                    logger.info(
+                        "[巡检] 保护模板与真实成交价不一致，平移止盈后补挂: %s template_entry=%s live_entry=%s old_tp=%s new_tp=%s",
+                        pos.symbol,
+                        template_entry,
+                        entry,
+                        tp_price,
+                        translated.get("take_profit"),
+                    )
+                    tp_price = translated.get("take_profit")
 
-            # V3.5: Demo 模式下不下条件委托，只记录止损价
-            # 由巡检主循环 _check_software_stop 轮询执行
-            # TODO(真实账户): 恢复 exchange.create_order(type='stop_market') 原生条件委托
-            self._sl_placed[pos.symbol] = sl_price
-            self._sl_fix_timestamps[pos.symbol] = now
-            self._save_sl_placed()
-            logger.warning(
-                f"[巡检] 软件止损已设: {pos.symbol} "
-                f"止损={sl_price} (入场={entry},"
-                f" risk={risk_pct*100:.1f}%)")
-            return True
+            if needs_stop_fix and sl_price is None:
+                logger.warning(
+                    "[巡检] 缺少同源止损模板，跳过补挂: %s strategy=%s timeframe=%s",
+                    pos.symbol,
+                    getattr(pos, "strategy", None),
+                    getattr(pos, "timeframe", None),
+                )
+                needs_stop_fix = False
+            if needs_take_profit_fix and tp_price is None:
+                logger.warning(
+                    "[巡检] 缺少同源止盈模板，跳过补挂: %s strategy=%s timeframe=%s",
+                    pos.symbol,
+                    getattr(pos, "strategy", None),
+                    getattr(pos, "timeframe", None),
+                )
+                needs_take_profit_fix = False
+            if needs_stop_fix and not self._protection_geometry_valid(side, entry, stop_loss=sl_price):
+                logger.warning(
+                    "[巡检] 止损模板与真实持仓几何不一致，跳过补挂: %s entry=%s sl=%s template_entry=%s",
+                    pos.symbol,
+                    entry,
+                    sl_price,
+                    template_entry,
+                )
+                needs_stop_fix = False
+            if needs_take_profit_fix and not self._protection_geometry_valid(side, entry, take_profit=tp_price):
+                logger.warning(
+                    "[巡检] 止盈模板与真实持仓几何不一致，跳过补挂: %s entry=%s tp=%s template_entry=%s",
+                    pos.symbol,
+                    entry,
+                    tp_price,
+                    template_entry,
+                )
+                needs_take_profit_fix = False
+            if not needs_stop_fix and not needs_take_profit_fix:
+                return False
+
+            if self.executor.exchange_name == "ctrader":
+                native_result = self.executor.exchange.modify_position(
+                    pos.symbol,
+                    stop_loss=sl_price if needs_stop_fix else pos.stop_loss,
+                    take_profit=tp_price if needs_take_profit_fix else pos.take_profit,
+                    position_id=getattr(pos, "position_id", None),
+                )
+                if native_result.get("success"):
+                    if needs_stop_fix and pos.symbol in self._sl_placed:
+                        del self._sl_placed[pos.symbol]
+                        self._save_sl_placed()
+                    self._sl_fix_timestamps[protection_key] = now
+                    logger.warning(
+                        f"[巡检] cTrader 原生保护单已设: {pos.symbol} "
+                        f"sl={sl_price if needs_stop_fix else '-'} "
+                        f"tp={tp_price if needs_take_profit_fix else '-'}"
+                    )
+                    return True
+
+                if needs_stop_fix and sl_price is not None:
+                    # 仅在原生止损失败时保留软件兜底。
+                    self._sl_placed[pos.symbol] = sl_price
+                    self._save_sl_placed()
+                self._sl_fix_timestamps[protection_key] = now
+                logger.warning(
+                    f"[巡检] cTrader 原生保护单失败: {pos.symbol} "
+                    f"error={native_result.get('message') or native_result.get('error')}"
+                )
+                return bool(needs_stop_fix)
+
+            stop_ok = True
+            tp_ok = True
+            if needs_stop_fix and sl_price is not None:
+                stop_result = await self.executor.modify_stop_loss(pos.symbol, sl_price)
+                stop_ok = bool(stop_result.get("success"))
+                if stop_ok:
+                    logger.warning(f"[巡检] 原生止损已设: {pos.symbol} 止损={sl_price}")
+                else:
+                    self._sl_placed[pos.symbol] = sl_price
+                    self._save_sl_placed()
+                    logger.warning(
+                        f"[巡检] 原生止损失败，回退软件止损: {pos.symbol} "
+                        f"止损={sl_price} error={stop_result.get('message') or stop_result.get('error')}"
+                    )
+            if needs_take_profit_fix and tp_price is not None:
+                tp_result = await self.executor.modify_take_profit(pos.symbol, tp_price)
+                tp_ok = bool(tp_result.get("success"))
+                if tp_ok:
+                    logger.warning(f"[巡检] 原生止盈已设: {pos.symbol} 止盈={tp_price}")
+                else:
+                    logger.warning(
+                        f"[巡检] 原生止盈失败: {pos.symbol} "
+                        f"止盈={tp_price} error={tp_result.get('message') or tp_result.get('error')}"
+                    )
+            self._sl_fix_timestamps[protection_key] = now
+            return stop_ok or tp_ok
         except Exception as e:
             logger.error(
-                f"[巡检] 止损设置失败 {pos.symbol}: {e}")
+                f"[巡检] 保护单设置失败 {pos.symbol}: {e}")
             return False
 
     async def _check_software_stop(self, pos) -> bool:
@@ -481,7 +870,9 @@ class PositionPatrol:
 
         # 检查是否需要移动（比现有止损更优）
         current_sl = None
-        if stop_orders:
+        if getattr(pos, "stop_loss", None):
+            current_sl = pos.stop_loss
+        elif stop_orders:
             current_sl = stop_orders[0].stop_price
         elif sym in self._sl_placed:
             # Demo 模式兜底：用 _sl_placed 记录的止损价
@@ -499,12 +890,15 @@ class PositionPatrol:
             self._trailing_state[sym] = state
             return False
 
-        # V3.6: 纯软件移动止损（Demo 模式下不下条件委托）
-        # 直接更新 _sl_placed，由 _check_software_stop 轮询执行
-        # TODO(真实账户): 恢复 exchange.create_order(type='stop_market') 原生条件委托
         try:
-            self._sl_placed[sym] = new_sl
-            self._save_sl_placed()
+            native_result = await self.executor.modify_stop_loss(sym, new_sl)
+            if native_result.get("success"):
+                if sym in self._sl_placed:
+                    del self._sl_placed[sym]
+                    self._save_sl_placed()
+            else:
+                self._sl_placed[sym] = new_sl
+                self._save_sl_placed()
             logger.info(
                 f"[巡检] 移动止损: {sym} SL {current_sl} → {new_sl}"
                 f" (最高={state.get('highest_price', '?')},"
@@ -569,31 +963,137 @@ class PositionPatrol:
 
     async def _cleanup_stale_orders(self, active_symbols: set, open_orders: list) -> int:
         """
-        自动清理残留的 reduce_only 委托单（V7.1）
+        自动清理残留委托单。
 
-        问题：Binance Testnet 的 SL/TP 单触发后，对手方委托单不会自动撤销
-        解决：每轮巡检时，取消没有对应持仓的 reduce_only 单
+        规则：
+        1. 没有对应持仓的保护单（reduce_only / SL / TP）全部清理
+        2. 有持仓时，保护单同侧同类型只保留最新一张
+        3. 没有持仓的普通首仓挂单，同价同向同类型只保留最新一张
         """
-        stale_orders = []
+        protection_types = {'STOP_MARKET', 'TAKE_PROFIT_MARKET', 'STOP', 'TAKE_PROFIT'}
+        active_symbol_bases = {
+            self.executor._norm_symbol_base(str(symbol))
+            for symbol in active_symbols
+            if symbol
+        }
+
+        stale_orders: dict[str, object] = {}
+        protection_groups: dict[tuple[str, str, str], list] = {}
+        entry_groups: dict[tuple[str, str, str, str, str], list] = {}
+        now_ts = datetime.now(timezone.utc).timestamp()
+
+        def _order_ts(order) -> float:
+            created_at = getattr(order, "created_at", None)
+            if isinstance(created_at, datetime):
+                return created_at.timestamp()
+            if isinstance(created_at, str) and created_at:
+                try:
+                    return datetime.fromisoformat(created_at.replace("Z", "+00:00")).timestamp()
+                except Exception:
+                    return 0.0
+            return 0.0
+
+        def _price_key(order) -> str:
+            price = getattr(order, "price", None)
+            if price in (None, "", 0):
+                price = getattr(order, "stop_price", None)
+            try:
+                return f"{float(price or 0.0):.8f}"
+            except Exception:
+                return "0.00000000"
+
+        def _protection_kind(order) -> str:
+            order_type = str(getattr(order, "order_type", "") or "").upper()
+            if "TAKE_PROFIT" in order_type:
+                return "TAKE_PROFIT"
+            return "STOP"
+
         for order in open_orders:
-            # 检查是否是 reduce_only 单（SL/TP）
-            if order.reduce_only or order.order_type in ('STOP_MARKET', 'TAKE_PROFIT_MARKET', 'STOP', 'TAKE_PROFIT'):
-                # 检查是否有对应持仓
-                if order.symbol not in active_symbols:
-                    stale_orders.append(order)
+            order_id = str(getattr(order, "order_id", "") or "")
+            if not order_id:
+                continue
+            symbol_base = self.executor._norm_symbol_base(str(getattr(order, "symbol", "") or ""))
+            order_type = str(getattr(order, "order_type", "") or "").upper()
+            is_protection = bool(getattr(order, "reduce_only", False) or order_type in protection_types)
+
+            if is_protection:
+                if symbol_base not in active_symbol_bases:
+                    stale_orders[order_id] = order
+                    continue
+                group_key = (
+                    symbol_base,
+                    str(getattr(order, "side", "") or "").upper(),
+                    _protection_kind(order),
+                )
+                protection_groups.setdefault(group_key, []).append(order)
+                continue
+
+            group_key = (
+                symbol_base,
+                str(getattr(order, "side", "") or "").upper(),
+                order_type,
+                _price_key(order),
+                str(getattr(order, "bot_id", "") or ""),
+            )
+            entry_groups.setdefault(group_key, []).append(order)
+
+        for grouped_orders in protection_groups.values():
+            if len(grouped_orders) <= 1:
+                continue
+            ordered = sorted(
+                grouped_orders,
+                key=lambda item: (_order_ts(item), str(getattr(item, "order_id", "") or "")),
+                reverse=True,
+            )
+            for stale in ordered[1:]:
+                stale_orders[str(getattr(stale, "order_id", "") or "")] = stale
+
+        for grouped_orders in entry_groups.values():
+            ordered = sorted(
+                grouped_orders,
+                key=lambda item: (_order_ts(item), str(getattr(item, "order_id", "") or "")),
+                reverse=True,
+            )
+            for stale in ordered[1:]:
+                stale_orders[str(getattr(stale, "order_id", "") or "")] = stale
+            newest = ordered[0]
+            if now_ts - _order_ts(newest) >= self.ENTRY_ORDER_STALE_SECS:
+                stale_orders[str(getattr(newest, "order_id", "") or "")] = newest
 
         if not stale_orders:
             return 0
 
-        # 取消残留委托单
         cleaned = 0
-        for order in stale_orders:
+        order_map_dirty = False
+        for order in stale_orders.values():
             try:
-                # 使用 ccxt 的 cancel_order
-                self.executor.exchange.cancel_order(order.order_id, order.symbol)
+                ccxt_symbol = self.executor._normalize_symbol_for_ccxt(str(getattr(order, "symbol", "") or ""))
+                self.executor._call_with_time_sync(
+                    "cancel_stale_order",
+                    self.executor.exchange.cancel_order,
+                    getattr(order, "order_id"),
+                    ccxt_symbol,
+                )
                 cleaned += 1
-                logger.info(f"[巡检] 自动清理残留委托单: {order.symbol} {order.order_type} {order.order_id}")
+                if getattr(order, "reduce_only", False) or str(getattr(order, "order_type", "") or "").upper() in protection_types:
+                    self.executor._drop_registered_protection_order(getattr(order, "order_id"))
+                if getattr(self.executor, "_order_bot_map", None) and self.executor._order_bot_map.pop(str(getattr(order, "order_id")), None) is not None:
+                    order_map_dirty = True
+                logger.info(
+                    "[巡检] 自动清理残留委托单: %s %s %s",
+                    getattr(order, "symbol", ""),
+                    getattr(order, "order_type", ""),
+                    getattr(order, "order_id", ""),
+                )
             except Exception as e:
-                logger.warning(f"[巡检] 清理失败 {order.symbol} {order.order_id}: {e}")
+                logger.warning(
+                    "[巡检] 清理失败 %s %s: %s",
+                    getattr(order, "symbol", ""),
+                    getattr(order, "order_id", ""),
+                    e,
+                )
+
+        if order_map_dirty:
+            self.executor._save_order_bot_map()
 
         return cleaned

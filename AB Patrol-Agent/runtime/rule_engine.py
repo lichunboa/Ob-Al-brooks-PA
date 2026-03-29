@@ -9,6 +9,7 @@
 这里仍然只做 live 识别与执行语义桥接，不改回测模板本身。
 """
 
+import os
 import re
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
@@ -236,8 +237,15 @@ class RuleEngine:
 
     def __init__(self):
         self.min_confidence = 0.40  # 最低置信度
-        self.min_timeframes = 2  # 最少确认周期数
+        self.min_timeframes = 1  # 当前 live 只允许 15m 单周期独立开仓
         self.live_strategy_selection = resolve_live_strategy_selection()
+        raw = os.getenv("AB_PATROL_LIVE_ALLOWED_TIMEFRAMES", "15m")
+        allowed: list[str] = []
+        for chunk in str(raw or "").split(","):
+            timeframe = str(chunk or "").strip().lower()
+            if timeframe in {"15m"} and timeframe not in allowed:
+                allowed.append(timeframe)
+        self.allowed_timeframes = tuple(allowed or ["15m"])
 
     def analyze_symbol(
         self,
@@ -276,14 +284,19 @@ class RuleEngine:
         entry_idea = data.get("entry_idea", {}) if isinstance(data.get("entry_idea"), dict) else {}
         evaluation = data.get("evaluation", {}) if isinstance(data.get("evaluation"), dict) else {}
         key_levels = data.get("key_levels", {}) if isinstance(data.get("key_levels"), dict) else {}
-        structured_timeframes = data.get("timeframes", {}) if isinstance(data.get("timeframes"), dict) else {}
+        source_timeframes = data.get("timeframes", {}) if isinstance(data.get("timeframes"), dict) else {}
+        structured_timeframes = {
+            str(tf): snapshot
+            for tf, snapshot in source_timeframes.items()
+            if str(tf).strip().lower() in self.allowed_timeframes and isinstance(snapshot, dict)
+        }
         event_tags = data.get("event_tags", []) if isinstance(data.get("event_tags"), list) else []
         brooks_filter = data.get("brooks_filter", {}) if isinstance(data.get("brooks_filter"), dict) else {}
         signal_type = str(
-            data.get("signal_type")
+            trade.get("signal_type")
             or planned_trade.get("signal_type")
-            or trade.get("signal_type")
             or entry_idea.get("signal_type")
+            or data.get("signal_type")
             or ""
         ).strip()
         brooks_label = str(
@@ -293,17 +306,17 @@ class RuleEngine:
             or ""
         ).strip()
         strategy = str(
-            data.get("strategy")
+            trade.get("strategy")
             or planned_trade.get("strategy")
-            or trade.get("strategy")
+            or data.get("strategy")
             or ""
         ).strip()
         strategy_family = str(
-            data.get("latest_strategy_family")
-            or data.get("strategy_family")
-            or planned_trade.get("playbook_family")
+            planned_trade.get("playbook_family")
             or trade.get("playbook_family")
             or entry_idea.get("playbook_family")
+            or data.get("latest_strategy_family")
+            or data.get("strategy_family")
             or ""
         ).strip()
         management_template = str(
@@ -346,9 +359,7 @@ class RuleEngine:
             for part in parts:
                 part = part.strip()
                 if "分钟" in part or "小时" in part:
-                    if "5分钟" in part:
-                        tf = "5m"
-                    elif "15分钟" in part:
+                    if "15分钟" in part:
                         tf = "15m"
                     elif "30分钟" in part:
                         tf = "30m"
@@ -359,10 +370,17 @@ class RuleEngine:
 
                     # 提取状态
                     match = STATE_TOKEN_RE.search(part.upper())
-                    if match:
+                    if match and tf in self.allowed_timeframes:
                         timeframes[tf] = str(match.group(1)).upper()
 
-        top_level_signal = data.get("signal")
+        top_level_signal = (
+            trade.get("signal")
+            or planned_trade.get("signal_bar")
+            or planned_trade.get("signal_type")
+            or pre_signal.get("signal")
+            or pre_signal.get("type")
+            or data.get("signal")
+        )
         signal_tokens = _extract_signal_tokens(
             top_level_signal,
             pre_signal_text,
@@ -401,35 +419,35 @@ class RuleEngine:
             data.get("ai_direction"),
             pre_signal.get("side"),
         ) or _side_from_signal_tokens(direct_signal_tokens or list(signal_tokens))
+        execution_semantics = planned_trade.get("execution_semantics") if isinstance(planned_trade.get("execution_semantics"), dict) else {}
         candidate_stage = str(
             planned_trade.get("candidate_stage")
-            or entry_idea.get("candidate_stage")
+            or execution_semantics.get("candidate_stage")
             or ""
         ).strip().upper()
         execution_mode = str(
             planned_trade.get("execution_mode")
-            or entry_idea.get("execution_mode")
+            or execution_semantics.get("execution_mode")
             or ""
         ).strip().upper()
         order_type = str(
             planned_trade.get("order_type")
-            or trade.get("order_type")
-            or entry_idea.get("order_type")
+            or execution_semantics.get("order_type")
             or ""
         ).strip().upper()
-        entry_price = _first_price(
-            planned_trade.get("entry_price"),
-            key_levels.get("entry_price"),
-            trade.get("entry_price"),
-            pre_signal.get("entry_price"),
-        )
+        signal_timeframe = str(
+            planned_trade.get("signal_timeframe")
+            or planned_trade.get("timeframe")
+            or ""
+        ).strip().lower()
+        entry_price = _first_price(planned_trade.get("entry_price"))
         limit_plan_requires_explicit_trigger = (
             candidate_stage == "EXECUTABLE_LIMIT"
             or execution_mode == "LIMIT_PLAN"
             or order_type == "LIMIT"
             or brooks_label == "TR 边缘限价单环境"
         )
-        if not entry_price and not limit_plan_requires_explicit_trigger:
+        if not entry_price and signal_timeframe not in self.allowed_timeframes and not limit_plan_requires_explicit_trigger:
             entry_price = _first_signal_price(
                 signal_entries,
                 preferred_tokens=[
@@ -438,18 +456,8 @@ class RuleEngine:
                     "H2" if side == "LONG" else "L2",
                 ],
             )
-        stop_loss = _first_price(
-            planned_trade.get("stop_loss"),
-            key_levels.get("stop_loss"),
-            trade.get("stop_loss"),
-            pre_signal.get("stop_loss"),
-        )
-        take_profit = _first_price(
-            planned_trade.get("take_profit"),
-            key_levels.get("take_profit"),
-            trade.get("take_profit"),
-            pre_signal.get("take_profit"),
-        )
+        stop_loss = _first_price(planned_trade.get("stop_loss"))
+        take_profit = _first_price(planned_trade.get("take_profit"))
         style = (
             str(planned_trade.get("style") or "").strip()
             or str(trade.get("style") or "").strip()
@@ -521,6 +529,7 @@ class RuleEngine:
             "style": style,
             "strategy": strategy,
             "strategy_family": strategy_family,
+            "signal_timeframe": signal_timeframe,
             "candidate_stage": candidate_stage,
             "execution_mode": execution_mode,
             "signal_type": signal_type,
@@ -617,6 +626,7 @@ class RuleEngine:
         style = str(state.get("style") or "Scalp")
         planned_stop = float(state.get("stop_loss") or 0.0)
         planned_target = float(state.get("take_profit") or 0.0)
+        signal_timeframe = str(state.get("signal_timeframe") or "").strip().lower()
         ema_gap_variant = str(state.get("ema_gap_variant") or "").upper()
         signal_type = str(state.get("signal_type") or "").strip()
         brooks_label = str(state.get("brooks_label") or "").strip()
@@ -628,6 +638,11 @@ class RuleEngine:
         ema_gap_playbook_family = str(state.get("ema_gap_playbook_family") or playbook_family).strip()
 
         if not side or not entry:
+            return []
+
+        # live 只允许带回测同源结构保护价的 15m 候选进入开仓识别，
+        # 否则就会把其他周期残留伪装成可执行交易。
+        if signal_timeframe in self.allowed_timeframes and (planned_stop <= 0 or planned_target <= 0):
             return []
 
         # 统计周期确认数
@@ -653,8 +668,8 @@ class RuleEngine:
                 confidence=confidence,
                 side=side,
                 entry_price=entry,
-                stop_loss=planned_stop or self._calc_stop_loss(entry, side, 0.02),
-                take_profit=planned_target or self._calc_take_profit(entry, side, 0.04),
+                stop_loss=planned_stop or None,
+                take_profit=planned_target or None,
                 reason=(
                     "T1: H1/L1 首次入场"
                     + (f" ({' / '.join(context_bits)})" if context_bits else "")
@@ -691,8 +706,8 @@ class RuleEngine:
                 confidence=confidence,
                 side=side,
                 entry_price=entry,
-                stop_loss=planned_stop or self._calc_stop_loss(entry, side, 0.02),
-                take_profit=planned_target or self._calc_take_profit(entry, side, 0.04),
+                stop_loss=planned_stop or None,
+                take_profit=planned_target or None,
                 reason=(
                     ("T2: H2/L2 宽通道恢复" if broad_channel_like else "T2: H2/L2 趋势二次入场")
                     + (f" ({' / '.join(context_bits)})" if context_bits else "")
@@ -738,8 +753,8 @@ class RuleEngine:
                 confidence=confidence,
                 side=side,
                 entry_price=entry,
-                stop_loss=planned_stop or self._calc_stop_loss(entry, side, 0.02),
-                take_profit=planned_target or self._calc_take_profit(entry, side, 0.04),
+                stop_loss=planned_stop or None,
+                take_profit=planned_target or None,
                 reason=reason_prefix + (f" ({' / '.join(context_bits)})" if context_bits else ""),
                 timeframes=confirmed_tfs,
                 style=style,
@@ -873,26 +888,6 @@ class RuleEngine:
 
         return True
 
-    def _calc_stop_loss(self, entry: float, side: str, pct: float) -> float:
-        """计算止损价"""
-        if side == "LONG":
-            return entry * (1 - pct)
-        else:
-            return entry * (1 + pct)
-
-    def _calc_take_profit(
-        self,
-        entry: float,
-        side: str,
-        pct: float
-    ) -> float:
-        """计算止盈价"""
-        if side == "LONG":
-            return entry * (1 + pct)
-        else:
-            return entry * (1 - pct)
-
-
 def analyze_all_symbols(
     symbols_data: Dict[str, Dict[str, Any]]
 ) -> Dict[str, Optional[StrategyMatch]]:
@@ -935,6 +930,7 @@ def get_executable_trades(
         if matches:
             state = symbols_data.get(symbol, {}) if isinstance(symbols_data.get(symbol), dict) else {}
             planned_trade = state.get("planned_trade") if isinstance(state.get("planned_trade"), dict) else {}
+            evaluation = state.get("evaluation") if isinstance(state.get("evaluation"), dict) else {}
             planned_execution_semantics = (
                 planned_trade.get("execution_semantics")
                 if isinstance(planned_trade.get("execution_semantics"), dict)
@@ -950,10 +946,82 @@ def get_executable_trades(
                 or planned_execution_semantics.get("execution_mode")
                 or ""
             ).strip().upper()
+            planned_order_type = str(
+                planned_trade.get("order_type")
+                or planned_execution_semantics.get("order_type")
+                or ""
+            ).strip().upper()
+            brooks_label = str(
+                state.get("brooks_label")
+                or planned_trade.get("brooks_label")
+                or planned_execution_semantics.get("brooks_label")
+                or ""
+            ).strip()
+            decision_text = " ".join(
+                str(value or "").strip()
+                for value in (
+                    evaluation.get("execution_decision"),
+                    evaluation.get("decision"),
+                    evaluation.get("summary"),
+                    state.get("status_reason"),
+                    state.get("why_wait"),
+                )
+                if str(value or "").strip()
+            ).lower()
+            if not live_candidate_stage.startswith("EXECUTABLE_"):
+                continue
+            if any(token in decision_text for token in ("继续观察", "等待", "watch", "候选", "暂不执行")):
+                continue
+            current_price = _first_price(
+                state.get("current_price"),
+                state.get("last_price"),
+                evaluation.get("current_price"),
+                evaluation.get("last_price"),
+            )
+            if live_execution_mode == "LIMIT_PLAN" or live_candidate_stage == "EXECUTABLE_LIMIT":
+                if planned_order_type and planned_order_type != "LIMIT":
+                    continue
+                resolved_order_type = "LIMIT"
+                resolved_entry_type = "LIMIT"
+            elif live_execution_mode == "STOP_TRIGGER" or live_candidate_stage == "EXECUTABLE_STOP":
+                resolved_order_type = "STOP_MARKET"
+                resolved_entry_type = "STOP"
+            elif live_execution_mode == "MARKET_IMMEDIATE" or live_candidate_stage == "EXECUTABLE_MARKET":
+                resolved_order_type = "MARKET"
+                resolved_entry_type = "MARKET"
+            else:
+                resolved_order_type = planned_order_type
+                resolved_entry_type = str(planned_trade.get("entry_type") or "").strip().upper()
             for match in matches:
                 # 映射 LONG/SHORT 为 BUY/SELL（execution-service 期望的格式）
                 side_mapping = {"LONG": "BUY", "SHORT": "SELL"}
                 execution_side = side_mapping.get(match.side, match.side)
+                trade_candidate_stage = live_candidate_stage
+                trade_execution_mode = live_execution_mode
+                trade_order_type = resolved_order_type
+                trade_entry_type = resolved_entry_type
+                entry_price = _first_price(match.entry_price, planned_trade.get("entry_price"))
+                stop_loss = _first_price(match.stop_loss, planned_trade.get("stop_loss"))
+                initial_risk = abs(entry_price - stop_loss) if entry_price and stop_loss else 0.0
+                if (
+                    trade_execution_mode == "STOP_TRIGGER"
+                    and trade_candidate_stage == "EXECUTABLE_STOP"
+                    and current_price > 0
+                    and entry_price > 0
+                    and initial_risk > 0
+                ):
+                    crossed = (
+                        execution_side == "BUY" and current_price >= entry_price
+                    ) or (
+                        execution_side == "SELL" and current_price <= entry_price
+                    )
+                    if crossed:
+                        overshoot = abs(current_price - entry_price)
+                        if overshoot <= initial_risk * 0.25:
+                            trade_candidate_stage = "EXECUTABLE_MARKET"
+                            trade_execution_mode = "MARKET_IMMEDIATE"
+                            trade_order_type = "MARKET"
+                            trade_entry_type = "MARKET"
                 reason = match.reason
                 if str(planned_trade.get("intent") or "").upper() == "REENTRY":
                     reason = f"{reason} | S7 重入确认"
@@ -968,6 +1036,7 @@ def get_executable_trades(
                     "confidence": match.confidence,
                     "reason": reason,
                     "timeframes": match.timeframes,
+                    "timeframe": state.get("signal_timeframe"),
                     "style": match.style,
                 }
                 for key in (
@@ -982,10 +1051,16 @@ def get_executable_trades(
                     value = planned_trade.get(key)
                     if value not in (None, ""):
                         trade[key] = value
-                if live_candidate_stage.startswith("EXECUTABLE_"):
-                    trade["candidate_stage"] = live_candidate_stage
-                if live_execution_mode:
-                    trade["execution_mode"] = live_execution_mode
+                if trade_candidate_stage.startswith("EXECUTABLE_"):
+                    trade["candidate_stage"] = trade_candidate_stage
+                if trade_execution_mode:
+                    trade["execution_mode"] = trade_execution_mode
+                if trade_order_type:
+                    trade["order_type"] = trade_order_type
+                if trade_entry_type:
+                    trade["entry_type"] = trade_entry_type
+                if brooks_label:
+                    trade["brooks_label"] = brooks_label
                 if bool(planned_trade.get("reentry_candidate")):
                     trade["reentry_candidate"] = True
                 trades.append(trade)

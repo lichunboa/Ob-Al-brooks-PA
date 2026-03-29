@@ -55,6 +55,75 @@ function asBoolean(value: unknown): boolean | null {
   return typeof value === 'boolean' ? value : null;
 }
 
+function sameTradeDirection(eventSide: string, positionSide: string): boolean {
+  const normalizedEvent = String(eventSide || '').toUpperCase();
+  const normalizedPosition = String(positionSide || '').toUpperCase();
+  if (!normalizedEvent || !normalizedPosition) return true;
+  if (normalizedEvent === 'BUY') return normalizedPosition === 'LONG';
+  if (normalizedEvent === 'SELL') return normalizedPosition === 'SHORT';
+  return normalizedEvent === normalizedPosition;
+}
+
+function sameExchange(left: string, right: string): boolean {
+  const normalizedLeft = String(left || '').trim().toUpperCase();
+  const normalizedRight = String(right || '').trim().toUpperCase();
+  if (!normalizedLeft || !normalizedRight) return true;
+  return normalizedLeft === normalizedRight;
+}
+
+function sameStrategy(left: string, right: string): boolean {
+  const normalizedLeft = canonicalStrategyLabel({ strategy: left }) || String(left || '').trim();
+  const normalizedRight = canonicalStrategyLabel({ strategy: right }) || String(right || '').trim();
+  if (!normalizedLeft || !normalizedRight) return true;
+  return normalizedLeft === normalizedRight;
+}
+
+function isActiveEntryLifecycle(status: string, type: string, orderClass: string): boolean {
+  const upperStatus = String(status || '').trim().toUpperCase();
+  const upperType = String(type || '').trim().toUpperCase();
+  const upperClass = String(orderClass || '').trim().toUpperCase();
+  if (upperType !== 'OPEN_ORDER' || upperClass !== 'ENTRY') return false;
+  return ['OPEN', 'PLACED', 'NEW', 'MODIFIED'].includes(upperStatus);
+}
+
+function appendStatusMessage(message: string, suffix: string): string {
+  const base = String(message || '').trim();
+  if (!suffix) return base;
+  if (!base) return suffix;
+  if (base.includes(suffix)) return base;
+  return `${base} | ${suffix}`;
+}
+
+function parseEventTime(value: unknown): number {
+  const parsed = Date.parse(asString(value));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function balancedRecentEvents(
+  events: RuntimeExecutionEventRecord[],
+  limits: {
+    perExchangeLimit: number;
+    totalLimit: number;
+  },
+): RuntimeExecutionEventRecord[] {
+  const { perExchangeLimit, totalLimit } = limits;
+  const byExchange = new Map<string, RuntimeExecutionEventRecord[]>();
+  const sorted = [...events].sort((left, right) => parseEventTime(right.loggedAt) - parseEventTime(left.loggedAt));
+  for (const event of sorted) {
+    const exchange = asString(event.exchange).trim().toLowerCase() || 'unknown';
+    const bucket = byExchange.get(exchange) || [];
+    if (bucket.length >= perExchangeLimit) {
+      continue;
+    }
+    bucket.push(event);
+    byExchange.set(exchange, bucket);
+  }
+  return Array.from(byExchange.values())
+    .flat()
+    .sort((left, right) => parseEventTime(right.loggedAt) - parseEventTime(left.loggedAt))
+    .slice(0, totalLimit);
+}
+
 function summarizeValue(value: unknown): string {
   if (typeof value === 'string') return value.trim();
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
@@ -272,13 +341,26 @@ export function buildRuntimeExecutionContext({
       asNumber(row.position_quantity) ??
       asNumber(orderPayload.quantity) ??
       asNumber(response.quantity);
-    const entryPrice =
+    const plannedEntryPrice =
       asNumber(actionSnapshot.entry_price) ??
       asNumber(actionSnapshot.entry) ??
       asNumber(orderPayload.price) ??
       asNumber(orderPayload.entry_price);
-    const stopLoss = asNumber(actionSnapshot.stop_loss) ?? asNumber(actionSnapshot.sl) ?? asNumber(orderPayload.stop_loss);
-    const takeProfit = asNumber(actionSnapshot.take_profit) ?? asNumber(actionSnapshot.tp) ?? asNumber(orderPayload.take_profit);
+    const actualEntryPrice =
+      asNumber(response.filled_price) ??
+      asNumber(response.actual_entry_price);
+    const plannedStopLoss =
+      asNumber(actionSnapshot.stop_loss) ??
+      asNumber(actionSnapshot.sl) ??
+      asNumber(orderPayload.stop_loss) ??
+      asNumber(response.planned_stop_loss);
+    const actualStopLoss = asNumber(response.actual_stop_loss) ?? plannedStopLoss;
+    const plannedTakeProfit =
+      asNumber(actionSnapshot.take_profit) ??
+      asNumber(actionSnapshot.tp) ??
+      asNumber(orderPayload.take_profit) ??
+      asNumber(response.planned_take_profit);
+    const actualTakeProfit = asNumber(response.actual_take_profit) ?? plannedTakeProfit;
     const reduceOnly =
       asBoolean(orderPayload.reduce_only) ??
       asBoolean(response.reduce_only) ??
@@ -330,10 +412,16 @@ export function buildRuntimeExecutionContext({
         marketState,
         timeframeSignals,
         side,
-        entryPrice,
-        eventPrice: asNumber(response.price) ?? entryPrice,
-        stopLoss,
-        takeProfit,
+        entryPrice: actualEntryPrice ?? plannedEntryPrice,
+        plannedEntryPrice,
+        actualEntryPrice,
+        eventPrice: asNumber(response.price) ?? actualEntryPrice ?? plannedEntryPrice,
+        stopLoss: actualStopLoss,
+        plannedStopLoss,
+        actualStopLoss,
+        takeProfit: actualTakeProfit,
+        plannedTakeProfit,
+        actualTakeProfit,
         quantity,
         orderClass,
         protectionKind,
@@ -341,8 +429,8 @@ export function buildRuntimeExecutionContext({
           actionSnapshot,
           orderPayload,
           marketState,
-          stopLoss,
-          takeProfit,
+          stopLoss: actualStopLoss,
+          takeProfit: actualTakeProfit,
           cyclePatch,
         }),
       },
@@ -391,6 +479,7 @@ export function buildRuntimeExecutionContext({
     const symbolKey = normalizeSymbolKey(asString(position.symbol));
     const context = asRecord(symbolEntryContext.get(symbolKey) || symbolLatestContext.get(symbolKey));
     return normalizeRuntimePosition(position, {
+      entryPrice: asNumber(position.entryPrice) ?? asNumber(context.entryPrice) ?? null,
       stopLoss: asNumber(position.stopLoss) ?? asNumber(context.stopLoss) ?? null,
       takeProfit: asNumber(position.takeProfit) ?? asNumber(context.takeProfit) ?? null,
       strategy:
@@ -411,6 +500,22 @@ export function buildRuntimeExecutionContext({
     positionContextMap.set(normalizeSymbolKey(asString(position.symbol)), position as unknown as UnknownRecord);
   }
 
+  function findMatchingLivePosition(event: UnknownRecord): RuntimePositionRecord | null {
+    const symbolKey = normalizeSymbolKey(asString(event.symbol));
+    const eventExchange = asString(event.exchange);
+    const eventSide = asString(event.side);
+    const eventStrategy = asString(event.strategy);
+    return (
+      positions.find((position) => {
+        if (normalizeSymbolKey(asString(position.symbol)) !== symbolKey) return false;
+        if (!sameExchange(eventExchange, asString(position.exchange))) return false;
+        if (!sameTradeDirection(eventSide, asString(position.side))) return false;
+        if (!sameStrategy(eventStrategy, asString(position.strategy))) return false;
+        return true;
+      }) || null
+    );
+  }
+
   const enrichEvent = (event: UnknownRecord): RuntimeExecutionEventRecord => {
     const symbolKey = normalizeSymbolKey(asString(event.symbol));
     const baseContext = asRecord(
@@ -420,7 +525,45 @@ export function buildRuntimeExecutionContext({
     );
     const eventSignals = asArray(event.timeframeSignals).map((item) => asString(item)).filter(Boolean);
     const baseSignals = asArray(baseContext.timeframeSignals).map((item) => asString(item)).filter(Boolean);
-    return normalizeRuntimeExecutionEvent(event, {
+    const livePositionEntryPrice = asNumber(baseContext.entryPrice);
+    const eventActualEntryPrice = asNumber(event.actualEntryPrice);
+    const eventPlannedEntryPrice = asNumber(event.plannedEntryPrice);
+    const liveEntryOrder = orders.find((order) => {
+      if (String(order.orderClass || '').toUpperCase() !== 'ENTRY') return false;
+      const eventOrderId = asString(event.orderId);
+      if (eventOrderId && eventOrderId === asString(order.orderId)) return true;
+      if (normalizeSymbolKey(asString(order.symbol)) !== symbolKey) return false;
+      if (!sameExchange(asString(event.exchange), asString(order.exchange))) return false;
+      if (!sameTradeDirection(asString(event.side), asString(order.side))) return false;
+      if (!sameStrategy(asString(event.strategy), asString(order.strategy))) return false;
+      return true;
+    }) || null;
+    const livePosition = findMatchingLivePosition(event);
+    let reconciledStatus = asString(event.status);
+    let reconciledMessage = asString(event.message);
+    if (isActiveEntryLifecycle(reconciledStatus, asString(event.type), asString(event.orderClass))) {
+      if (liveEntryOrder) {
+        reconciledStatus = asString(liveEntryOrder.status) || reconciledStatus;
+      } else if (livePosition) {
+        reconciledStatus = 'FILLED_TO_POSITION';
+        reconciledMessage = appendStatusMessage(reconciledMessage, '已成交成仓，当前不再是交易所活动挂单');
+      } else {
+        reconciledStatus = 'HISTORICAL_ENTRY';
+        reconciledMessage = appendStatusMessage(reconciledMessage, '当前不在交易所活动订单或持仓中');
+      }
+    }
+    const shouldHydrateActualEntryFromLivePosition =
+      asString(event.orderClass).toUpperCase() === 'ENTRY' &&
+      eventActualEntryPrice === null &&
+      livePositionEntryPrice !== null &&
+      sameTradeDirection(asString(event.side), asString(baseContext.side));
+    return normalizeRuntimeExecutionEvent(
+      {
+        ...event,
+        status: reconciledStatus,
+        message: reconciledMessage,
+      },
+      {
       strategy:
         canonicalStrategyLabel({
           strategy: asString(event.strategy) || asString(baseContext.strategy),
@@ -431,13 +574,22 @@ export function buildRuntimeExecutionContext({
       marketState: asString(event.marketState) || asString(baseContext.marketState),
       timeframeSignals: eventSignals.length > 0 ? eventSignals : baseSignals,
       entryPrice: asNumber(event.entryPrice) ?? asNumber(baseContext.entryPrice) ?? null,
+      plannedEntryPrice: eventPlannedEntryPrice,
+      actualEntryPrice: shouldHydrateActualEntryFromLivePosition ? livePositionEntryPrice : eventActualEntryPrice,
+      eventPrice:
+        shouldHydrateActualEntryFromLivePosition
+          ? livePositionEntryPrice
+          : (asNumber(event.eventPrice) ?? null),
       stopLoss: asNumber(event.stopLoss) ?? asNumber(baseContext.stopLoss) ?? null,
+      actualStopLoss: asNumber(event.actualStopLoss) ?? asNumber(baseContext.stopLoss) ?? null,
       takeProfit: asNumber(event.takeProfit) ?? asNumber(baseContext.takeProfit) ?? null,
+      actualTakeProfit: asNumber(event.actualTakeProfit) ?? asNumber(baseContext.takeProfit) ?? null,
       quantity: asNumber(event.quantity) ?? asNumber(baseContext.quantity) ?? null,
       orderClass: asString(event.orderClass),
       protectionKind: asString(event.protectionKind),
       template14: isRecord(event.template14) ? (event.template14 as Record<string, string | number | boolean | null>) : undefined,
-    });
+      },
+    );
   };
 
   const orders = openOrders.map((order) => {
@@ -471,8 +623,17 @@ export function buildRuntimeExecutionContext({
   return {
     positions,
     orders,
-    recentExecutions: recentExecutions.map((event) => enrichEvent(event)).slice().reverse().slice(0, 80),
-    managementActions: managementActions.map((event) => enrichEvent(event)).slice().reverse().slice(0, 80),
-    historicalOrders: historicalOrders.map((event) => enrichEvent(event)).slice().reverse().slice(0, 160),
+    recentExecutions: balancedRecentEvents(
+      recentExecutions.map((event) => enrichEvent(event)),
+      { perExchangeLimit: 60, totalLimit: 120 },
+    ),
+    managementActions: balancedRecentEvents(
+      managementActions.map((event) => enrichEvent(event)),
+      { perExchangeLimit: 60, totalLimit: 120 },
+    ),
+    historicalOrders: balancedRecentEvents(
+      historicalOrders.map((event) => enrichEvent(event)),
+      { perExchangeLimit: 160, totalLimit: 320 },
+    ),
   };
 }

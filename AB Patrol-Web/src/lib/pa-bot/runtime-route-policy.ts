@@ -47,10 +47,13 @@ export function shouldIncludeSystemHistory(view: RuntimeView): boolean {
 }
 
 export function runtimeViewCacheTtlMs(view: RuntimeView): number {
-  if (view === 'orders' || view === 'review') return 3000;
-  if (view === 'overview') return 8000;
-  if (view === 'accounts' || view === 'system') return 8000;
+  if (view === 'overview' || view === 'accounts' || view === 'orders') {
+    return 5000;
+  }
+  if (view === 'review' || view === 'system' || view === 'full') {
+    return 7000;
+  }
   if (view === 'settings') return 12000;
-  if (view === 'audit') return 15000;
+  if (view === 'audit') return 10000;
   return 5000;
 }

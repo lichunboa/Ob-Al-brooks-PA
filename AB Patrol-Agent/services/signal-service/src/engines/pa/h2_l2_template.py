@@ -10,11 +10,25 @@ from __future__ import annotations
 from typing import Optional
 
 from .models import Candle, PASignal
+from .signal_bar import build_brooks_signal_bar_profile
 from .structure_stops import build_channel_recovery_stop, build_trend_pullback_stop
+from .trend_recovery import build_major_swing_anchor
 
 
 class H2L2TemplateMixin:
     """封装 H2/L2 通用模板逻辑。"""
+
+    def _h2_l2_signal_profile(
+        self,
+        signal_bar: Candle,
+        prior_bar: Candle,
+        ema_value: float,
+        direction: str,
+    ) -> dict[str, float | bool | str]:
+        """直接复用通用 signal bar 类型学，不再经由 H1/L1 间接调用。"""
+        profile = build_brooks_signal_bar_profile(signal_bar, prior_bar, ema_value, direction)
+        profile["signal_family"] = "h2_l2"
+        return profile
 
     def _h2_l2_stop_plan(
         self,
@@ -26,7 +40,14 @@ class H2L2TemplateMixin:
         signal_profile: dict[str, float | bool | str],
         atr: float = 0.0,
     ) -> dict[str, float | str]:
-        """按 H2/L2 模板返回初始止损方案。"""
+        """按 H2/L2 模板返回初始止损方案。
+
+        Brooks: H2/L2 是二次入场，止损应在整个 2-leg 回调低点外。
+        "The patterns are often nested... as long as they use the
+        correct swing stop." (10 Best Patterns)
+        区间时用 channel_recovery_stop（更宽 lookback=12 覆盖 TTR）。
+        趋势时用 trend_pullback_stop（lookback=6 覆盖回调腿）。
+        """
         increment = self._minimum_price_increment(candles, entry_trigger)
         buffer_size = self._structure_buffer(candles, entry_trigger)
 
@@ -50,9 +71,10 @@ class H2L2TemplateMixin:
                 float(signal_bar.high),
                 float(signal_bar.low),
                 atr,
+                lookback=10,  # H2/L2 二次入场需覆盖整个 2-leg 回调
             )
 
-        major_anchor = self._h1_l1_major_swing_anchor(candles, direction)
+        major_anchor = build_major_swing_anchor(candles, direction)
         major_stop = 0.0
         if major_anchor is not None:
             major_stop = major_anchor - buffer_size if direction == "BUY" else major_anchor + buffer_size
@@ -62,10 +84,6 @@ class H2L2TemplateMixin:
         if bool(signal_profile.get("trend_bar")) and bool(signal_profile.get("close_near_extreme_strong")):
             selected_stop = signal_bar_stop
             selected_type = "signal_bar_stop"
-        elif major_stop > 0 and bool(signal_profile.get("inside_signal")):
-            selected_stop = major_stop
-            selected_type = "major_hl_lh_stop"
-
         actual_risk = entry_trigger - selected_stop if direction == "BUY" else selected_stop - entry_trigger
         nominal_risk = entry_trigger - signal_bar_stop if direction == "BUY" else signal_bar_stop - entry_trigger
 
@@ -89,7 +107,12 @@ class H2L2TemplateMixin:
         entry_trigger: float,
         actual_risk: float,
     ) -> dict[str, float | str]:
-        """按 H2/L2 模板返回 close-test / swing 两层目标。"""
+        """按 H2/L2 模板返回 close-test / swing 两层目标。
+
+        H2/L2 是二次入场，前面经历了完整的 2-leg 回调，目标应
+        基于回调前趋势腿的 prior swing。lookback=25 覆盖 2-leg
+        回调 + 之前的趋势腿。
+        """
         increment = self._minimum_price_increment(candles, entry_trigger)
         context = candles[-25:-1] if len(candles) > 1 else candles
         if not context:
@@ -103,19 +126,19 @@ class H2L2TemplateMixin:
                 "close_test_target": float(fallback_target),
                 "close_test_target_type": "prior_high" if direction == "BUY" else "prior_low",
                 "swing_target": float(
-                    entry_trigger + actual_risk * 2.0 if direction == "BUY" else entry_trigger - actual_risk * 2.0
+                    entry_trigger + actual_risk * 1.5 if direction == "BUY" else entry_trigger - actual_risk * 1.5
                 ),
-                "swing_target_type": "measured_move_2x",
+                "swing_target_type": "measured_move_1_5x",
                 "effective_target": float(fallback_target),
                 "effective_target_type": "measured_move_1x",
                 "stretch_target": float(
-                    entry_trigger + actual_risk * 3.0 if direction == "BUY" else entry_trigger - actual_risk * 3.0
+                    entry_trigger + actual_risk * 2.0 if direction == "BUY" else entry_trigger - actual_risk * 2.0
                 ),
-                "stretch_target_type": "measured_move_3x",
+                "stretch_target_type": "measured_move_2x",
                 "target_buffer": float(increment),
             }
 
-        local_context = context[-8:] if len(context) >= 8 else context
+        local_context = context[-6:] if len(context) >= 6 else context
         if direction == "BUY":
             prior_extreme = max(float(bar.high) for bar in context)
             close_extreme = max(float(bar.close) for bar in context)
@@ -124,15 +147,19 @@ class H2L2TemplateMixin:
             close_level = prior_extreme if prior_extreme > max(entry_trigger + increment, rescue_level + increment) else 0.0
             swing_level = max(
                 pullback_origin if pullback_origin > entry_trigger + increment else 0.0,
-                entry_trigger + actual_risk * 2.0,
+                entry_trigger + actual_risk,
             )
-            stretch_level = max(entry_trigger + actual_risk * 3.0, swing_level + actual_risk * 0.5)
+            stretch_level = max(entry_trigger + actual_risk * 1.5, swing_level + increment)
             first_level = close_level or rescue_level or swing_level
-            first_type = "prior_high" if close_level else ("highest_close" if rescue_level else "measured_move_2x")
+            first_type = "prior_high" if close_level else ("highest_close" if rescue_level else "measured_move_1x")
+            minimum_profit_target = entry_trigger + actual_risk
+            if first_level < minimum_profit_target:
+                first_level = minimum_profit_target
+                first_type = "measured_move_1x"
             take_profit = max(first_level - increment, entry_trigger + increment)
             rescue_type = "highest_close" if rescue_level else ""
             close_type = "prior_high" if close_level else ""
-            swing_type = "pullback_origin" if pullback_origin > entry_trigger + increment else "measured_move_2x"
+            swing_type = "pullback_origin" if pullback_origin > entry_trigger + increment else "measured_move_1x"
         else:
             prior_extreme = min(float(bar.low) for bar in context)
             close_extreme = min(float(bar.close) for bar in context)
@@ -141,15 +168,19 @@ class H2L2TemplateMixin:
             close_level = prior_extreme if prior_extreme < min(entry_trigger - increment, rescue_level - increment if rescue_level > 0 else entry_trigger - increment) else 0.0
             swing_level = min(
                 pullback_origin if pullback_origin < entry_trigger - increment else entry_trigger,
-                entry_trigger - actual_risk * 2.0,
+                entry_trigger - actual_risk,
             )
-            stretch_level = min(entry_trigger - actual_risk * 3.0, swing_level - actual_risk * 0.5)
+            stretch_level = min(entry_trigger - actual_risk * 1.5, swing_level - increment)
             first_level = close_level or rescue_level or swing_level
-            first_type = "prior_low" if close_level else ("lowest_close" if rescue_level else "measured_move_2x")
+            first_type = "prior_low" if close_level else ("lowest_close" if rescue_level else "measured_move_1x")
+            minimum_profit_target = entry_trigger - actual_risk
+            if first_level > minimum_profit_target:
+                first_level = minimum_profit_target
+                first_type = "measured_move_1x"
             take_profit = min(first_level + increment, entry_trigger - increment)
             rescue_type = "lowest_close" if rescue_level else ""
             close_type = "prior_low" if close_level else ""
-            swing_type = "pullback_origin" if pullback_origin < entry_trigger - increment else "measured_move_2x"
+            swing_type = "pullback_origin" if pullback_origin < entry_trigger - increment else "measured_move_1x"
 
         return {
             "take_profit": float(take_profit),
@@ -164,7 +195,7 @@ class H2L2TemplateMixin:
             "effective_target": float(first_level),
             "effective_target_type": first_type,
             "stretch_target": float(stretch_level),
-            "stretch_target_type": "measured_move_3x",
+            "stretch_target_type": "measured_move_2x",
             "target_buffer": float(increment),
         }
 

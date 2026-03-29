@@ -8,12 +8,50 @@ import logging
 import time
 from typing import Any, Optional
 
+from .config import MAX_LEVERAGE
 
 logger = logging.getLogger(__name__)
 
 
 class ExecutionMarketMixin:
     """封装品种约束、时间同步、费率与杠杆相关逻辑。"""
+
+    @staticmethod
+    def _precision_to_step(value: Any) -> float | None:
+        """把交易所 precision 字段安全转换成 step/tick。"""
+        if value in (None, "", False):
+            return None
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return None
+        if numeric <= 0:
+            return None
+        if float(int(numeric)) == numeric and numeric >= 1:
+            digits = int(numeric)
+            if 0 < digits <= 18:
+                return 10 ** (-digits)
+        return numeric
+
+    @staticmethod
+    def _snap_quantity_with_rules(
+        desired: float,
+        *,
+        min_qty: float,
+        max_qty: float,
+        step: float,
+    ) -> float:
+        """按交易所规格向下贴合数量。"""
+        snapped = max(0.0, float(desired or 0.0))
+        if snapped <= 0:
+            return 0.0
+        if step > 0:
+            snapped = float(int(snapped / step)) * step
+        if min_qty > 0 and snapped < min_qty:
+            snapped = min_qty if desired >= min_qty else 0.0
+        if max_qty > 0:
+            snapped = min(snapped, max_qty)
+        return max(0.0, snapped)
 
     def get_symbol_info(self, symbol: str) -> dict:
         """获取品种规格，失败时返回保守默认值。"""
@@ -31,6 +69,7 @@ class ExecutionMarketMixin:
             "quantity_step": 0.0,
             "tick_size": 0.0,
             "lot_size": 0.0,
+            "min_notional": 0.0,
         }
 
     def _load_market_descriptor(self, symbol: str) -> dict[str, Any]:
@@ -140,6 +179,7 @@ class ExecutionMarketMixin:
                 "quantity_step": float(info.get("quantity_step") or 0.0),
                 "tick_size": float(info.get("tick_size") or 0.0),
                 "lot_size": float(info.get("lot_size") or 0.0),
+                "min_notional": float(info.get("min_notional") or 0.0),
                 "contract_size": 0.0,
                 "market_symbol": str(info.get("symbol") or symbol),
                 "max_leverage": None,
@@ -148,14 +188,21 @@ class ExecutionMarketMixin:
 
             if self.exchange_name != "ctrader":
                 market = self._load_market_descriptor(symbol)
-                amount_precision = self._positive_float(
+                amount_precision = self._precision_to_step(
                     ((market.get("precision") or {}).get("amount") if isinstance(market, dict) else None)
                 )
-                price_precision = self._positive_float(
+                price_precision = self._precision_to_step(
                     ((market.get("precision") or {}).get("price") if isinstance(market, dict) else None)
                 )
                 constraints["market_symbol"] = str(market.get("symbol") or self._normalize_symbol_for_ccxt(symbol))
                 constraints["contract_size"] = float(market.get("contractSize") or 0.0) if isinstance(market, dict) else 0.0
+                min_cost = self._positive_float(
+                    ((market.get("limits") or {}).get("cost") or {}).get("min") if isinstance(market, dict) else None,
+                    ((market.get("info") or {}).get("minNotional")) if isinstance(market, dict) else None,
+                    ((market.get("info") or {}).get("notional")) if isinstance(market, dict) else None,
+                )
+                if min_cost is not None and constraints["min_notional"] <= 0:
+                    constraints["min_notional"] = min_cost
                 if constraints["quantity_step"] <= 0 and amount_precision is not None:
                     constraints["quantity_step"] = amount_precision
                 if constraints["tick_size"] <= 0 and price_precision is not None:
@@ -169,6 +216,9 @@ class ExecutionMarketMixin:
 
         result = dict(cached)
         requested = self._positive_float(desired_leverage)
+        global_cap = self._positive_float(MAX_LEVERAGE)
+        if requested is not None and global_cap is not None:
+            requested = min(requested, global_cap)
         max_leverage = self._positive_float(result.get("max_leverage"))
         if requested is not None and max_leverage is not None:
             result["effective_leverage"] = max(1.0, min(requested, max_leverage))
@@ -231,14 +281,74 @@ class ExecutionMarketMixin:
         info = self.get_symbol_info(symbol)
         min_qty = max(0.0, float(info.get("min_quantity") or 0.0))
         step = max(0.0, float(info.get("quantity_step") or 0.0))
-        snapped = desired
-        if step > 0:
-            snapped = float(int(desired / step)) * step
-        if min_qty > 0 and snapped < min_qty:
-            snapped = min_qty if desired >= min_qty else 0.0
         max_qty = max(0.0, float(info.get("max_quantity") or 0.0))
-        if max_qty > 0:
-            snapped = min(snapped, max_qty)
+        return self._snap_quantity_with_rules(
+            desired,
+            min_qty=min_qty,
+            max_qty=max_qty,
+            step=step,
+        )
+
+    def snap_price_to_symbol(self, symbol: str, price: float, *, side: str | None = None) -> float:
+        """把价格贴合到交易所允许的最小跳动单位。"""
+        desired = float(price or 0.0)
+        if desired <= 0:
+            return 0.0
+        info = self.get_symbol_info(symbol)
+        tick_size = max(0.0, float(info.get("tick_size") or 0.0))
+        if tick_size <= 0:
+            return desired
+
+        side_upper = str(side or "").strip().upper()
+        ratio = desired / tick_size
+        if side_upper == "BUY":
+            snapped_units = int(ratio)
+        elif side_upper == "SELL":
+            snapped_units = int(-(-ratio // 1))
+        else:
+            snapped_units = round(ratio)
+        snapped = float(snapped_units) * tick_size
+        if snapped <= 0:
+            snapped = tick_size
+        return snapped
+
+    def snap_close_quantity_to_symbol(self, symbol: str, quantity: float, *, held_quantity: float | None = None) -> float:
+        """按平仓语义贴合数量，必要时自动升级为整仓平掉。"""
+        desired = max(0.0, float(quantity or 0.0))
+        held = max(0.0, float(held_quantity or 0.0))
+        if desired <= 0:
+            return 0.0
+        if self.exchange_name == "ctrader" and hasattr(self.exchange, "client"):
+            try:
+                volume = self.exchange.client.quantity_to_volume(symbol, desired)
+                snapped = float(self.exchange.client.volume_to_quantity(volume))
+                if held > 0:
+                    snapped = min(snapped, held)
+                return max(0.0, snapped)
+            except Exception as exc:
+                logger.warning("cTrader 平仓数量贴合失败 %s: %s", symbol, exc)
+
+        info = self.get_symbol_info(symbol)
+        min_qty = max(0.0, float(info.get("min_quantity") or 0.0))
+        max_qty = max(0.0, float(info.get("max_quantity") or 0.0))
+        step = max(0.0, float(info.get("quantity_step") or 0.0))
+        tol = max(step * 0.5, 1e-8) if step > 0 else 1e-8
+
+        snapped = self._snap_quantity_with_rules(
+            desired,
+            min_qty=min_qty,
+            max_qty=max_qty,
+            step=step,
+        )
+        if held > 0:
+            snapped = min(snapped, held)
+            if held - desired <= tol:
+                return held
+            if snapped <= 0 and min_qty > 0 and held - desired < min_qty + tol:
+                return held
+            remaining = held - snapped
+            if remaining > tol and min_qty > 0 and remaining < min_qty:
+                return held
         return max(0.0, snapped)
 
     @staticmethod

@@ -60,6 +60,7 @@ class ExecutionQueryMixin:
                 ]
 
             balance = await self._call_with_time_async("fetch_balance", self.exchange.fetch_balance)
+            self._clear_exchange_block_on_private_success()
 
             usdt = balance.get("USDT", {})
             if usdt:
@@ -170,6 +171,7 @@ class ExecutionQueryMixin:
 
             return []
         except Exception as e:
+            self._capture_exchange_block(e)
             logger.error(f"获取余额失败: {e}")
             return []
 
@@ -186,6 +188,15 @@ class ExecutionQueryMixin:
                 if recovered_strategy and recovered_strategy.lower() != "auto":
                     return recovered_strategy
                 return None
+
+            def _resolved_timeframe(symbol: str) -> str | None:
+                bot_ids = self.get_position_bot_ids(symbol)
+                timeframe = self.get_position_timeframe(symbol, bot_ids[0] if bot_ids else None)
+                if timeframe:
+                    return str(timeframe).strip().lower()
+                recovered = self._recover_bot_from_order_map(symbol) or self._recover_bot_from_execution_log(symbol)
+                recovered_timeframe = str((recovered or {}).get("timeframe") or "").strip().lower()
+                return recovered_timeframe or None
 
             if self.exchange_name == "ctrader":
                 positions = self.exchange.get_positions()
@@ -221,11 +232,13 @@ class ExecutionQueryMixin:
                             native_stop_loss=bool(float(pos.get("stop_loss", 0) or 0) or None),
                             native_take_profit=bool(float(pos.get("take_profit", 0) or 0) or None),
                             strategy=_resolved_strategy(symbol),
+                            timeframe=_resolved_timeframe(symbol),
                         )
                     )
                 return result
 
             positions = await self._call_with_time_async("fetch_positions", self.exchange.fetch_positions)
+            self._clear_exchange_block_on_private_success()
             result = []
 
             for pos in positions:
@@ -283,6 +296,7 @@ class ExecutionQueryMixin:
                             native_stop_loss=False,
                             native_take_profit=False,
                             strategy=_resolved_strategy(symbol),
+                            timeframe=_resolved_timeframe(symbol),
                         )
                     )
 
@@ -298,6 +312,7 @@ class ExecutionQueryMixin:
 
             return result
         except Exception as e:
+            self._capture_exchange_block(e)
             logger.error(f"获取持仓失败: {e}")
             return []
 
@@ -316,9 +331,11 @@ class ExecutionQueryMixin:
                     order_id = str(order.get("order_id", ""))
                     bot_id = self._lookup_bot_id(order_id)
                     strategy = self.get_order_strategy(order_id)
+                    timeframe = self.get_order_timeframe(order_id)
                     if strategy == "auto":
                         recovered = self._recover_bot_from_execution_log(str(order.get("symbol", "")).upper())
                         strategy = str((recovered or {}).get("strategy") or "auto")
+                        timeframe = timeframe or str((recovered or {}).get("timeframe") or "").strip().lower() or None
                     result.append(
                         OpenOrder(
                             order_id=order_id,
@@ -334,6 +351,7 @@ class ExecutionQueryMixin:
                             bot_id=bot_id,
                             client_order_id=None,
                             strategy=None if strategy == "auto" else strategy,
+                            timeframe=timeframe,
                         )
                     )
                 return result
@@ -342,6 +360,7 @@ class ExecutionQueryMixin:
             if symbol:
                 ccxt_sym = self._normalize_symbol_for_ccxt(symbol)
                 orders = await self._call_with_time_async("fetch_open_orders", self.exchange.fetch_open_orders, ccxt_sym)
+                self._clear_exchange_block_on_private_success()
             else:
                 positions = await self.get_positions()
                 symbols_to_check = set(self._iter_allowed_ccxt_symbols())
@@ -350,15 +369,27 @@ class ExecutionQueryMixin:
                 for sym in symbols_to_check:
                     try:
                         sym_orders = await self._call_with_time_async("fetch_open_orders", self.exchange.fetch_open_orders, sym)
+                        self._clear_exchange_block_on_private_success()
                         orders.extend(sym_orders)
-                    except Exception:
+                    except Exception as exc:
+                        self._capture_exchange_block(exc)
                         pass
 
             if self.exchange_name == "binance":
                 native_orders = await asyncio.to_thread(self._fetch_native_binance_open_orders, symbol)
                 if native_orders:
+                    self._clear_exchange_block_on_private_success()
                     existing_ids = {str(order.get("id") or "") for order in orders if isinstance(order, dict)}
                     for order in native_orders:
+                        order_id = str(order.get("id") or "")
+                        if order_id and order_id not in existing_ids:
+                            orders.append(order)
+                            existing_ids.add(order_id)
+                native_algo_orders = await asyncio.to_thread(self._fetch_native_binance_open_algo_orders, symbol)
+                if native_algo_orders:
+                    self._clear_exchange_block_on_private_success()
+                    existing_ids = {str(order.get("id") or "") for order in orders if isinstance(order, dict)}
+                    for order in native_algo_orders:
                         order_id = str(order.get("id") or "")
                         if order_id and order_id not in existing_ids:
                             orders.append(order)
@@ -377,7 +408,9 @@ class ExecutionQueryMixin:
                 for sym in symbols_to_supplement:
                     try:
                         recent_orders = await self._call_with_time_async("fetch_orders", self.exchange.fetch_orders, sym, None, 50)
-                    except Exception:
+                        self._clear_exchange_block_on_private_success()
+                    except Exception as exc:
+                        self._capture_exchange_block(exc)
                         continue
                     for order in recent_orders:
                         if not isinstance(order, dict):
@@ -496,11 +529,13 @@ class ExecutionQueryMixin:
                             if self.get_order_strategy(order_id) == "auto"
                             else self.get_order_strategy(order_id)
                         ),
+                        timeframe=self.get_order_timeframe(order_id),
                     )
                 )
 
             return result
         except Exception as e:
+            self._capture_exchange_block(e)
             logger.error(f"获取挂单失败: {e}")
             return []
 
@@ -517,6 +552,7 @@ class ExecutionQueryMixin:
             if symbol:
                 ccxt_sym = self._normalize_symbol_for_ccxt(symbol)
                 trades = await self._call_with_time_async("fetch_my_trades", self.exchange.fetch_my_trades, ccxt_sym, limit=limit)
+                self._clear_exchange_block_on_private_success()
             else:
                 symbols_to_check = {
                     "BTC/USDT:USDT",
@@ -537,8 +573,10 @@ class ExecutionQueryMixin:
                             sym,
                             limit=limit,
                         )
+                        self._clear_exchange_block_on_private_success()
                         trades.extend(sym_trades)
-                    except Exception:
+                    except Exception as exc:
+                        self._capture_exchange_block(exc)
                         pass
 
             result = []
@@ -574,6 +612,7 @@ class ExecutionQueryMixin:
 
             return result
         except Exception as e:
+            self._capture_exchange_block(e)
             logger.error(f"获取交易历史失败: {e}")
             return []
 
@@ -641,5 +680,6 @@ class ExecutionQueryMixin:
                 can_trade=bool(info.get("canTrade", True)),
             )
         except Exception as e:
+            self._capture_exchange_block(e)
             logger.error(f"获取账户汇总失败: {e}")
             return None

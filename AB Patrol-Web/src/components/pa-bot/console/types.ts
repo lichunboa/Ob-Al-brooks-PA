@@ -28,6 +28,30 @@ export type RuntimeBundle = {
   runtimes: RuntimeData[];
 };
 
+export type RuntimeCurrentAction = {
+  symbol: string;
+  exchange: string;
+  type: string;
+  status: string;
+  strategy: string;
+  marketState: string;
+  timeframe: string;
+  candidateStage: string;
+  executionMode: string;
+  entryPrice: number | null;
+  stopLoss: number | null;
+  takeProfit: number | null;
+  reason: string;
+  message: string;
+  finalStatus: string;
+  finalMessage: string;
+  failureBucket: string;
+  failureLabel: string;
+  executionAttempted: boolean;
+  livePosition: boolean;
+  liveOrder: boolean;
+};
+
 export type RuntimeData = {
   runtimeLabel: string;
   health: {
@@ -52,6 +76,11 @@ export type RuntimeData = {
     marketSummary: string;
     explanation: string;
     actionsCount: number;
+    candidateCount: number;
+    executableCount: number;
+    gateRejectedCount?: number;
+    livePositionCount?: number;
+    liveOrderCount?: number;
     positionManagementCount: number;
     strategyFamilies: Array<{ label: string; count: number }>;
     strategyCatalog: StrategyCatalogItem[];
@@ -113,7 +142,55 @@ export type RuntimeData = {
     sessionAgeSeconds: number | null;
     uptimeSeconds: number | null;
     sessionTurnCount: number | null;
-    sessionModel: string | null;
+  };
+  performance: {
+    rangeLabel: string;
+    startAt: string | null;
+    endAt: string | null;
+    total: {
+      tradeRows: number;
+      realizedTradeCount: number;
+      wins: number;
+      losses: number;
+      winRatePct: number;
+      grossProfit: number;
+      grossLoss: number;
+      profitFactor: number | null;
+      commission: number;
+      netRealized: number;
+      cleanup: {
+        partialClosed: number;
+        closeSuccess: number;
+        sizeFailed: number;
+        notFound: number;
+        modifyFailed: number;
+        modifySkipped: number;
+      };
+    };
+    exchanges: Array<{
+      exchange: string;
+      label: string;
+      startAt: string | null;
+      endAt: string | null;
+      tradeRows: number;
+      realizedTradeCount: number;
+      wins: number;
+      losses: number;
+      winRatePct: number;
+      grossProfit: number;
+      grossLoss: number;
+      profitFactor: number | null;
+      commission: number;
+      netRealized: number;
+      cleanup: {
+        partialClosed: number;
+        closeSuccess: number;
+        sizeFailed: number;
+        notFound: number;
+        modifyFailed: number;
+        modifySkipped: number;
+      };
+    }>;
   };
   nextScan: {
     inSeconds: number | null;
@@ -190,6 +267,7 @@ export type RuntimeData = {
   recentExecutions: RuntimeExecutionEventRecord[];
   managementActions: RuntimeExecutionEventRecord[];
   historicalOrders: RuntimeExecutionEventRecord[];
+  currentActions: RuntimeCurrentAction[];
   audit: {
     lookbackCycles: number;
     totalSymbolsObserved: number;

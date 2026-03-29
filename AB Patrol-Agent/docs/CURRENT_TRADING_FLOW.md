@@ -1,287 +1,177 @@
 # 当前交易流程与策略覆盖
 
-> 更新于 2026-03-13
-
-本文档只描述当前仓库里真实连通的两条交易链，不记录已经删除的旧链路。
-
-补充说明：
-
-- `signal-service` 现在只保留 Brooks / PA 主引擎。
-- 旧的 `legacy-pg / sqlite rules / subscription` 链已经从当前主仓库移除。
-- live 与权威回测都不再依赖旧推荐矩阵或指标规则库。
-
-## 一、当前存在的 2 条主链与 1 组入口脚本
-
-### 1. live 检测链
-
-权威入口：
-
-- `services/signal-service/src/engines/pa_engine.py`
-- `services/signal-service/src/engines/pa/strategy_advanced.py`
-- `services/signal-service/src/engines/market_state_engine.py`
-
-当前真实可生成的 `signal_type` 至少有 23 个：
-
-- `收线追进`
-- `高1`
-- `低1`
-- `高2`
-- `低2`
-- `第二腿陷阱`
-- `看衰突破`
-- `双重顶`
-- `双重底`
-- `楔形顶`
-- `楔形底`
-- `急速通道`
-- `HOY突破`
-- `LOY突破`
-- `末端旗形`
-- `突破回调`
-- `第一均线缺口`
-- `头肩顶MTR`
-- `头肩底MTR`
-- `ii突破`
-- `ioi突破`
-- `iii突破`
-- `急赴磁体`
+> 更新于 2026-03-28
 
-说明：
+本文档只描述当前 `AB Patrol-Agent` 里真实连通的 live / backtest 主链。
 
-- 其中 `ii突破 / ioi突破 / iii突破` 来自 `detect_ii_breakout()` 的动态模式名。
-- `急赴磁体` 仍然有 detector 逻辑，但当前主生成流程已明确把它降为上下文证据，不再视为稳定的独立下单 setup。
+## 1. 当前 live 主链
 
-### 2. 回测过滤层
+当前 live 交易主链是：
 
-权威入口：
+```text
+实时 K 线 / 历史 K 线
+  -> signal-service / pa_engine
+  -> runtime._prepare_live_rule_patch
+  -> Brooks filter
+  -> rule engine
+  -> trade gate
+  -> execution-service
+  -> runtime_state / cycle / journal
+  -> AB Patrol-Web
+```
 
-- `libs/backtest/strategy_filters.py`
+### 当前必须知道的口径
 
-当前登记的 `ALL_KNOWN_STRATEGIES` 有 24 个：
+- 当前 live 开仓默认只使用 `15m`
+- `1h` 只做背景、边界与顺逆势判断
+- 当前 live 决策主链是纯规则引擎，不再依赖 LLM 决策
+- 当前 `OPEN_ORDER` 在进入执行器前，必须先通过 trade gate 预检
+- 当前 Web 摘要已经拆成：
+  - `当前轮次候选 / 可执行 / Gate 拒绝`
+  - `真实持仓 / 活动挂单 / 账户快照`
+
+## 2. 当前 backtest 主链
+
+当前权威回测主链是：
+
+```text
+历史 K 线
+  -> signal-service / pa_engine
+  -> libs.backtest.runner
+  -> strategy filters / playbook route
+  -> trading.position_management
+  -> 回测结果 / 图表 / API
+```
 
-- `收线追进`
-- `高1`
-- `低1`
-- `高2`
-- `低2`
-- `看衰突破`
-- `第二腿陷阱`
-- `双重顶`
-- `双重底`
-- `楔形顶`
-- `楔形底`
-- `急速通道`
-- `末端旗形`
-- `20均线缺口`
-- `MAG 20/20 Setup`
-- `第一均线缺口`
-- `突破回调`
-- `ii突破`
-- `ioi突破`
-- `iii突破`
-- `头肩顶MTR`
-- `头肩底MTR`
-- `HOY突破`
-- `LOY突破`
+这意味着：
 
-当前策略配置档只有 2 个：
+- live 与 backtest 共用同一套 Brooks 信号引擎
+- live 与 backtest 主要差别在于：
+  - live 有实时状态、交易所校验、trade gate、execution-service
+  - backtest 有回测路由、绩效汇总、历史对账
 
-- `brooks_pullback_core`
-- `brooks_mtr_focus`
+## 3. 当前部署的 live 策略家族
 
-### 3. 回测 Brooks playbook 路由
+当前 live 主要围绕 3 个策略家族运行：
 
-权威入口：
+- `T1: H1/L1 after BO`
+- `T2: H2/L2 trend second entry`
+- `T2: H2/L2 broad channel recovery`
 
-- `libs/backtest/runner.py`
+### 当前 live 策略语义
 
-当前可路由到的 `playbook_id` 有 20 个，其中 `S4` 的 15 个基线 playbook 已全部具备独立路由：
+- `T1: H1/L1 after BO`
+  - 趋势突破后第一次像样回调
+  - 围绕 `H1 / L1` signal bar 用 stop-entry
+- `T2: H2/L2 trend second entry`
+  - 趋势里第二次进场
+  - 强调 pullback leg、second entry 与顺势 continuation
+- `T2: H2/L2 broad channel recovery`
+  - 宽通道 / 趋势交易区间里的顺势恢复
+  - 不是机械追价，而是恢复条件成立后再用 stop
 
-- `R1_BROAD_CHANNEL_REVERSAL`
-- `R2_TR_EDGE_REVERSAL`
-- `R3_CHANNEL_LINE_BO_FADE`
-- `T1_FIRST_PULLBACK`
-- `T2_BROAD_CHANNEL_RECOVERY`
-- `T2_TREND_H2`
-- `T3_BROAD_CHANNEL_EMA`
-- `T3_TREND_EMA`
-- `T4_WEDGE_PULLBACK`
-- `T5_BREAKOUT_CHASE`
-- `T6_TR_LEG_CHANNEL_RECOVERY`
-- `T6_TR_LEG_EMA_RECOVERY`
-- `T6_TR_LEG_FIRST_PULLBACK`
-- `TR1_BLSHS`
-- `TR2_FAILED_BO_FADE`
-- `TR3_SECOND_LEG_TRAP`
-- `TR4_DAILY_TR_FADE`
-- `S1_HTF_SR_REVERSAL`
-- `S2_MICRO_CHANNEL_REVERSAL`
-- `R0_FIRST_REVERSAL_PROBE`
+## 4. 当前为什么会“不成交”
 
-## 二、当前真实连通的交易流程
+当前“不成交”有 3 种完全不同的状态，必须分开看：
 
-### 1. live 主链
+### 1. `watching`
 
-`knowledge/`
+- 只识别到背景
+- 还没到可执行 setup
 
--> `services/signal-service/src/engines/pa_engine.py`
+### 2. `pre_signal`
 
--> 生成 `PASignal`
+- 已识别到 Brooks signal
+- 但还没满足触发或接受
 
--> `services/signal-service/src/engines/pa/risk.py`
+### 3. `entry_ready`
 
--> entry gate / 风控分类 / playbook 标记
+- 已满足 stop-entry 候选结构
+- 但仍可能被 `trade gate` 拒绝
 
--> execution-service / API / Web 可见性链
+最常见的拒绝原因：
 
--> `runtime/pa_runtime.py` 消费 `execution-service` 的 `stop_loss_hit` 事件，注册 live `re-entry` 观察窗口，并在同方向 setup 仍成立时把 `planned_trade.intent` 提升为 `REENTRY`
+- `R:R` 不达标
+- `SL / TP` 结构不合法
+- 订单会立即触发
+- 缺少同源保护位
+- 已有真实持仓 / 保护单，占用风险预算或触发同品种冲突
+- 交易所余额、可用保证金或最小名义价值不满足执行条件
 
--> `trading/position_management/`
+因此，“没有成交”不等于“没有识别到信号”。
 
--> Premise / Strength / 分批止盈 / 止盈目标调整 / 移动止损 / 显式加仓或撤单动作
+## 5. 当前图表主链
 
-### 2. 权威回测主链
+当前图表栈不是图片回显，而是：
 
-`knowledge/`
+```text
+trade_chart_data.py
+  -> brooks_chart_overlay.py
+  -> Web /api/pa-bot/live-chart
+  -> trade-chart-panel.tsx
+```
 
--> `services/signal-service/src/engines/pa_engine.py`
+### 图表当前职责
 
--> `libs/backtest/runner.BacktestRunner`
+- K 线显示
+- EMA / 成交量
+- Brooks 信号与模式
+- 计划入场 / 实际成交
+- 计划止损 / 实际止损
+- 计划止盈 / 实际止盈
+- 回测事件与 live 事件
+- 图层按钮复选
+- 周期切换
+- 监控池快捷品种切换
+- `策略图 / 市场图` 双标签
+- 市场图使用 TradingView widget 做原始行情对照
+- 策略图继续使用 `lightweight-charts + Python Brooks overlay`
+- 策略图当前已支持分组勾选：
+  - `H1-Hn / L1-Ln`
+  - `Signal Bar / 风险`
+  - `ii / ioi / oo`
+  - `mDT / mDB`
+  - `DT / DB / Wedge / MTR / PW`
+  - `Gap / MAG / MM / 前一交易日关键价位`
 
--> `libs/backtest/strategy_filters.py`
+当前主图采用：
 
--> playbook 路由 + 管理模板 + `trading/position_management/`
+- `lightweight-charts`
+- Python 计算的 Brooks overlay
 
--> 回测报告 / API 输出
+当前市场图采用：
 
-### 3. 回测入口脚本
+- TradingView Advanced Chart widget
+- 只负责原始行情、社区指标和更长历史浏览
+- 不承载计划入场、实际成交、回测事件和 runtime 状态
 
-`tools/backtest/run_backtest.py`
+## 5.1 当前 trade gate 口径
 
-`tools/backtest/run_backtest_v2.py`
+- `40%` 反转和 `COUNTERTREND_PROBE` 继续要求至少 `2R`
+- 顺势 continuation（如 `H1/L1 after BO`、`H2/L2 trend second entry`、`broad channel recovery`）不再机械统一要求 `2R`
+- 如果模板已经明确 `first_profit_at_1x_actual_risk=true`，则允许按 `1x actual risk` 审核首个合理目标
+- 震荡区里的普通 `swing` 仍然要求更高空间，但门槛已经改成更贴近 Brooks 合理目标的动态审核
 
-`tools/backtest/run_multi_symbol_backtest.py`
+详见：
 
-`tools/backtest/backtest_v4.py`
+- [BROOKS_SIGNAL_VISUALIZATION_20260327.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/BROOKS_SIGNAL_VISUALIZATION_20260327.md)
+- [CHART_STACK_AND_TRADECAT_EVALUATION_20260327.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/CHART_STACK_AND_TRADECAT_EVALUATION_20260327.md)
 
--> `libs.backtest.runner.BacktestRunner`
+## 6. 当前最应该看的文件
 
-这四条脚本现在都只是权威回测链的入口包装，不再是独立策略链。
+### 运行时入口
 
-补充：
+- [pa_runtime.py](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/runtime/pa_runtime.py)
+- [brooks_filter.py](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/runtime/brooks_filter.py)
 
-- `backtest_v4.py` 现在只是场景包装层，不再维护旧的逐 bar 自建回测逻辑。
-- 场景入口已经支持 `--parquet` / `--cache-dir`，本地可以直接复用缓存数据做冒烟。
-- 因此当前系统真实只有两条主链：`live 主链` 和 `权威回测主链`。
+### 信号入口
 
-## 三、当前最明确的 5 个断点
+- [pa_engine.py](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/services/signal-service/src/engines/pa_engine.py)
+- [h1_l1_template.py](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/services/signal-service/src/engines/pa/h1_l1_template.py)
+- [h2_l2_template.py](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/services/signal-service/src/engines/pa/h2_l2_template.py)
 
-以下断点只讨论 Brooks 主链，不再把已经删除的 legacy 模块计入问题列表。
+### 图表入口
 
-### 1. `T4 / R3 / TR4 / S1 / S2` 已具备独立路由、专属 detector 标注和管理 profile
-
-当前这些 playbook 已经有独立 `playbook_id`：
-
-- `T4_WEDGE_PULLBACK`
-- `R3_CHANNEL_LINE_BO_FADE`
-- `TR4_DAILY_TR_FADE`
-- `S1_HTF_SR_REVERSAL`
-- `S2_MICRO_CHANNEL_REVERSAL`
-
-结果：
-
-- 它们已经进入 live 与权威回测主链，不再是“缺失策略”。
-- `pa_engine` 现在会显式写入 `playbook_hint / playbook_profile / detector_reason`。
-- 回测链也已给这 5 个 playbook 分配独立管理模板，而不是继续并到通用 `brooks_swing`。
-
-### 2. `iii突破` 已纳入过滤与路由，但还缺专属策略经验沉淀
-
-`strategy_advanced.py` 会动态生成 `iii突破`。
-
-当前这些关键链路已经补齐：
-
-- `libs/backtest/strategy_filters.py`
-- `services/signal-service/src/engines/pa/risk.py`
-- `libs/backtest/runner.py`
-- `services/api-service/src/routers/backtest.py`
-
-结果：
-
-- `iii突破` 现在会进入和 `ii/ioi突破` 同一条突破追随链。
-- 但它仍然没有单独的 profile 经验、统计基线和策略说明，当前只是先按 breakout chase 统一处理。
-
-### 3. `LOY突破` 已登记进过滤层，但 profile 还没专门使用
-
-当前状态是：
-
-- `pa_engine.py` 能生成 `LOY突破`
-- `pa/risk.py` 认 `LOY突破`
-- `libs/backtest/runner.py` 认 `LOY突破`
-- `libs/backtest/strategy_filters.py` 现在也已登记 `LOY突破`
-
-结果：
-
-- 白名单 / 黑名单现在可以显式控制 `LOY突破`。
-- 但默认 profile 还没有把它单独纳入策略偏好，只是作为 breakout chase 家族成员存在。
-
-### 4. `急赴磁体` 仍被统计，但已经不是独立可执行 setup
-
-`pa_engine.py` 已明确写明：
-
-- `急赴磁体` 只保留为 target / magnet 证据来源
-- 不再直接生成订单信号
-
-结果：
-
-- 它属于上下文标签，不应再被当成“可执行策略数”直接计入交易策略口径。
-- 如果报告、报表、策略面板还把它和其它 setup 并列，就会造成“检测到了但不能交易”的认知混乱。
-
-### 5. 过滤层与 live 层的策略名集合还没完全对齐
-
-当前集合差异是：
-
-- live 有但过滤层没有：
-  - `急赴磁体`
-- 过滤层有但 live 没有：
-  - `20均线缺口`
-  - `MAG 20/20 Setup`
-
-结果：
-
-- 策略过滤、回测 profile、策略统计口径还不是完全同一套语言。
-
-## 四、当前最稳妥的理解口径
-
-如果你问“现在到底有多少个策略能匹配到”，当前要分 2 个主口径看：
-
-1. 按 live 检测候选算：
-   - 至少 23 个 `signal_type`
-   - 但其中 `急赴磁体` 已经不是独立可执行 setup
-2. 按回测可路由的 Brooks playbook 算：
-   - 20 个 `playbook_id`
-   - 其中 `S4` 基线 playbook 为 `15/15`
-如果问“当前真正比较完整、能作为主基准的策略链是哪条”，答案是：
-
-- `signal-service/pa_engine`
-- `libs/backtest/runner`
-- `services/api-service/src/routers/backtest.py`
-
-## 五、下一步建议
-
-优先级从高到低：
-
-1. 为 `T4 / R3 / TR4 / S1 / S2` 补齐报告标签和长期统计维度。
-2. 为 `iii突破` 和 `LOY突破` 建立独立的 profile 经验与统计口径，而不是只挂在 breakout chase 家族下面。
-3. 决定 `急赴磁体` 是彻底从策略集合剔除，还是在报告层显式标成“上下文，不可执行”。
-4. 清理 `20均线缺口` / `MAG 20/20 Setup` 这类旧命名，统一到当前 live 命名体系。
-
-## 六、本地冒烟验证
-
-2026-03-13 已在本地完成以下验证：
-
-- `uv run --no-project python tools/backtest/run_backtest.py ... --parquet data/history/cache/BTCUSDT_2025-12-11_2026-03-11.parquet`
-  - 跑通，输出 25 个信号、7 笔交易。
-- `uv run --no-project python tools/backtest/backtest_v4.py ... --parquet data/history/cache/BTCUSDT_2025-12-11_2026-03-11.parquet`
-  - 跑通，结果已写入 `/tmp/backtest_v4_smoke.json`。
-- `uv run --no-project python tools/diagnostics/system_test.py`
-  - `5/5` 通过。
+- [trade_chart_data.py](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/tools/diagnostics/trade_chart_data.py)
+- [brooks_chart_overlay.py](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/tools/diagnostics/brooks_chart_overlay.py)
+- [trade-chart-panel.tsx](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Web/src/components/pa-bot/trade-chart-panel.tsx)

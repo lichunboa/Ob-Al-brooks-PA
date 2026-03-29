@@ -18,7 +18,7 @@ class ScanTimingMixin:
     ) -> dict[str, Any]:
         positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
         symbol_updates = decision.get("symbol_updates") if isinstance(decision.get("symbol_updates"), dict) else {}
-        requested = max(120, int(safe_float(decision.get("next_scan_seconds"), 480)))
+        requested = max(30, int(safe_float(decision.get("next_scan_seconds"), 60)))
         state_patch = decision.get("state_patch") if isinstance(decision.get("state_patch"), dict) else {}
         model_timeout = bool(state_patch.get("model_timeout"))
         analysis_board = analysis_board or {}
@@ -119,15 +119,35 @@ class ScanTimingMixin:
             cadence_tier: str,
             conditions: list[str] | None = None,
         ) -> dict[str, Any]:
+            target_seconds = 30 if int(seconds) <= 30 else 60
+            target_label = "30 秒" if target_seconds == 30 else "1 分钟"
+            normalized_reason = (
+                str(reason_text)
+                .replace("12 分钟", target_label)
+                .replace("8 分钟", target_label)
+                .replace("5 分钟", target_label)
+                .replace("4 分钟", target_label)
+                .replace("3 分钟", target_label)
+                .replace("2 分钟", target_label)
+            )
+            normalized_bucket = (
+                str(bucket_rule)
+                .replace("12 分钟", target_label)
+                .replace("8 分钟", target_label)
+                .replace("5 分钟", target_label)
+                .replace("4 分钟", target_label)
+                .replace("3 分钟", target_label)
+                .replace("2 分钟", target_label)
+            )
             return {
                 "requested_seconds": requested,
-                "in_seconds": seconds,
+                "in_seconds": target_seconds,
                 "reason_code": reason_code,
-                "reason_text": reason_text,
-                "bucket_rule": bucket_rule,
+                "reason_text": normalized_reason,
+                "bucket_rule": normalized_bucket,
                 "bucket_source_refs": source_refs,
                 "bucket_priority": priority,
-                "cadence_tier": cadence_tier,
+                "cadence_tier": "30秒高频巡逻" if target_seconds == 30 else "分钟级实时巡逻",
                 "matched_conditions": conditions or [],
             }
 
@@ -193,10 +213,10 @@ class ScanTimingMixin:
         if model_timeout:
             if near_trigger or position_volatility_high:
                 return plan(
-                    120,
+                    30,
                     "MODEL_TIMEOUT_NEAR_TRIGGER",
-                    "模型建议未返回，但当前预信号非常接近或持仓波动偏高，按 Step 5 压到 2 分钟快扫。",
-                    "P0：pre_signal 触发接近 / 有持仓 + 波动大 → 2 分钟",
+                    "模型建议未返回，但当前预信号非常接近或持仓波动偏高，压到 30 秒快扫。",
+                    "P0：pre_signal 触发接近 / 有持仓 + 波动大 → 30 秒",
                     ["SKILL.md#Step 5", "C5-step5-dynamic-timing.md", "S6-tr.md", "S7-management.md"],
                     priority="P0",
                     cadence_tier="高频守候",
@@ -211,10 +231,10 @@ class ScanTimingMixin:
                 if breakout_followthrough_active:
                     active_conditions.append("breakout_followthrough_active")
                 return plan(
-                    120,
+                    30,
                     "MODEL_TIMEOUT_HIGH_EDGE_ACTIVE",
-                    "模型建议未返回，但当前处于 fresh BC/SC、TR 边缘或已接近可执行条件，按 2 分钟继续守候。",
-                    "P1：fresh BC/SC / TR edge / breakout follow-through / executable 候选 → 2 分钟",
+                    "模型建议未返回，但当前处于 fresh BC/SC、TR 边缘或已接近可执行条件，按 30 秒继续守候。",
+                    "P1：fresh BC/SC / TR edge / breakout follow-through / executable 候选 → 30 秒",
                     ["SKILL.md#Step 5", "C5-step5-dynamic-timing.md", "S4-strategy-match.md", "S6-tr.md", "S6-channel.md", "S6-common.md"],
                     priority="P1",
                     cadence_tier="高频守候",
@@ -284,10 +304,10 @@ class ScanTimingMixin:
 
         if near_trigger or position_volatility_high:
             return plan(
-                120,
+                30,
                 "EDGE_OR_TRIGGER_ACTIVE",
-                "当前预信号已接近触发或持仓波动偏高，按 Step 5 压到 2 分钟。",
-                "P0：pre_signal 触发接近 / 有持仓 + 波动大 → 2 分钟",
+                "当前预信号已接近触发或持仓波动偏高，压到 30 秒快扫。",
+                "P0：pre_signal 触发接近 / 有持仓 + 波动大 → 30 秒",
                 ["SKILL.md#Step 5", "C5-step5-dynamic-timing.md", "S6-tr.md", "S7-management.md"],
                 priority="P0",
                 cadence_tier="高频守候",
@@ -302,10 +322,10 @@ class ScanTimingMixin:
             if breakout_followthrough_active:
                 active_conditions.append("breakout_followthrough_active")
             return plan(
-                120,
+                30,
                 "HIGH_EDGE_ACTIVE",
-                "当前处于 fresh BC/SC、TR 边缘、breakout follow-through 或已接近可执行条件，按 2 分钟继续守候。",
-                "P1：fresh BC/SC / TR edge / breakout follow-through / executable 候选 → 2 分钟",
+                "当前处于 fresh BC/SC、TR 边缘、breakout follow-through 或已接近可执行条件，按 30 秒继续守候。",
+                "P1：fresh BC/SC / TR edge / breakout follow-through / executable 候选 → 30 秒",
                 ["SKILL.md#Step 5", "C5-step5-dynamic-timing.md", "S4-strategy-match.md", "S6-tr.md", "S6-channel.md", "S6-common.md"],
                 priority="P1",
                 cadence_tier="高频守候",
@@ -374,7 +394,7 @@ class ScanTimingMixin:
                 conditions=matched_conditions,
             )
 
-        buckets = [120, 180, 240, 300, 480, 720]
+        buckets = [60]
         for bucket in buckets:
             if requested <= bucket:
                 return plan(

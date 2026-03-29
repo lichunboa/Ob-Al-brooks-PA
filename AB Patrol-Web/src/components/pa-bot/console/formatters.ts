@@ -21,6 +21,14 @@ export function formatNumber(value: number | null, digits = 2): string {
   return value.toLocaleString('en-US', { maximumFractionDigits: digits });
 }
 
+export function translateSide(value: string | null): string {
+  if (!value) return '-';
+  const upper = value.trim().toUpperCase();
+  if (upper === 'LONG' || upper === 'BUY') return '多单';
+  if (upper === 'SHORT' || upper === 'SELL') return '空单';
+  return value;
+}
+
 export function formatDuration(seconds: number | null): string {
   if (seconds === null || Number.isNaN(seconds)) return '未记录';
   const total = Math.max(0, Math.floor(seconds));
@@ -95,13 +103,17 @@ export function translateStatusLabel(value: string): string {
     manage_position: '持仓管理',
     open_order: '已发委托',
     open: '挂单中',
+    open_position: '已持仓',
     placed: '已提交',
     new: '新委托',
     closed: '已成交',
+    filled_to_position: '已成交成仓',
+    historical_entry: '历史挂单事件',
     modified: '已修改',
     cancelled: '已撤销',
     validation_rejected: '校验拒绝',
     size_failed: '仓位失败',
+    skipped_min_notional: '因最小成交额跳过',
     failed: '执行失败',
     rejected: '已拒绝',
     unsupported: '不支持',

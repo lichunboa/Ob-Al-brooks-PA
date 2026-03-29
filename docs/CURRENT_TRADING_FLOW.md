@@ -1,239 +1,153 @@
-# 当前交易流程
+# 当前交易主链
 
-> 更新于 2026-03-11
+> 更新于 2026-03-28
 
-本文只回答三个问题：
-
-1. 现在的 Patrol 交易链到底怎么跑
-2. LLM 在什么情况下会被调用
-3. 当前到底有没有实际把订单发出去
+本文档只描述当前仓库里真实在跑的交易主链，不记录已下线的旧口径。
 
 ## 1. 当前结论
 
-当前 Patrol 已经是“代码编排 + 触发式 LLM + 执行桥”的结构。
-
-从代码和当前配置看，真实结论是：
-
-- 巡逻主循环、候选单识别、持仓管理、执行请求拼装，已经主要由代码完成
-- LLM 不是每轮都调用，只在触发器命中时介入
-- 当前 `.env` 是智能触发模式，不是强制规则引擎优先，也不是强制每轮 LLM
-- 当前 Patrol 是否真实发单，取决于启动时是否带 `--execute`
-- 当前 execution-service 已支持 `binance / okx / ctrader`
-
-当前关键配置：
-
-- `AB_PATROL_DECISION_PROVIDER=openclaw`
-- `AB_PATROL_LLM_TRIGGER_OPTIMIZATION=1`
-- `AB_PATROL_RULE_ENGINE_PRIORITY=0`
-- `AB_PATROL_FORCE_LLM=0`
-- `AB_PATROL_EXCHANGE=ctrader`
-
-当前执行侧状态：
-
-- `execution-service` 健康检查为 `healthy`
-- `execution-service` 返回 `trading_enabled=true`
-- 当前主栈已运行在 `ctrader demo / multi_asset`
-- 当前次栈已运行在 `binance demo / crypto`
-- 当前默认观察名单为 `EURUSD / GBPUSD / USDJPY / XAUUSD / US 30 / US TECH 100`
-- 当前 Binance 自动候选池已暂时收缩为 `BTCUSDT / SOLUSDT`
-- `OPEN_ORDER` 现在会先经过运行时内置的确定性 gate 校验，再进入 execution-service
-
-这意味着：
-
-- 执行服务本身具备真实交易能力
-- Web 已经能同时展示主 `cTrader` 和次 `Binance Demo` 两套执行账户
-- 当前已经有主 `cTrader` + 次 `Binance Demo` 两套 runtime
-- `/pa-bot` 会同时展示两套 runtime，但两者仍是各自独立循环，不共享状态
-- Patrol 主链是否下单，要看当前 loop 是否运行在 `dry_run`
-
-## 2. 双 runtime 结构
-
-当前实际结构是：
-
-- 主 runtime
-  - `data/pa_trader`
-  - `execution-service: 8092`
-  - `bot_id=claude-pa`
-  - `exchange=ctrader`
-  - `market_profile=multi_asset`
-- 次 runtime
-  - `data/pa_trader_crypto`
-  - `execution-service: 8094`
-  - `bot_id=al-brooks`
-  - `exchange=binance`
-  - `market_profile=crypto`
-  - `watch_symbols=BTCUSDT / SOLUSDT`
-
-两条循环共享知识库和大部分代码，但运行状态、cycle、journal、执行账户是隔离的。
-
-## 3. 主流程
+当前 Patrol 的 live 交易链是：
 
 ```text
-知识库
-  -> Runtime 载入状态与市场缓存
-  -> 拉执行快照
-  -> 计算本轮 phase
-  -> 判断本轮是否触发 LLM
-      -> 否: 规则引擎路径
-      -> 是: LLM 决策路径
-  -> 统一水合 action
-  -> 进入 execution-service
-  -> 写 cycle / journal / runtime_state / next_scan
-  -> query-service 汇总
-  -> Web / 控制脚本 / TG 展示
+实时/历史 K 线
+  -> signal-service / PA 引擎
+  -> runtime 统一补齐 live patch
+  -> Brooks filter
+  -> rule engine
+  -> trade gate 预检
+  -> execution-service
+  -> runtime_state / cycle / journal
+  -> AB Patrol-Web
 ```
 
-## 4. 入口与编排模块
+关键口径：
 
-主入口在 `AB Patrol-Agent/runtime/pa_runtime.py`。
+- live 决策主链现在以规则引擎为主，不再依赖 LLM 决策。
+- live 开仓默认只使用 `15m` 交易周期。
+- `1h` 只负责背景、边界、顺逆势语义，不直接开仓。
+- 图表主链现在是 `lightweight-charts + Python Brooks overlay`，不是静态图片回显。
+- 当前图表已经拆成 `策略图 + 市场图` 双标签：
+  - `策略图` 承载 Brooks 信号、计划价、实际成交和事件
+  - `市场图` 使用 TradingView widget 做原始行情与社区指标对照
+- 当前 Web 摘要和执行口径已经拆成两层：
+  - `当前轮次候选 / 可执行 / Gate 拒绝`
+  - `真实持仓 / 活动挂单 / 账户快照`
+- 当前 orders / overview 图表在没有历史主事件、没有当前持仓时，也能直接按交易品种生成 `实时信号总览图`
+- 策略图当前已支持分组勾选信号图层，重点包括：
+  - `H1-Hn / L1-Ln`
+  - `Signal Bar / 风险`
+  - `ii / ioi / oo`
+  - `mDT / mDB`
+  - `DT / DB / Wedge / MTR / PW`
+  - `Gap / MAG / MM / 前一交易日关键价位`
 
-关键方法顺序：
+## 2. 当前部署策略
 
-1. `PatrolRuntime.loop()`
-2. `PatrolRuntime.run_cycle()`
-3. `load_runtime_state()` / `load_market_cache()` / `execution_snapshot()`
-4. `select_phase_plan()`
-5. `should_use_llm()`
-6. `rule_engine_decision()` 或 `build_prompt_from_context() + invoke_decision_provider()`
-7. `hydrate_open_order_action()`
-8. `execute_action()`
-9. `persist cycle + journal + next_scan`
+当前 live 主要围绕 3 条策略家族运行：
 
-## 5. 规则引擎路径
+- `T1: H1/L1 after BO`
+- `T2: H2/L2 trend second entry`
+- `T2: H2/L2 broad channel recovery`
 
-当本轮没有命中 LLM 触发器时，`run_cycle()` 会走 `rule_engine_decision()`。
+这些策略的共同流程是：
 
-这个路径当前调用的核心模块：
+1. 在交易周期上识别 Brooks signal
+2. 围绕 signal bar 生成 `计划入场 / 计划止损 / 计划止盈`
+3. 经过 Brooks filter 判断是 `watching / pre_signal / entry_ready`
+4. 经过 trade gate 检查结构、订单语义、盈亏比、保护位
+5. 通过后才进入 execution-service 下真实单
 
-- `runtime/rule_engine.py`
-  - `get_executable_trades()`
-  - 负责把市场缓存转成可执行交易候选
-- `runtime/position_manager.py`
-  - `manage_position()`
-  - 负责已有仓位的 Premise / Strength / 止损止盈 / 减仓管理
-- `runtime/pa_runtime.py`
-  - 负责把候选单转换成 `actions`
-  - 负责把持仓管理转换成 `position_management`
+当前 trade gate 的口径也已经更新：
 
-规则引擎路径生成的典型动作包括：
+- `40%` 反转 / `COUNTERTREND_PROBE` 继续维持更严的 `2R`
+- 顺势 continuation 不再机械统一卡在 `2R`
+- 如果模板明确 `first_profit_at_1x_actual_risk`，则允许围绕 `1x actual risk` 审核首个合理目标
 
-- `OPEN_ORDER`
-- `PARTIAL_CLOSE`
-- `REDUCE_POSITION`
-- `CLOSE_POSITION`
-- `MODIFY_STOP_LOSS`
-- `MODIFY_TAKE_PROFIT`
-- `CANCEL_ORDER`
-- `LOG_ONLY`
+## 3. 当前为什么会“有信号但没成交”
 
-## 6. LLM 路径
+当前没有成交，不再意味着“系统没识别到”。
 
-当 `should_use_llm()` 返回 `True` 时，本轮会走 LLM 决策链。
+更常见的真实原因有两类：
 
-核心模块：
+- 没有升级到 `entry_ready`
+  - 只停在 `watching / pre_signal`
+- 已经升级到 `entry_ready`
+  - 但被 `trade gate` 拒绝
+  - 常见原因是：
+    - `R:R` 不达标
+    - `SL / TP` 结构无效
+    - 订单会立即触发
+    - 保护位不完整
+    - 同品种已持仓，被 `[HELD_POSITION]` 阻塞
+    - 账户已存在真实持仓 / 保护单，占用风险预算
+    - 交易所余额、可用保证金或最小名义价值不满足执行条件
+    - 交易所没有确认主开仓单，执行层按失败处理
 
-- `runtime/llm_trigger_integration.py`
-  - 统一决定本轮是否需要 LLM
-- `runtime/llm_trigger_manager.py`
-  - 维护“是否命中新信号 / 持仓变化 / 定期分析”的状态
-- `runtime/prompt_builder.py`
-  - 组装系统提示词、用户提示词、引用知识和运行态上下文
-- `runtime/providers.py`
-  - 调用实际 provider
-  - 当前配置是 `openclaw`
-  - 也保留了 `codex_cli` provider
+因此，当前判断“系统有没有工作”，不能只看有没有订单，还要看：
 
-当前不是“只有订单变动才调 LLM”。
+- latest cycle 的 `status`
+- 当前轮次 `currentActions`
+- 是否有 `entry_ready`
+- 是否被 `trade gate` 拒绝
+- execution journal 里的 `OPEN_ORDER` 是否被交易所二次确认
 
-更准确地说，当前会在这些场景触发 LLM：
+## 4. 当前图表主链
 
-- 新的 `entry_ready` / 新信号出现
-- 持仓新开、平仓、数量变化
-- 止损 / 止盈变动
-- 浮盈转负或回撤异常，需要重新检查 premise
-- 定期持仓分析或定期扫描分析
+当前图表主链是：
 
-所以“订单变动”只是触发条件的一部分，不是全部。
+```text
+execution-service / historical bars
+  -> trade_chart_data.py
+  -> brooks_chart_overlay.py
+  -> /api/pa-bot/live-chart
+  -> trade-chart-panel.tsx
+```
 
-## 7. 执行链
+当前图表承担的不只是行情展示，还要承载：
 
-动作水合后会进入 `execute_action()`。
+- Brooks 信号
+- 计划入场 / 实际成交
+- 计划止损 / 实际止损
+- 计划止盈 / 实际止盈
+- backtest 事件
+- live runtime 状态
 
-当前主要调用的执行侧接口：
+## 4.1 当前 Web 可视化口径
 
-- `GET /trading/calculate-size/{bot_id}`
-- `POST /order`
-- `POST /order/{symbol}/close`
-- `POST /order/{symbol}/modify-sl`
-- `POST /order/{symbol}/modify-tp`
-- `DELETE /orders`
+- 图表顶部支持：
+  - `策略图 / 市场图`
+  - 交易品种切换
+  - 周期切换
+  - 监控池快捷品种切换
+- 信号按钮支持：
+  - 复选
+  - 全选 / 清空
+  - 按组管理
+- 总览页与账户页已经吸收 `tradecat` 两类优点：
+  - 更紧凑的摘要条与顶部指标卡
+  - 按交易所切换的账户视图、账户覆盖摘要和驾驶舱控制条
 
-接口实际由 `AB Patrol-Agent/services/execution-service/src/__main__.py` 提供。
+因此，当前主图不能简单替换成外部黑盒 widget。
 
-执行服务内部核心模块：
+## 5. 与旧文档的区别
 
-- `executor.py`
-- `risk_manager.py`
-- `trading_state.py`
-- `order_tracker.py`
-- `reconciliation.py`
-- `position_patrol.py`
-- `service_bootstrap.py`
+下面这些口径已经过时，不应再用：
 
-## 8. 当前需要特别知道的一点
+- “当前主链是代码编排 + 触发式 LLM + 执行桥”
+- “当前是否下单主要看 LLM 是否介入”
+- “当前主图仍是静态图片生成”
+- “交易周期和大周期都直接参与同级别开仓”
 
-`tools/patrol_trade.py` 里的确定性交易规则当前已经重新挂回 `OPEN_ORDER` 主链，但不再通过额外子进程执行。
+当前正确口径是：
 
-当前真实行为是：
+- 规则引擎主导
+- `15m` 执行、`1h` 背景
+- trade gate 决定能否真正下单
+- 图表是可交互 K 线和可选信号层
 
-- 规则引擎或 LLM 生成 `OPEN_ORDER`
-- Runtime 先做 action 水合
-- `validate_trade_gate()` 在进程内复用 `patrol_trade.py` 的规则函数
-- 通过后再计算仓位并请求 execution-service
-- 若 loop 处于 `dry_run`，状态记为 `DRY_RUN_VALIDATED`
-- 若 loop 带 `--execute`，则会真实发单
+## 6. 当前权威入口
 
-## 9. 为什么现在看起来像“代码在自己跑”
-
-因为当前大多数 cycle 实际都会停在规则引擎路径：
-
-- 规则引擎识别候选单
-- 规则引擎做持仓管理
-- Runtime 自己拼接动作
-- Execution Service 自己计算仓位和准备订单
-- 最终写回 cycle / runtime_state / journal
-
-只有触发器命中时，才会额外引入 LLM。
-
-所以现在最准确的描述是：
-
-- “代码级主导执行”是对的
-- “只有订单变动才调用 LLM”不完全对
-- “当前 Patrol 一定会真实发单”不对，是否真实发单取决于当前 loop 启动模式
-
-## 10. 目前为什么没有订单
-
-需要把“过去没单”和“当前没单”分开看。
-
-过去已确认的原因：
-
-- 早期 loop 运行在 `dry_run`
-- Binance Demo key / secret 之前有过错配
-- `runtime_state / market_cache` 和 execution 交易所不一致，出现过 `binance runtime + ctrader execution`
-- 旧链路里 `patrol_trade.py` 是外部脚本壳，执行链不够稳定
-- 某些阶段存在规则引擎与管理模块导入问题
-
-当前主栈已经修复到：
-
-- `runtime=ctrader / multi_asset`
-- `execution=ctrader / demo`
-- `dry_run=false`
-- `can_trade=true`
-- TG / query / Web 都已显示多资产运行态
-
-所以当前最新几轮“没有订单”的直接原因，不再是配置或链路断开，而是：
-
-- 当前多资产观察名单里没有品种满足可执行条件
-- 最新 cycle 已回到 `规则引擎执行路径：识别到 0 个可执行交易`
-- 当前三只焦点品种 `USDJPY / EURUSD / GBPUSD` 都停在 `watching`
-- 当前结构更偏 `TR 边缘限价单环境`，还没到升级成可执行候选单的门槛
+- [AGENTS.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AGENTS.md)
+- [AB Patrol-Agent/docs/CURRENT_TRADING_FLOW.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/CURRENT_TRADING_FLOW.md)
+- [AB Patrol-Agent/docs/RUNTIME_FLOW.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/RUNTIME_FLOW.md)
+- [AB Patrol-Agent/docs/CHART_STACK_AND_TRADECAT_EVALUATION_20260327.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/CHART_STACK_AND_TRADECAT_EVALUATION_20260327.md)

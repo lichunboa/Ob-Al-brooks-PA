@@ -70,6 +70,13 @@ export function normalizeSymbolKey(value: string): string {
     .replace(/[^A-Z0-9]/g, '');
 }
 
+export function normalizeChartSymbol(value: string): string {
+  return asString(value)
+    .trim()
+    .toUpperCase()
+    .replace(/:(USDT|USD)$/g, '');
+}
+
 export function looksLikeTrackedSymbol(value: string): boolean {
   return Boolean(value) && !value.startsWith('_') && value.length <= 24 && /^[A-Z0-9/:\- ]+$/.test(value);
 }
@@ -178,12 +185,22 @@ export function normalizeSymbolCard({
     },
   };
   const plannedTrade = asRecord(patch.planned_trade);
+  const trade = asRecord(patch.trade);
+  const preSignal = asRecord(patch.pre_signal);
   const executionSemantics = asRecord(plannedTrade.execution_semantics);
   const entryIdea = asRecord(patch.entry_idea);
   const evaluation = asRecord(patch.evaluation);
   const brooksFilter = asRecord(patch.brooks_filter);
   const chartContext = asRecord(patch.chart_context);
   const signalSnapshot = extractTimeframeSignalsFromPatch(patch);
+  const actionableSignalType =
+    asString(trade.signal_type) ||
+    asString(plannedTrade.signal_type) ||
+    asString(preSignal.type);
+  const actionableSignalText =
+    asString(trade.signal) ||
+    asString(plannedTrade.signal_bar) ||
+    asString(preSignal.signal);
 
   const candidateStage =
     asString(plannedTrade.candidate_stage_cn) ||
@@ -196,9 +213,7 @@ export function normalizeSymbolCard({
     asString(evaluation.execution_mode);
   const detectedStrategyFamily =
     detectStrategyFamily({
-      signalType:
-        asString(patch.signal_type) ||
-        asString(asRecord(patch.pre_signal).type),
+      signalType: actionableSignalType,
       brooksLabel:
         asString(brooksFilter.label) ||
         asString(plannedTrade.brooks_label) ||
@@ -218,6 +233,7 @@ export function normalizeSymbolCard({
         asString(patch.playbook_id),
       strategyHint:
         asString(plannedTrade.strategy) ||
+        asString(trade.strategy) ||
         asString(patch.strategy) ||
         asString(patch.latest_strategy_family),
       rawSignals: signalSnapshot,
@@ -226,10 +242,10 @@ export function normalizeSymbolCard({
       patch.latest_strategy_family,
       patch.strategy_family,
       patch.playbook_family,
-        patch.playbook_id,
-        patch.signal,
-        asRecord(patch.pre_signal).type,
-        ...signalSnapshot,
+      patch.playbook_id,
+      actionableSignalText,
+      actionableSignalType,
+      ...signalSnapshot,
     ]);
   const fallbackStrategyFamily =
     inferFamilyFromSignals([
@@ -237,20 +253,22 @@ export function normalizeSymbolCard({
       patch.strategy_family,
       patch.playbook_family,
       patch.playbook_id,
-      patch.signal,
-      asRecord(patch.pre_signal).type,
+      actionableSignalText,
+      actionableSignalType,
       ...signalSnapshot,
     ]);
   const primaryPlaybookId =
     asString(plannedTrade.playbook_id) ||
+    asString(trade.playbook_id) ||
     asString(entryIdea.playbook_id) ||
     asString(patch.playbook_id);
   const primaryFamilyHint = inferFamilyFromSignals([
     primaryPlaybookId,
+    trade.strategy,
     patch.strategy,
     patch.strategy_family,
     patch.latest_strategy_family,
-    patch.signal_type,
+    actionableSignalType,
     ...signalSnapshot,
   ]);
   const hlPrimaryFamily = ['H1', 'H2', 'L1', 'L2'].includes(primaryFamilyHint) ? primaryFamilyHint : '';
@@ -263,6 +281,7 @@ export function normalizeSymbolCard({
       : detectedStrategyFamily || fallbackStrategyFamily);
   const rawStrategyHint =
     asString(plannedTrade.strategy) ||
+    asString(trade.strategy) ||
     asString(patch.strategy) ||
     asString(patch.latest_strategy_family) ||
     asString(patch.strategy_family);
@@ -278,9 +297,7 @@ export function normalizeSymbolCard({
       : rawStrategyHint);
   const strategyLabel = canonicalStrategyLabel({
     strategy: strategyHint,
-    signalType:
-      asString(patch.signal_type) ||
-      asString(asRecord(patch.pre_signal).type),
+    signalType: actionableSignalType,
     brooksLabel:
       asString(brooksFilter.label) ||
       asString(plannedTrade.brooks_label) ||

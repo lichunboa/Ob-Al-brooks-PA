@@ -124,10 +124,26 @@ export function buildStuckWatchRows(
     .slice(0, 8);
 }
 
+const NON_EXECUTION_STATUSES = new Set([
+  'LOG_ONLY',
+  'NO_ACTION',
+  'SKIPPED',
+  'PASS',
+  'LIVE_ENTRY_CONFLICT',
+  'DUPLICATE_SKIPPED',
+  'VALIDATION_REJECTED',
+  'HISTORICAL_ENTRY',
+  'SKIPPED_MIN_NOTIONAL',
+]);
+
+export function isRealExecutionStatus(status: string | null | undefined): boolean {
+  const upper = String(status || '').toUpperCase();
+  if (!upper) return false;
+  return !NON_EXECUTION_STATUSES.has(upper);
+}
+
 export function filterRealExecutionEvents(events: RuntimeData['recentExecutions']): RuntimeData['recentExecutions'] {
-  return events.filter(
-    (item) => !['LOG_ONLY', 'NO_ACTION', 'SKIPPED', 'PASS'].includes((item.status || '').toUpperCase()),
-  );
+  return events.filter((item) => isRealExecutionStatus(item.status));
 }
 
 export function buildAccountRouteSummary(accountPanels: AccountPanel[]): Array<{

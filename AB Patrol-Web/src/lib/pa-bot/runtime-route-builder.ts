@@ -6,10 +6,12 @@ import {
   hasRuntimeData,
   latestCycle,
   readJson,
+  readJsonlRecent,
   readJsonlTail,
   readText,
   recentCycles,
   runtimeFiles,
+  safeStatMtimeMs,
 } from './runtime-files';
 import {
   buildExecutionFallbackCached,
@@ -52,6 +54,12 @@ export type RuntimeRoutePayload = {
   runtimes: UnknownRecord[];
 };
 
+const performanceSnapshotCache = new Map<string, { expiresAt: number; payload: UnknownRecord }>();
+
+function performanceCacheTtlMs() {
+  return 15000;
+}
+
 export function parseElapsedToSeconds(value: string): number | null {
   const text = value.trim();
   if (!text) return null;
@@ -86,6 +94,192 @@ export function readProcessUptimeSeconds(pidFilePath: string): number | null {
   }
 }
 
+function shanghaiRangeStartIso(days = 2) {
+  const offsetMs = 8 * 60 * 60 * 1000;
+  const shiftedNow = new Date(Date.now() + offsetMs);
+  const year = shiftedNow.getUTCFullYear();
+  const month = shiftedNow.getUTCMonth();
+  const day = shiftedNow.getUTCDate();
+  const startUtcMs = Date.UTC(year, month, day - days, 0, 0, 0) - offsetMs;
+  return new Date(startUtcMs).toISOString();
+}
+
+function summarizeTradingRange(rows: unknown[], startMs: number, endMs: number) {
+  const filtered = asArray(rows).filter((item) => {
+    const record = asRecord(item);
+    const timestamp = asString(record.timestamp);
+    if (!timestamp) return false;
+    const parsed = Date.parse(timestamp);
+    if (!Number.isFinite(parsed)) return false;
+    return parsed >= startMs && parsed < endMs;
+  });
+  const realizedRows = filtered.filter((item) => Math.abs(asNumber(asRecord(item).realized_pnl) ?? 0) > 1e-9);
+  const wins = realizedRows.filter((item) => (asNumber(asRecord(item).realized_pnl) ?? 0) > 0);
+  const losses = realizedRows.filter((item) => (asNumber(asRecord(item).realized_pnl) ?? 0) < 0);
+  const grossProfit = wins.reduce<number>((sum, item) => sum + (asNumber(asRecord(item).realized_pnl) ?? 0), 0);
+  const grossLoss = losses.reduce<number>((sum, item) => sum + Math.abs(asNumber(asRecord(item).realized_pnl) ?? 0), 0);
+  const commission = realizedRows.reduce<number>((sum, item) => sum + (asNumber(asRecord(item).commission) ?? 0), 0);
+  const netRealized = realizedRows.reduce<number>((sum, item) => sum + (asNumber(asRecord(item).realized_pnl) ?? 0), 0);
+  const realizedTradeCount = realizedRows.length;
+  const winRatePct = realizedTradeCount > 0 ? (wins.length / realizedTradeCount) * 100 : 0;
+  return {
+    tradeRows: filtered.length,
+    realizedTradeCount,
+    wins: wins.length,
+    losses: losses.length,
+    winRatePct,
+    grossProfit,
+    grossLoss,
+    profitFactor: grossLoss > 0 ? grossProfit / grossLoss : null,
+    commission,
+    netRealized,
+    bySymbol: Object.entries(
+      realizedRows.reduce<Record<string, number>>((acc, item) => {
+        const record = asRecord(item);
+        const symbol = asString(record.symbol);
+        if (!symbol) return acc;
+        acc[symbol] = (acc[symbol] || 0) + (asNumber(record.realized_pnl) ?? 0);
+        return acc;
+      }, {}),
+    ).map(([symbol, netPnl]) => ({ symbol, netPnl })).sort((left, right) => right.netPnl - left.netPnl),
+  };
+}
+
+function summarizeCleanupStats(rows: UnknownRecord[], exchange: string, startMs: number, endMs: number) {
+  const stats = {
+    partialClosed: 0,
+    closeSuccess: 0,
+    sizeFailed: 0,
+    notFound: 0,
+    modifyFailed: 0,
+    modifySkipped: 0,
+  };
+  for (const row of rows) {
+    const rowExchange = asString(row.exchange).trim().toLowerCase();
+    if (rowExchange !== exchange) continue;
+    const loggedAt = asString(row.logged_at) || asString(row.timestamp);
+    const parsed = Date.parse(loggedAt);
+    if (!Number.isFinite(parsed) || parsed < startMs || parsed >= endMs) continue;
+    const type = asString(row.type).trim().toUpperCase();
+    const status = asString(row.status).trim().toUpperCase();
+    const message = asString(row.message);
+    if (type === 'PARTIAL_CLOSE' || type === 'REDUCE_POSITION') {
+      if (status === 'PARTIAL_CLOSED') stats.partialClosed += 1;
+      if (status === 'SIZE_FAILED') stats.sizeFailed += 1;
+      if (status === 'NOT_FOUND') stats.notFound += 1;
+      if (message.includes('保护单已按剩余仓位重建')) stats.closeSuccess += 1;
+    }
+    if (type === 'CLOSE_POSITION' && status === 'CLOSED') {
+      stats.closeSuccess += 1;
+    }
+    if ((type === 'MODIFY_STOP_LOSS' || type === 'MODIFY_TAKE_PROFIT') && status === 'FAILED') {
+      stats.modifyFailed += 1;
+    }
+    if ((type === 'MODIFY_STOP_LOSS' || type === 'MODIFY_TAKE_PROFIT') && status === 'SKIPPED') {
+      stats.modifySkipped += 1;
+    }
+  }
+  return stats;
+}
+
+async function buildRecentTradingPerformance(files: ReturnType<typeof runtimeFiles>, execution: UnknownRecord, view: RuntimeView): Promise<UnknownRecord> {
+  if (!(view === 'orders' || view === 'overview' || view === 'full')) {
+    return {};
+  }
+  const services = asRecord(execution.services);
+  const serviceEntries = Object.entries(services)
+    .map(([exchange, payload]) => ({ exchange: asString(exchange).trim().toLowerCase(), payload: asRecord(payload) }))
+    .filter((item) => item.exchange);
+  const cacheKey = [
+    safeStatMtimeMs(files.executionLog),
+    ...serviceEntries.map((item) => `${item.exchange}:${asString(item.payload.base_url)}`),
+  ].join('||');
+  const now = Date.now();
+  const cached = performanceSnapshotCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) {
+    return cached.payload;
+  }
+
+  const startIso = shanghaiRangeStartIso(2);
+  const startMs = Date.parse(startIso);
+  const endMs = now;
+  const executionRows = readJsonlRecent(files.executionLog, 50000);
+
+  const exchanges = await Promise.all(
+    serviceEntries.map(async ({ exchange, payload }) => {
+      const baseUrl = asString(payload.base_url).replace(/\/$/, '');
+      const label = asString(payload.account_label) || exchange.toUpperCase();
+      const tradeRowsRaw = baseUrl ? await fetchJson(`${baseUrl}/trades/history?limit=500`, exchange === 'ctrader' ? 5000 : 6000) : null;
+      const tradeRows = asArray(tradeRowsRaw);
+      const trading = summarizeTradingRange(tradeRows, startMs, endMs);
+      const cleanup = summarizeCleanupStats(executionRows, exchange, startMs, endMs);
+      return {
+        exchange,
+        label,
+        startAt: startIso,
+        endAt: new Date(endMs).toISOString(),
+        ...trading,
+        cleanup,
+      };
+    }),
+  );
+
+  const total = exchanges.reduce(
+    (acc, item) => {
+      acc.tradeRows += asNumber(item.tradeRows) ?? 0;
+      acc.realizedTradeCount += asNumber(item.realizedTradeCount) ?? 0;
+      acc.wins += asNumber(item.wins) ?? 0;
+      acc.losses += asNumber(item.losses) ?? 0;
+      acc.grossProfit += asNumber(item.grossProfit) ?? 0;
+      acc.grossLoss += asNumber(item.grossLoss) ?? 0;
+      acc.commission += asNumber(item.commission) ?? 0;
+      acc.netRealized += asNumber(item.netRealized) ?? 0;
+      acc.cleanup.partialClosed += asNumber(asRecord(item.cleanup).partialClosed) ?? 0;
+      acc.cleanup.closeSuccess += asNumber(asRecord(item.cleanup).closeSuccess) ?? 0;
+      acc.cleanup.sizeFailed += asNumber(asRecord(item.cleanup).sizeFailed) ?? 0;
+      acc.cleanup.notFound += asNumber(asRecord(item.cleanup).notFound) ?? 0;
+      acc.cleanup.modifyFailed += asNumber(asRecord(item.cleanup).modifyFailed) ?? 0;
+      acc.cleanup.modifySkipped += asNumber(asRecord(item.cleanup).modifySkipped) ?? 0;
+      return acc;
+    },
+    {
+      tradeRows: 0,
+      realizedTradeCount: 0,
+      wins: 0,
+      losses: 0,
+      grossProfit: 0,
+      grossLoss: 0,
+      commission: 0,
+      netRealized: 0,
+      cleanup: {
+        partialClosed: 0,
+        closeSuccess: 0,
+        sizeFailed: 0,
+        notFound: 0,
+        modifyFailed: 0,
+        modifySkipped: 0,
+      },
+    },
+  );
+
+  const payload = {
+    rangeLabel: `近两天（自 ${startIso} 起）`,
+    startAt: startIso,
+    endAt: new Date(endMs).toISOString(),
+    total: {
+      ...total,
+      winRatePct: total.realizedTradeCount > 0 ? (total.wins / total.realizedTradeCount) * 100 : 0,
+      profitFactor: total.grossLoss > 0 ? total.grossProfit / total.grossLoss : null,
+    },
+    exchanges,
+  };
+  performanceSnapshotCache.set(cacheKey, {
+    expiresAt: Date.now() + performanceCacheTtlMs(),
+    payload,
+  });
+  return payload;
+}
+
 export async function buildFallbackPayload(
   runtimeConfig: RuntimeConfig,
   queryBase: string | null,
@@ -110,6 +304,7 @@ export async function buildFallbackPayload(
       : Promise.resolve(null),
     buildExecutionFallbackCached(runtimeConfig, runtime, view),
   ]);
+  const tradingPerformance = await buildRecentTradingPerformance(files, execution, view);
   const executionHealth = asRecord(execution.health);
   const positions = asArray(execution.positions);
   const orders = asArray(execution.orders);
@@ -147,10 +342,10 @@ export async function buildFallbackPayload(
           sessionBootstrappedAt === null ? null : Math.max(0, Math.floor(Date.now() / 1000 - sessionBootstrappedAt)),
         uptime_seconds: null,
         session_turn_count: asNumber(session.turn_count),
-        session_model: asString(session.model),
       },
       audit,
       execution,
+      trading_performance: tradingPerformance,
       overall_health:
         patrolLive && executionPortOpen && cycleFresh !== false ? 'HEALTHY' : patrolLive || executionPortOpen ? 'DEGRADED' : 'DOWN',
       cycle_fresh: cycleFresh,
@@ -206,7 +401,18 @@ export async function buildRuntimeRoutePayload(
       if (preferQuery && queryUrl) {
         const remote = await fetchJson(queryUrl, 5000);
         if (isRecord(remote) && isRecord(remote.snapshot)) {
-          return normalizePayload(remote, 'query-service', queryUrl, runtimeConfig, view, {
+          // query-service 可能没有实时持仓、账户余额或可交易状态，
+          // 这里统一用 execution-service 的实时快照覆盖 execution 节点，
+          // 避免 Web 继续展示旧账户口径或空余额。
+          const execData = await buildExecutionFallbackCached(runtimeConfig, readJson(files.runtimeState), view);
+          const patchedRemote = {
+            ...remote,
+            snapshot: {
+              ...asRecord(remote.snapshot),
+              execution: execData,
+            },
+          };
+          const qsPayload = normalizePayload(patchedRemote, 'query-service', queryUrl, runtimeConfig, view, {
             readProcessUptimeSeconds,
             buildExecutionContextCached: buildExecutionContext,
             buildCapacitySummaryCached,
@@ -219,6 +425,7 @@ export async function buildRuntimeRoutePayload(
             capacityDetailLevel,
             patrolPidFile: PATROL_PID_FILE,
           });
+          return qsPayload;
         }
       }
       const fallback = await buildFallbackPayload(runtimeConfig, configuredQueryBase, view);

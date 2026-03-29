@@ -13,6 +13,7 @@ from .utils import (
     normalize_action_payload,
     normalize_refs,
     normalize_trade_side,
+    order_type_cn,
     safe_float,
 )
 
@@ -192,72 +193,23 @@ def _sanitize_limit_plan_signal_entry(patch: dict[str, Any]) -> dict[str, Any]:
     return patch
 
 
-def _infer_reference_timeframe(planned_trade: dict[str, Any], timeframes: dict[str, Any]) -> str:
-    """优先使用计划对象声明的周期，其次回退到常见周期。"""
-    timeframe = str(planned_trade.get("timeframe") or "").strip().lower()
-    if timeframe:
-        return timeframe
-    for candidate in ("15m", "5m", "1h", "30m", "4h", "1d"):
-        if isinstance(timeframes.get(candidate), dict):
-            return candidate
-    return "15m"
-
-
-def _extract_market_price(patch: dict[str, Any], planned_trade: dict[str, Any]) -> float | None:
-    """从 live patch 中提取当前可用的市场价格。"""
-    timeframes = _as_dict(patch.get("timeframes"))
-    followup_seed = _as_dict(patch.get("followup_seed"))
-    timeframe = _infer_reference_timeframe(planned_trade, timeframes)
-    frame = _as_dict(timeframes.get(timeframe))
-    latest_bar = _as_dict(frame.get("latest_bar"))
-
-    def _frame_price(frame_payload: dict[str, Any]) -> float | None:
-        latest = _as_dict(frame_payload.get("latest_bar"))
-        return _first_price(
-            frame_payload.get("price"),
-            frame_payload.get("current_price"),
-            frame_payload.get("last_close"),
-            latest.get("C"),
-            latest.get("close"),
-        )
-
-    return _first_price(
-        patch.get("current_price"),
-        patch.get("last_price"),
-        followup_seed.get("entry_price"),
-        frame.get("price"),
-        frame.get("current_price"),
-        frame.get("last_close"),
-        latest_bar.get("C"),
-        latest_bar.get("close"),
-        _frame_price(_as_dict(timeframes.get("15m"))),
-        _frame_price(_as_dict(timeframes.get("5m"))),
-        _frame_price(_as_dict(timeframes.get("1h"))),
-    )
-
-
-def _extract_market_atr(patch: dict[str, Any], planned_trade: dict[str, Any], current_price: float) -> float:
-    """优先读取同周期 ATR，缺失时回退到价格百分比。"""
-    timeframes = _as_dict(patch.get("timeframes"))
-    timeframe = _infer_reference_timeframe(planned_trade, timeframes)
-    frame = _as_dict(timeframes.get(timeframe))
-    atr = _first_price(
-        frame.get("atr14"),
-        patch.get("atr14"),
-        patch.get(f"atr14_{timeframe}"),
-        _as_dict(timeframes.get("15m")).get("atr14"),
-        _as_dict(timeframes.get("5m")).get("atr14"),
-        _as_dict(timeframes.get("1h")).get("atr14"),
-    )
-    if atr is not None and atr > 0:
-        return atr
-    return max(current_price * 0.002, 1e-6)
-
-
 def _promote_limit_plan_semantics(planned_trade: dict[str, Any]) -> None:
     """当限价计划已经具备精确入场条件时，把阶段升级到可执行限价。"""
     execution_semantics = _as_dict(planned_trade.get("execution_semantics"))
     if not execution_semantics:
+        return
+    current_entry_type = _first_text(
+        planned_trade.get("entry_type"),
+        execution_semantics.get("entry_type"),
+    ).upper()
+    current_order_type = _first_text(
+        planned_trade.get("order_type"),
+        execution_semantics.get("order_type"),
+    ).upper()
+    if current_entry_type == "STOP" or current_order_type in {"STOP_MARKET", "TAKE_PROFIT_MARKET"}:
+        execution_semantics["has_entry_price"] = True
+        execution_semantics["has_entry_zone"] = True
+        planned_trade["execution_semantics"] = execution_semantics
         return
     allow_executable = _bool_value(
         execution_semantics.get("allow_executable", planned_trade.get("allow_executable")),
@@ -291,7 +243,7 @@ def _promote_limit_plan_semantics(planned_trade: dict[str, Any]) -> None:
 
 
 def _synthesize_limit_plan_exact_entry(patch: dict[str, Any]) -> dict[str, Any]:
-    """为 LIMIT_PLAN 候选补齐安全的 live 精确入场价/入场区。"""
+    """只保留模板或显式触发价，不再自动编造 limit 入场。"""
     planned_trade = _as_dict(patch.get("planned_trade"))
     pre_signal = _as_dict(patch.get("pre_signal"))
     trigger_price = _as_dict(pre_signal.get("trigger_price"))
@@ -301,7 +253,17 @@ def _synthesize_limit_plan_exact_entry(patch: dict[str, Any]) -> dict[str, Any]:
     candidate_stage = _first_text(planned_trade.get("candidate_stage"))
     execution_mode = _first_text(planned_trade.get("execution_mode"))
     order_type = _first_text(planned_trade.get("order_type"))
+    entry_type = _first_text(planned_trade.get("entry_type"))
+    execution_semantics = _as_dict(planned_trade.get("execution_semantics"))
     brooks_label = _first_text(planned_trade.get("brooks_label"), patch.get("brooks_label"))
+    stop_like = (
+        entry_type.upper() == "STOP"
+        or _first_text(execution_semantics.get("entry_type")).upper() == "STOP"
+        or order_type.upper() in {"STOP_MARKET", "TAKE_PROFIT_MARKET"}
+        or _first_text(execution_semantics.get("order_type")).upper() in {"STOP_MARKET", "TAKE_PROFIT_MARKET"}
+    )
+    if stop_like:
+        return patch
     limit_like = (
         candidate_stage.upper() == "EXECUTABLE_LIMIT"
         or execution_mode.upper() == "LIMIT_PLAN"
@@ -323,57 +285,17 @@ def _synthesize_limit_plan_exact_entry(patch: dict[str, Any]) -> dict[str, Any]:
         trigger_price.get("breakout_zone"),
         trigger_price.get("breakdown_zone"),
     )
-    if existing_entry is not None and existing_entry > 0 and existing_zone not in (None, "", [], {}):
-        _promote_limit_plan_semantics(planned_trade)
-        patch["planned_trade"] = planned_trade
-        if pre_signal:
-            pre_signal["trigger_price"] = trigger_price
-            patch["pre_signal"] = pre_signal
+    if existing_entry is not None and existing_entry > 0:
+        planned_trade["entry_price"] = existing_entry
+        trigger_price["entry"] = existing_entry
+    if existing_zone not in (None, "", [], {}):
+        planned_trade["entry_zone"] = existing_zone
+        trigger_price["entry_zone"] = existing_zone
+    if planned_trade.get("entry_price") in (None, "") and planned_trade.get("entry_zone") in (None, "", [], {}):
         return patch
-
-    side = normalize_trade_side(
-        planned_trade.get("side")
-        or pre_signal.get("side")
-        or pre_signal.get("direction")
-    )
-    if side not in {"BUY", "SELL"}:
-        signal_blob = (
-            planned_trade.get("signal_type"),
-            patch.get("signal_type"),
-            patch.get("signal"),
-            pre_signal.get("type"),
-            pre_signal.get("condition"),
-        )
-        signal_text = " ".join(str(item or "") for item in signal_blob).upper()
-        if any(token in signal_text for token in ("H1", "H2", "高1", "高2")):
-            side = "BUY"
-        elif any(token in signal_text for token in ("L1", "L2", "低1", "低2")):
-            side = "SELL"
-    current_price = _extract_market_price(patch, planned_trade)
-    if side not in {"BUY", "SELL"} or current_price is None or current_price <= 0:
-        return patch
-
-    atr_value = _extract_market_atr(patch, planned_trade, current_price)
-    buffer = max(current_price * 0.0003, min(atr_value * 0.12, current_price * 0.015))
-    zone_half = max(current_price * 0.00015, buffer * 0.35)
-
-    if side == "BUY":
-        entry_price = max(1e-8, current_price - buffer)
-        zone_low = max(1e-8, entry_price - zone_half)
-        zone_high = current_price
-    else:
-        entry_price = current_price + buffer
-        zone_low = current_price
-        zone_high = entry_price + zone_half
-
-    entry_zone = [min(zone_low, zone_high), max(zone_low, zone_high)]
-    planned_trade["entry_price"] = entry_price
-    planned_trade["entry_zone"] = entry_zone
-    planned_trade["entry_zone_label"] = "auto_live_limit_exact"
-    trigger_price["entry"] = entry_price
-    trigger_price["entry_zone"] = entry_zone
-    pre_signal["trigger_price"] = trigger_price
-    patch["pre_signal"] = pre_signal
+    if trigger_price:
+        pre_signal["trigger_price"] = trigger_price
+        patch["pre_signal"] = pre_signal
     _promote_limit_plan_semantics(planned_trade)
     patch["planned_trade"] = planned_trade
     return patch
@@ -562,7 +484,7 @@ def build_open_order_action(
 ) -> dict[str, Any]:
     """统一构建 live `OPEN_ORDER` 动作。"""
     symbol_upper = str(symbol or "").upper()
-    patch_data = build_runtime_symbol_patch(patch or {})
+    patch_data = build_runtime_symbol_patch(patch or {}, symbol=symbol_upper)
     base = normalize_action_payload(base_action or {})
     trade_data = _as_dict(trade)
     planned_trade = _as_dict(patch_data.get("planned_trade"))
@@ -570,6 +492,15 @@ def build_open_order_action(
     entry_idea = _as_dict(patch_data.get("entry_idea"))
     pre_signal = _as_dict(patch_data.get("pre_signal"))
     trigger_price = _as_dict(pre_signal.get("trigger_price"))
+    entry_zone = _first_value(
+        planned_trade.get("entry_zone"),
+        trigger_price.get("entry_zone"),
+        trigger_price.get("retest_zone"),
+        trigger_price.get("breakout_zone"),
+        trigger_price.get("breakdown_zone"),
+        trade_patch.get("entry_zone"),
+        trade_data.get("entry_zone"),
+    )
     refs_list = (
         normalize_refs(base.get("refs"))
         or normalize_refs(refs)
@@ -601,25 +532,23 @@ def build_open_order_action(
         trigger_price.get("entry"),
     )
     stop_loss = _first_price(
-        base.get("sl"),
-        base.get("stop_loss"),
-        trade_data.get("stop_loss"),
         planned_trade.get("stop_loss"),
-        trade_patch.get("stop_loss"),
         trigger_price.get("stop_loss"),
+        trade_patch.get("stop_loss"),
+        trade_data.get("stop_loss"),
+        trade_data.get("sl"),
     )
     take_profit = _first_price(
-        base.get("tp"),
-        base.get("take_profit"),
-        trade_data.get("take_profit"),
         planned_trade.get("take_profit"),
-        trade_patch.get("take_profit"),
         trigger_price.get("take_profit"),
+        trade_patch.get("take_profit"),
+        trade_data.get("take_profit"),
+        trade_data.get("tp"),
     )
     signal_type = _first_text(
+        planned_trade.get("signal_type"),
         base.get("signal_type"),
         trade_data.get("signal_type"),
-        planned_trade.get("signal_type"),
         planned_trade.get("brooks_label"),
         patch_data.get("signal_type"),
         patch_data.get("signal"),
@@ -653,20 +582,34 @@ def build_open_order_action(
         planned_trade.get("higher_market_state"),
         entry_idea.get("higher_market_state"),
     )
-    timeframe = _first_text(
-        base.get("timeframe"),
-        planned_trade.get("timeframe"),
+    signal_timeframe = _first_text(
         planned_trade.get("signal_timeframe"),
-        entry_idea.get("timeframe"),
+        planned_trade.get("timeframe"),
     )
+    management_timeframe = _first_text(
+        planned_trade.get("management_timeframe"),
+        signal_timeframe,
+    )
+    reference_timeframe = _first_text(
+        planned_trade.get("reference_timeframe"),
+        signal_timeframe,
+    )
+    higher_timeframe = _first_text(planned_trade.get("higher_timeframe"))
+    timeframe = signal_timeframe
     entry_type = _normalize_entry_type(
-        _first_text(base.get("entry_type"), planned_trade.get("entry_type")),
-        str(base.get("order_type") or planned_trade.get("order_type") or ""),
+        _first_text(planned_trade.get("entry_type"), base.get("entry_type")),
+        str(planned_trade.get("order_type") or base.get("order_type") or ""),
     )
     order_type = _normalize_order_type(
-        _first_text(base.get("order_type"), planned_trade.get("order_type"), trade_data.get("order_type")),
+        _first_text(planned_trade.get("order_type"), base.get("order_type")),
         entry_type,
     )
+    if entry_type == "STOP" and order_type not in {"STOP_MARKET", "TAKE_PROFIT_MARKET"}:
+        order_type = "STOP_MARKET"
+    elif entry_type == "LIMIT" and order_type != "LIMIT":
+        order_type = "LIMIT"
+    elif entry_type == "MARKET" and order_type != "MARKET":
+        order_type = "MARKET"
     playbook_id = _first_text(
         base.get("playbook_id"),
         trade_data.get("playbook_id"),
@@ -769,13 +712,20 @@ def build_open_order_action(
         "market_state": market_state,
         "higher_market_state": higher_market_state,
         "timeframe": timeframe,
+        "signal_timeframe": signal_timeframe,
+        "management_timeframe": management_timeframe,
+        "reference_timeframe": reference_timeframe,
         "refs": refs_list,
     }
+    if higher_timeframe:
+        action["higher_timeframe"] = higher_timeframe
 
     if entry is not None:
         action["entry"] = entry
         action["entry_price"] = entry
         action["price"] = entry
+    if entry_zone not in (None, "", [], {}):
+        action["entry_zone"] = entry_zone
     if stop_loss is not None:
         action["sl"] = stop_loss
         action["stop_loss"] = stop_loss
@@ -790,13 +740,17 @@ def build_open_order_action(
     for field in (
         "intent",
         "risk_percent",
+        "actual_risk",
+        "nominal_risk",
+        "signal_template",
         "reentry_attempt",
         "followup_profile",
         "reentry_candidate",
         "note",
         "signal_source",
+        "template14",
     ):
-        value = _first_value(base.get(field), trade_data.get(field), planned_trade.get(field))
+        value = _first_value(base.get(field), planned_trade.get(field), trade_patch.get(field), trade_data.get(field))
         if value not in (None, ""):
             action[field] = value
 
@@ -878,6 +832,41 @@ def build_open_order_action(
         value = _first_text(base.get(field), planned_trade.get(field), execution_semantics.get(field))
         if value:
             action[field] = value
+
+    candidate_stage_upper = str(action.get("candidate_stage") or "").strip().upper()
+    execution_mode_upper = str(action.get("execution_mode") or "").strip().upper()
+    blocked_stage = (
+        candidate_stage_upper in {"WATCH", "PRE_SIGNAL", "COUNTERTREND_PROBE"}
+        or candidate_stage_upper.startswith("CANDIDATE_")
+    )
+    blocked_mode = execution_mode_upper in {"WATCH_ONLY", "COUNTERTREND_PROBE"}
+    if blocked_stage or blocked_mode:
+        return {
+            "type": "LOG_ONLY",
+            "symbol": symbol_upper,
+            "reason": (
+                f"{reason} | [SEMANTIC_BLOCK] 阶段={candidate_stage_upper or '-'} "
+                f"模式={execution_mode_upper or '-'} 仍属候选/观察态，禁止升级成实盘 OPEN_ORDER"
+            ),
+            "refs": refs_list,
+            "candidate_stage": candidate_stage_upper,
+            "execution_mode": execution_mode_upper,
+            "brooks_label": action.get("brooks_label"),
+        }
+
+    if candidate_stage_upper == "EXECUTABLE_LIMIT" or execution_mode_upper == "LIMIT_PLAN":
+        entry_type = "LIMIT"
+        order_type = "LIMIT"
+    elif candidate_stage_upper == "EXECUTABLE_STOP" or execution_mode_upper == "STOP_TRIGGER":
+        entry_type = "STOP"
+        order_type = "STOP_MARKET"
+    elif candidate_stage_upper == "EXECUTABLE_MARKET" or execution_mode_upper == "MARKET_IMMEDIATE":
+        entry_type = "MARKET"
+        order_type = "MARKET"
+
+    action["entry_type"] = entry_type
+    action["order_type"] = order_type
+    action["order_type_cn"] = order_type_cn(order_type)
 
     if action.get("intent") in {"ADD_ON", "SCALE_IN", "PYRAMID_ADD"} and not action.get("note"):
         action["note"] = "S7 加仓"

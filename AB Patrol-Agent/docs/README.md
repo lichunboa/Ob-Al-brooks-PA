@@ -1,56 +1,75 @@
 # AB Patrol-Agent 文档索引
 
-当前 `docs/` 只保留还能指导“当前目录、当前运行链、当前接入方式”的活文档。
+> 更新于 2026-03-28
 
-## 当前应优先阅读
+当前 `AB Patrol-Agent/docs/` 里同时存在两类文档：
+
+- 活文档：描述当前真实运行链、当前目录边界、当前图表与执行链
+- 历史审计文档：用于回溯某次优化、某个策略家族、某个阶段问题
+
+如果你的目标是继续开发当前系统，应该优先看下面这些权威入口。
+
+## 当前权威入口
+
+- [PROJECT_STRUCTURE.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/PROJECT_STRUCTURE.md)
+  - 当前 `AB Patrol-Agent` 目录边界、`data/` 与 `libs/` 落位规则
+- [BACKEND_STRUCTURE.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/BACKEND_STRUCTURE.md)
+  - 当前后端服务分层、职责边界、共享模块位置
+- [RUNTIME_FLOW.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/RUNTIME_FLOW.md)
+  - Patrol 主循环、规则引擎、执行桥、图表生成入口
+- [CURRENT_TRADING_FLOW.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/CURRENT_TRADING_FLOW.md)
+  - 当前 live / backtest 主链、部署策略、交易周期与大周期分工
+- [CHART_STACK_AND_TRADECAT_EVALUATION_20260327.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/CHART_STACK_AND_TRADECAT_EVALUATION_20260327.md)
+  - 当前图表栈、`tradecat` 对比结论、是否适合替换
+- [BROOKS_SIGNAL_VISUALIZATION_20260327.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/BROOKS_SIGNAL_VISUALIZATION_20260327.md)
+  - 当前图表已显示的 Brooks 信号、图层分组与按钮语义
+- [BROOKS_SIGNAL_CATALOG_AND_TEMPLATE_VIS_20260328.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/BROOKS_SIGNAL_CATALOG_AND_TEMPLATE_VIS_20260328.md)
+  - 当前图表信号目录、模板字段、tradecat 吸收结果与后续信号树落位
+- [CTRADER_SETUP.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/CTRADER_SETUP.md)
+  - cTrader 接入与检查
+- [BINANCE_DEMO_SETUP.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/BINANCE_DEMO_SETUP.md)
+  - Binance 接入与检查
+
+## 当前必须知道的事实
+
+- 当前 live 主链以规则引擎为主，不再依赖 LLM 决策。
+- 当前 live 开仓默认只使用 `15m` 交易周期；`1h` 只做背景与边界，不直接开仓。
+- 当前 Web 主图是 `lightweight-charts + Python Brooks overlay`，不是静态图片链。
+- 当前图表已经是 `策略图 + 市场图` 双标签，并支持按组勾选 Brooks 信号图层。
+- 当前 Web 摘要已经明确拆开：
+  - `当前轮次候选 / 可执行 / Gate 拒绝`
+  - `真实持仓 / 活动挂单 / 账户快照`
+- 当前账户与总览页已经按 `tradecat` 风格吸收为更紧凑的驾驶舱和账户控制条。
+- `AB Patrol-Agent/docs/` 里大量带日期的审计文档仍保留，但默认视为历史背景，不应覆盖当前权威入口。
+
+## 文档使用原则
+
+### 开发当前系统时优先读取
 
 - `PROJECT_STRUCTURE.md`
-  - 根目录分层、`data/` 子目录和落位规则
 - `BACKEND_STRUCTURE.md`
-  - 当前后端分层、目录边界、策略落位规则
 - `RUNTIME_FLOW.md`
-  - Patrol 主循环、规则引擎 / LLM 分流、执行链
 - `CURRENT_TRADING_FLOW.md`
-  - 当前策略覆盖、live / 回测主链、交易链断点
-- `STRATEGY_COVERAGE_AUDIT.md`
-  - 按 `S4` 的 15 个 Brooks playbook 审计当前覆盖率
-- `KNOWLEDGE_IMPLEMENTATION_AUDIT.md`
-  - `SKILL/S0-S7` 与当前代码实现的对照审计
-- `BROOKS_RULE_AUDIT.md`
-  - `runner.py` 规则按“教材硬规则 / 实现启发式”的对照审计
+- `CHART_STACK_AND_TRADECAT_EVALUATION_20260327.md`
+
+### 做 Brooks 理论与代码映射时再补充读取
+
 - `BROOKS_LOGIC_MAP.md`
-  - Brooks 理论步骤与当前代码映射
-- `LLM_TRIGGER_CONFIG.md`
-  - LLM 触发策略与运行配置
-- `MULTI_SYMBOL_SCANNING.md`
-  - 多品种扫描与观察名单说明
-- `BINANCE_DEMO_SETUP.md`
-  - Binance 接入说明
-- `CTRADER_SETUP.md`
-  - cTrader 接入说明
+- `BROOKS_RULE_AUDIT.md`
+- `KNOWLEDGE_IMPLEMENTATION_AUDIT.md`
+- `BROOKS_PINE_REFERENCE_AUDIT_20260327.md`
 
-## 文档边界
+### 这些文档默认按“历史审计”理解
 
-保留在 `docs/` 主目录的文档，只允许属于这三类：
+- 文件名带日期、且主题是 `AUDIT / EVAL / REPORT / OPTIMIZATION / ZERO_BASE`
+- 它们用于保留排查过程，不作为当前唯一真相
 
-- 当前运行与编排说明
-- 当前开发结构与落位规则
-- 当前交易所接入与操作说明
+## 一句话约束
 
-不再放在 `docs/` 主目录的内容：
+看不确定的地方，先以：
 
-- 一次性重构总结
-- 阶段性回测分析
-- 旧结构清理记录
-- 已经不代表当前目录结构的历史说明
+- [AGENTS.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AGENTS.md)
+- [CURRENT_TRADING_FLOW.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/CURRENT_TRADING_FLOW.md)
+- [CHART_STACK_AND_TRADECAT_EVALUATION_20260327.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/CHART_STACK_AND_TRADECAT_EVALUATION_20260327.md)
 
-## 历史说明
-
-2026-03 这轮重构产生的阶段性总结已经全部清理，不再在仓库里保留 archive 入口。
-
-如果需要追溯当前结构或交易链，以主目录下这些权威文档为准：
-
-- `PROJECT_STRUCTURE.md`
-- `BACKEND_STRUCTURE.md`
-- `RUNTIME_FLOW.md`
-- `CURRENT_TRADING_FLOW.md`
+为准。

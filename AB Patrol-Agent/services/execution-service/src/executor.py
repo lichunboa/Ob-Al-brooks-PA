@@ -162,6 +162,11 @@ class BinanceExecutor(
         """统一策略键，执行侧幂等只拦同品种同策略。"""
         return str(strategy or "").strip().upper()
 
+    @staticmethod
+    def _normalize_timeframe_marker(timeframe: str | None) -> str:
+        """统一时间周期键，允许不同周期并行首仓。"""
+        return str(timeframe or "").strip().lower()
+
     async def _detect_duplicate_entry_state(
         self,
         request: OrderRequest,
@@ -175,6 +180,7 @@ class BinanceExecutor(
         if not normalized_symbol:
             return None
         requested_strategy = self._normalize_strategy_marker(request.strategy)
+        requested_timeframe = self._normalize_timeframe_marker(getattr(request, "timeframe", None))
 
         same_direction_position = next(
             (
@@ -182,6 +188,13 @@ class BinanceExecutor(
                 for pos in positions
                 if self._norm_symbol_base(pos.symbol) == normalized_symbol
                 and self._same_entry_side(request.side, pos.side)
+                and (
+                    not requested_timeframe
+                    or (
+                        self._normalize_timeframe_marker(getattr(pos, "timeframe", None))
+                        and self._normalize_timeframe_marker(getattr(pos, "timeframe", None)) == requested_timeframe
+                    )
+                )
                 and (
                     not requested_strategy
                     or (
@@ -216,10 +229,16 @@ class BinanceExecutor(
             if request.bot_id and order.bot_id and str(order.bot_id).strip() != str(request.bot_id).strip():
                 continue
             existing_strategy = self._normalize_strategy_marker(getattr(order, "strategy", None))
+            existing_timeframe = self._normalize_timeframe_marker(getattr(order, "timeframe", None))
             if requested_strategy:
                 if not existing_strategy:
                     continue
                 if existing_strategy != requested_strategy:
+                    continue
+            if requested_timeframe:
+                if not existing_timeframe:
+                    continue
+                if existing_timeframe != requested_timeframe:
                     continue
             if str(order.side or "").upper() != requested_side:
                 continue
@@ -277,6 +296,60 @@ class BinanceExecutor(
             return []
 
         return [item for item in parsed if isinstance(item, dict)]
+
+    def _fetch_native_binance_open_algo_orders(self, symbol: Optional[str] = None) -> list[dict[str, Any]]:
+        """补抓 Binance Demo 条件单，统一给 open orders 使用。"""
+        if self.exchange_name != "binance":
+            return []
+
+        native_fetch = getattr(self.exchange, "fapiPrivateGetOpenAlgoOrders", None)
+        if not callable(native_fetch):
+            return []
+
+        params: dict[str, Any] = {}
+        if symbol:
+            market = self._load_market_descriptor(symbol)
+            market_id = str(market.get("id") or "").upper()
+            if not market_id:
+                market_id = self._norm_symbol_base(symbol).upper()
+            if market_id:
+                params["symbol"] = market_id.replace(":", "")
+
+        try:
+            raw_orders = self._call_with_time_sync("native_get_open_algo_orders", native_fetch, params)
+        except Exception as exc:
+            logger.debug("币安原生 open algo orders 查询失败 %s: %s", symbol or "ALL", exc)
+            return []
+
+        if not isinstance(raw_orders, list) or not raw_orders:
+            return []
+
+        converted: list[dict[str, Any]] = []
+        for raw_order in raw_orders:
+            if not isinstance(raw_order, dict):
+                continue
+            converted.append(
+                {
+                    "id": str(raw_order.get("algoId") or ""),
+                    "clientOrderId": str(raw_order.get("clientAlgoId") or ""),
+                    "timestamp": int(raw_order.get("createTime") or 0) or None,
+                    "datetime": self.exchange.iso8601(int(raw_order.get("createTime") or 0)) if raw_order.get("createTime") else None,
+                    "symbol": self._normalize_symbol_for_ccxt(str(raw_order.get("symbol") or "")),
+                    "type": str(raw_order.get("orderType") or "").lower(),
+                    "timeInForce": str(raw_order.get("timeInForce") or ""),
+                    "reduceOnly": bool(raw_order.get("reduceOnly")),
+                    "side": str(raw_order.get("side") or "").lower(),
+                    "price": float(raw_order.get("price") or 0.0) or None,
+                    "triggerPrice": float(raw_order.get("triggerPrice") or 0.0) or None,
+                    "amount": float(raw_order.get("quantity") or 0.0) or None,
+                    "filled": float(raw_order.get("actualQty") or 0.0) or 0.0,
+                    "remaining": float(raw_order.get("quantity") or 0.0) or 0.0,
+                    "status": str(raw_order.get("algoStatus") or "").lower(),
+                    "stopPrice": float(raw_order.get("triggerPrice") or 0.0) or None,
+                    "info": raw_order,
+                }
+            )
+        return converted
 
     def _iter_allowed_ccxt_symbols(self) -> list[str]:
         """按当前 execution 账户的 allowed_symbols 生成需要扫描的委托品种。"""

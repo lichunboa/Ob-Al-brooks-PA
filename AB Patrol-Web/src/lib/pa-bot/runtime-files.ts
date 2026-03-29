@@ -105,6 +105,47 @@ export function readJsonlRecent(filePath: string, limit = 300): UnknownRecord[] 
   }
 }
 
+export function readJsonlRecentMeaningful(filePath: string, meaningfulLimit = 600, hardLineLimit = 50000): UnknownRecord[] {
+  try {
+    if (!fs.existsSync(filePath)) return [];
+    const lines = fs.readFileSync(filePath, 'utf-8').split('\n').filter((line) => line.trim());
+    const result: UnknownRecord[] = [];
+    let meaningfulCount = 0;
+    let scanned = 0;
+
+    for (let index = lines.length - 1; index >= 0; index -= 1) {
+      const line = lines[index];
+      scanned += 1;
+      if (scanned > hardLineLimit) break;
+      try {
+        const parsed = asRecord(JSON.parse(line));
+        if (Object.keys(parsed).length === 0) continue;
+        const status = asString(parsed.status).trim().toUpperCase();
+        const type = asString(parsed.type).trim().toUpperCase();
+        const message = `${asString(parsed.message)} ${asString(parsed.reason)}`.toUpperCase();
+        const isMeaningful =
+          !['', 'LOG_ONLY', 'NO_ACTION'].includes(status) &&
+          type !== 'LOG_ONLY';
+        if (!isMeaningful && !message.includes('[TRADE_GATE_PRECHECK]') && !message.includes('[SEMANTIC_PRECHECK]')) {
+          continue;
+        }
+        result.push(parsed);
+        if (isMeaningful) {
+          meaningfulCount += 1;
+        }
+        if (meaningfulCount >= meaningfulLimit) {
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+    return result.reverse();
+  } catch {
+    return [];
+  }
+}
+
 export function readText(filePath: string): string {
   try {
     if (!fs.existsSync(filePath)) return '';

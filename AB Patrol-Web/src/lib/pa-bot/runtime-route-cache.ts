@@ -3,6 +3,7 @@ import { buildCapacitySummary as buildRuntimeCapacitySummary } from './runtime-c
 import { normalizeSymbolKey } from './runtime-symbols';
 import {
   readJsonlRecent,
+  readJsonlRecentMeaningful,
   safeStatMtimeMs,
   recentCyclePayloads,
   latestCycleFileStamp,
@@ -111,8 +112,11 @@ export function buildExecutionContextCached(
   }
 
   const payload = buildRuntimeExecutionContext({
-    cycles: recentCyclePayloads(files, 160),
-    executionRows: filterExecutionRowsAfterReset(readJsonlRecent(files.executionLog, 5000), resetFilePath),
+    cycles: recentCyclePayloads(files, 64),
+    executionRows: filterExecutionRowsAfterReset(
+      readJsonlRecentMeaningful(files.executionLog, 1400, 50000),
+      resetFilePath,
+    ),
     openPositions,
     openOrders,
   });

@@ -4,7 +4,7 @@ import { buildRuntimeExecutionContext, emptyRuntimeExecutionContext } from './ru
 import { aggregateExecutionEntries, normalizeExecutionAccounts, normalizeOpenOrders, normalizeOpenPositions } from './runtime-accounts';
 import { normalizeProfiling } from './runtime-profiling';
 import { buildLightStrategyFamilies, looksLikeTrackedSymbol, normalizeSymbolCard } from './runtime-symbols';
-import { latestCycle, runtimeFiles, type RuntimeFiles } from './runtime-files';
+import { latestCycle, readJsonlRecent, runtimeFiles, type RuntimeFiles } from './runtime-files';
 import { normalizeAudit } from './runtime-route-audit';
 import type { RuntimeView } from './runtime-execution-fallback';
 import { asArray, asBoolean, asNumber, asRecord, asString, asStringArray, hasContent, summarizeValue, type UnknownRecord } from './runtime-route-shared';
@@ -52,6 +52,246 @@ function topThemes(value: unknown): Array<{ label: string; count: number }> {
     .slice(0, 4);
 }
 
+function inferActionExchange(symbol: string, exchange: string): string {
+  const normalizedExchange = exchange.trim().toLowerCase();
+  if (normalizedExchange) return normalizedExchange;
+  const normalizedSymbol = symbol.trim().toUpperCase();
+  if (normalizedSymbol.endsWith('USDT')) return 'binance';
+  return 'ctrader';
+}
+
+function hasLiveOrderOrPositionForSymbol(symbol: string, rows: UnknownRecord[]): boolean {
+  const target = symbol.trim().toUpperCase();
+  if (!target) return false;
+  return rows.some((item) => asString(item.symbol).trim().toUpperCase() === target);
+}
+
+function matchExecutionRowForAction(
+  cycleId: string,
+  symbol: string,
+  type: string,
+  executionRows: UnknownRecord[],
+): UnknownRecord {
+  const normalizedCycleId = cycleId.trim();
+  const normalizedSymbol = symbol.trim().toUpperCase();
+  const normalizedType = type.trim().toUpperCase();
+  if (!normalizedSymbol) return {};
+
+  const exactMatches = executionRows
+    .filter((row) => {
+      const rowSymbol = asString(row.symbol).trim().toUpperCase();
+      const rowType = asString(row.type).trim().toUpperCase();
+      const rowCycleId = asString(row.cycle_id).trim();
+      if (rowSymbol !== normalizedSymbol) return false;
+      if (normalizedCycleId && rowCycleId && rowCycleId !== normalizedCycleId) return false;
+      return !normalizedType || !rowType || rowType === normalizedType;
+    })
+    .sort((left, right) => asString(right.logged_at).localeCompare(asString(left.logged_at)));
+  if (exactMatches.length > 0) {
+    return exactMatches[0];
+  }
+
+  const symbolMatches = executionRows
+    .filter((row) => {
+      const rowSymbol = asString(row.symbol).trim().toUpperCase();
+      const rowCycleId = asString(row.cycle_id).trim();
+      if (rowSymbol !== normalizedSymbol) return false;
+      return !normalizedCycleId || !rowCycleId || rowCycleId === normalizedCycleId;
+    })
+    .sort((left, right) => asString(right.logged_at).localeCompare(asString(left.logged_at)));
+  return symbolMatches[0] || {};
+}
+
+function normalizeCurrentActions(
+  actions: unknown[],
+  executionRows: UnknownRecord[],
+  currentCycleId: string,
+  livePositions: UnknownRecord[],
+  liveOrders: UnknownRecord[],
+) {
+  return actions
+    .map((action) => {
+      const item = asRecord(action);
+      const symbol = asString(item.symbol).trim().toUpperCase();
+      const strategy = asString(item.strategy).trim();
+      const reason = summarizeValue(item.reason);
+      const message = summarizeValue(item.message);
+      const candidateStage = asString(item.candidate_stage).trim();
+      const executionMode = asString(item.execution_mode).trim();
+      const type = asString(item.type).trim();
+      if (!symbol && !reason && !message) {
+        return null;
+      }
+      const matchedExecution = matchExecutionRowForAction(currentCycleId, symbol, type, executionRows);
+      const finalStatusFromLog = asString(matchedExecution.status).trim();
+      const finalMessageFromLog = summarizeValue(matchedExecution.message) || summarizeValue(matchedExecution.reason);
+      const isGateRejected = `${reason}\n${message}`.includes('[TRADE_GATE_PRECHECK]');
+      const livePosition = hasLiveOrderOrPositionForSymbol(symbol, livePositions);
+      const liveOrder = hasLiveOrderOrPositionForSymbol(symbol, liveOrders);
+      const finalStatus =
+        finalStatusFromLog ||
+        (livePosition ? 'LIVE_POSITION' : '') ||
+        (liveOrder ? 'LIVE_ORDER' : '') ||
+        (isGateRejected ? 'TRADE_GATE_REJECTED' : '');
+      const finalMessage =
+        finalMessageFromLog ||
+        (livePosition ? '交易所当前存在真实持仓' : '') ||
+        (liveOrder ? '交易所当前存在真实活动挂单' : '') ||
+        (isGateRejected ? compactGateRejectMessage(reason, message) : '');
+      const { bucket: failureBucket, label: failureLabel } = classifyCurrentActionFailure(
+        candidateStage,
+        executionMode,
+        finalStatus,
+        finalMessage,
+        reason,
+        message,
+      );
+      return {
+        symbol: symbol || '系统事件',
+        exchange: inferActionExchange(symbol, asString(item.exchange)),
+        type,
+        status: asString(item.status).trim(),
+        strategy,
+        marketState: asString(item.market_state).trim(),
+        timeframe: asString(item.timeframe).trim(),
+        candidateStage,
+        executionMode,
+        entryPrice: asNumber(item.entry_price),
+        stopLoss: asNumber(item.stop_loss),
+        takeProfit: asNumber(item.take_profit),
+        reason,
+        message,
+        finalStatus,
+        finalMessage,
+        failureBucket,
+        failureLabel,
+        executionAttempted: Object.keys(matchedExecution).length > 0 || type.trim().toUpperCase() === 'OPEN_ORDER',
+        livePosition,
+        liveOrder,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+}
+
+function classifyCurrentActionFailure(
+  candidateStage: string,
+  executionMode: string,
+  finalStatus: string,
+  finalMessage: string,
+  reason: string,
+  message: string,
+): { bucket: string; label: string } {
+  const text = [
+    candidateStage,
+    executionMode,
+    finalStatus,
+    finalMessage,
+    reason,
+    message,
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .toLowerCase();
+
+  if (!text) return { bucket: '', label: '' };
+  if (text.includes('exchange_blocked') || text.includes('binance_region_restricted') || text.includes('交易所阻断')) {
+    return { bucket: 'exchange_blocked', label: '交易所阻断' };
+  }
+  if (text.includes('exchange_not_confirmed') || text.includes('交易所未确认')) {
+    return { bucket: 'exchange_not_confirmed', label: '交易所未确认' };
+  }
+  if (text.includes('would_immediately_trigger') || text.includes('immediately trigger') || text.includes('立即触发')) {
+    return { bucket: 'immediate_trigger', label: '立即触发拦截' };
+  }
+  if (text.includes('backtest_template_missing_protection') || text.includes('缺少同源止损止盈')) {
+    return { bucket: 'missing_protection', label: '保护位缺失' };
+  }
+  if (text.includes('[semantic_precheck]') || text.includes('[semantic_block]')) {
+    return { bucket: 'semantic_precheck', label: '语义预检拦截' };
+  }
+  if (text.includes('[trade_gate_precheck]') || text.includes('trade_gate_rejected') || text.includes('validation_rejected')) {
+    return { bucket: 'trade_gate', label: 'Trade Gate 拒绝' };
+  }
+  if (text.includes('[live_entry_conflict]')) {
+    return { bucket: 'live_entry_conflict', label: '同品种冲突' };
+  }
+  if (text.includes('[duplicate_in_cycle]') || text.includes('duplicate_skipped')) {
+    return { bucket: 'duplicate_in_cycle', label: '同轮重复拦截' };
+  }
+  return { bucket: 'other', label: '其他失败' };
+}
+
+function compactGateRejectMessage(reason: string, message: string): string {
+  const text = `${reason}\n${message}`.trim();
+  if (!text) return '';
+  const picked = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => line.includes('R:R=') || line.includes('下单被拒绝') || line.includes('[TRADE_GATE_PRECHECK]'));
+  return (picked.length > 0 ? picked : text.split('\n').filter(Boolean).slice(0, 2)).join(' / ');
+}
+
+function isCandidateLikeSymbolCard(value: UnknownRecord): boolean {
+  const status = asString(value.status).trim().toLowerCase();
+  const stage = asString(value.stage).trim();
+  return (
+    status === 'pre_signal' ||
+    status === 'entry_ready' ||
+    stage.includes('候选') ||
+    stage.includes('可执行')
+  );
+}
+
+function isExecutableLikeSymbolCard(value: UnknownRecord): boolean {
+  const status = asString(value.status).trim().toLowerCase();
+  const stage = asString(value.stage).trim();
+  const summary = asString(value.execution_summary).trim();
+  return status === 'entry_ready' || stage.includes('可执行') || summary.includes('可执行');
+}
+
+function summarizeCurrentActionCounts(actions: ReturnType<typeof normalizeCurrentActions>) {
+  const candidateSymbols = new Set<string>();
+  const executableSymbols = new Set<string>();
+  const gateRejectedSymbols = new Set<string>();
+  const livePositionSymbols = new Set<string>();
+  const liveOrderSymbols = new Set<string>();
+
+  actions.forEach((item) => {
+    const stage = asString(item.candidateStage).trim().toUpperCase();
+    const reason = `${asString(item.reason)} ${asString(item.message)} ${asString(item.finalMessage)}`.trim();
+    const hasCandidateStage = Boolean(stage);
+    const isOpenOrder = asString(item.type).trim().toUpperCase() === 'OPEN_ORDER';
+    const isExecutable = stage.startsWith('EXECUTABLE');
+    const isGateRejected = reason.includes('[TRADE_GATE_PRECHECK]');
+    const symbol = asString(item.symbol).trim().toUpperCase();
+
+    if (symbol && (isOpenOrder || hasCandidateStage || isGateRejected)) {
+      candidateSymbols.add(symbol);
+    }
+    if (symbol && (isOpenOrder || isExecutable) && !isGateRejected) {
+      executableSymbols.add(symbol);
+    }
+    if (symbol && isGateRejected) {
+      gateRejectedSymbols.add(symbol);
+    }
+    if (symbol && item.livePosition) {
+      livePositionSymbols.add(symbol);
+    }
+    if (symbol && item.liveOrder) {
+      liveOrderSymbols.add(symbol);
+    }
+  });
+
+  return {
+    candidateCount: candidateSymbols.size,
+    executableCount: executableSymbols.size,
+    gateRejectedCount: gateRejectedSymbols.size,
+    livePositionCount: livePositionSymbols.size,
+    liveOrderCount: liveOrderSymbols.size,
+  };
+}
+
 export function normalizePayload(
   raw: UnknownRecord,
   source: 'query-service' | 'fallback',
@@ -75,12 +315,14 @@ export function normalizePayload(
   });
   const latestCycleDiskPayload = asRecord(latestCycleDisk.cycle);
   const effectiveLatestCycle = hasContent(latestCycleSnapshot) ? latestCycleSnapshot : latestCycleDiskPayload;
+  const snapshotDecision = hasContent(latestCycleSnapshot.decision) ? asRecord(latestCycleSnapshot.decision) : {};
+  const diskDecision = hasContent(latestCycleDiskPayload.decision) ? asRecord(latestCycleDiskPayload.decision) : {};
   const latestCycleDecision =
-    Object.keys(decision).length > 0
-      ? decision
-      : hasContent(latestCycleSnapshot.decision)
-        ? asRecord(latestCycleSnapshot.decision)
-        : asRecord(latestCycleDiskPayload.decision);
+    Object.keys(snapshotDecision).length > 0
+      ? snapshotDecision
+      : Object.keys(diskDecision).length > 0
+        ? diskDecision
+        : decision;
   const latestCycleAnalysisBoard = hasContent(latestCycleSnapshot.analysis_board)
     ? asRecord(latestCycleSnapshot.analysis_board)
     : asRecord(latestCycleDiskPayload.analysis_board);
@@ -174,6 +416,19 @@ export function normalizePayload(
       )
     : emptyRuntimeCapacitySummary(trackedSymbols.length);
   const audit = includeAudit ? normalizeAudit(asRecord(snapshot.audit)) : normalizeAudit({});
+  const recentExecutionRows = readJsonlRecent(files.executionLog, 800);
+  const currentCycleId = asString(effectiveLatestCycle.cycle_id) || asString(runtime.last_cycle_id);
+  const currentActions = normalizeCurrentActions(
+    asArray(latestCycleDecision.actions),
+    recentExecutionRows,
+    currentCycleId,
+    executionContext.positions,
+    executionContext.orders,
+  );
+  const currentActionCounts = summarizeCurrentActionCounts(currentActions);
+  const candidateCount = currentActionCounts.candidateCount;
+  const executableCount = currentActionCounts.executableCount;
+  const tradingPerformance = asRecord(snapshot.trading_performance);
   const recentCycles = includeSystemHistory
     ? (asArray(asRecord(raw.recent).items).length > 0 ? asArray(asRecord(raw.recent).items) : asArray(snapshot.recent_cycles)).map((item) => {
         const cycle = asRecord(item);
@@ -214,9 +469,7 @@ export function normalizePayload(
       bestCandidateStatus: asString(runtime.best_candidate_status),
       tradeReadiness: asString(runtime.trade_readiness),
       lastScanDecision: summarizeValue(runtime.last_scan_decision),
-      llmProvider: asString(runtime.llm_provider),
-      decisionModel: asString(runtime.decision_model),
-      decisionSessionId: asString(runtime.decision_session_id),
+      decisionEngine: asString(runtime.decision_engine) || 'RULE_ENGINE',
       riskMode: asString(runtime.risk_mode),
     },
     summary: {
@@ -224,6 +477,11 @@ export function normalizePayload(
       marketSummary: summarizeValue(latestCycleDecision.market_summary) || summarizeValue(runtime.last_scan_decision),
       explanation: summarizeValue(latestCycleDecision.explanation),
       actionsCount: asArray(latestCycleDecision.actions).length,
+      candidateCount,
+      executableCount,
+      gateRejectedCount: currentActionCounts.gateRejectedCount,
+      livePositionCount: currentActionCounts.livePositionCount,
+      liveOrderCount: currentActionCounts.liveOrderCount,
       positionManagementCount: asArray(latestCycleDecision.position_management).length,
       strategyFamilies: summaryStrategyFamilies,
       strategyCatalog: buildStrategyCatalog(),
@@ -274,7 +532,59 @@ export function normalizePayload(
       sessionAgeSeconds: asNumber(monitoring.session_age_seconds),
       uptimeSeconds: asNumber(monitoring.uptime_seconds) ?? patrolUptimeSeconds,
       sessionTurnCount: asNumber(monitoring.session_turn_count),
-      sessionModel: asString(monitoring.session_model) || null,
+    },
+    performance: {
+      rangeLabel: asString(tradingPerformance.rangeLabel),
+      startAt: asString(tradingPerformance.startAt) || null,
+      endAt: asString(tradingPerformance.endAt) || null,
+      total: {
+        tradeRows: asNumber(asRecord(tradingPerformance.total).tradeRows) ?? 0,
+        realizedTradeCount: asNumber(asRecord(tradingPerformance.total).realizedTradeCount) ?? 0,
+        wins: asNumber(asRecord(tradingPerformance.total).wins) ?? 0,
+        losses: asNumber(asRecord(tradingPerformance.total).losses) ?? 0,
+        winRatePct: asNumber(asRecord(tradingPerformance.total).winRatePct) ?? 0,
+        grossProfit: asNumber(asRecord(tradingPerformance.total).grossProfit) ?? 0,
+        grossLoss: asNumber(asRecord(tradingPerformance.total).grossLoss) ?? 0,
+        profitFactor: asNumber(asRecord(tradingPerformance.total).profitFactor),
+        commission: asNumber(asRecord(tradingPerformance.total).commission) ?? 0,
+        netRealized: asNumber(asRecord(tradingPerformance.total).netRealized) ?? 0,
+        cleanup: {
+          partialClosed: asNumber(asRecord(asRecord(tradingPerformance.total).cleanup).partialClosed) ?? 0,
+          closeSuccess: asNumber(asRecord(asRecord(tradingPerformance.total).cleanup).closeSuccess) ?? 0,
+          sizeFailed: asNumber(asRecord(asRecord(tradingPerformance.total).cleanup).sizeFailed) ?? 0,
+          notFound: asNumber(asRecord(asRecord(tradingPerformance.total).cleanup).notFound) ?? 0,
+          modifyFailed: asNumber(asRecord(asRecord(tradingPerformance.total).cleanup).modifyFailed) ?? 0,
+          modifySkipped: asNumber(asRecord(asRecord(tradingPerformance.total).cleanup).modifySkipped) ?? 0,
+        },
+      },
+      exchanges: asArray(tradingPerformance.exchanges).map((item) => {
+        const record = asRecord(item);
+        const cleanup = asRecord(record.cleanup);
+        return {
+          exchange: asString(record.exchange),
+          label: asString(record.label),
+          startAt: asString(record.startAt) || null,
+          endAt: asString(record.endAt) || null,
+          tradeRows: asNumber(record.tradeRows) ?? 0,
+          realizedTradeCount: asNumber(record.realizedTradeCount) ?? 0,
+          wins: asNumber(record.wins) ?? 0,
+          losses: asNumber(record.losses) ?? 0,
+          winRatePct: asNumber(record.winRatePct) ?? 0,
+          grossProfit: asNumber(record.grossProfit) ?? 0,
+          grossLoss: asNumber(record.grossLoss) ?? 0,
+          profitFactor: asNumber(record.profitFactor),
+          commission: asNumber(record.commission) ?? 0,
+          netRealized: asNumber(record.netRealized) ?? 0,
+          cleanup: {
+            partialClosed: asNumber(cleanup.partialClosed) ?? 0,
+            closeSuccess: asNumber(cleanup.closeSuccess) ?? 0,
+            sizeFailed: asNumber(cleanup.sizeFailed) ?? 0,
+            notFound: asNumber(cleanup.notFound) ?? 0,
+            modifyFailed: asNumber(cleanup.modifyFailed) ?? 0,
+            modifySkipped: asNumber(cleanup.modifySkipped) ?? 0,
+          },
+        };
+      }),
     },
     audit,
     nextScan: {
@@ -305,6 +615,7 @@ export function normalizePayload(
     recentExecutions: includeExecutionHistory ? executionContext.recentExecutions : [],
     managementActions: includeExecutionHistory ? executionContext.managementActions : [],
     historicalOrders: includeExecutionHistory ? executionContext.historicalOrders : [],
+    currentActions,
     funnel: includeSystemHistory
       ? {
           counts: {

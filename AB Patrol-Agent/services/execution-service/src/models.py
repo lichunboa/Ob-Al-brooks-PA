@@ -55,7 +55,9 @@ class OrderRequest(BaseModel):
     trade_id: Optional[str] = Field(None, description="关联的交易 ID")
     signal_source: Optional[str] = Field(None, description="信号来源")
     strategy: Optional[str] = Field(None, description="策略名称 (用于进化系统)")
+    timeframe: Optional[str] = Field(None, description="信号时间周期")
     bot_id: Optional[str] = Field(None, description="机器人 ID (al-brooks/trader/wyckoff)")
+    intent: Optional[str] = Field(None, description="交易意图，如 FIRST_ENTRY / ADD_ON / SCALE_IN")
 
 
 class OrderResponse(BaseModel):
@@ -68,6 +70,13 @@ class OrderResponse(BaseModel):
     price: Optional[float] = None
     status: str = "UNKNOWN"
     message: Optional[str] = None
+    planned_price: Optional[float] = None
+    filled_price: Optional[float] = None
+    planned_stop_loss: Optional[float] = None
+    actual_stop_loss: Optional[float] = None
+    planned_take_profit: Optional[float] = None
+    actual_take_profit: Optional[float] = None
+    exchange_confirmed: bool = True
 
     @field_validator("status", mode="before")
     @classmethod
@@ -87,6 +96,8 @@ class OrderResponse(BaseModel):
 
 class Position(BaseModel):
     """持仓信息"""
+    model_config = {"from_attributes": True}
+
     symbol: str
     side: PositionSide
     quantity: float
@@ -96,6 +107,14 @@ class Position(BaseModel):
     leverage: int
     margin_type: str
     liquidation_price: Optional[float] = None
+    stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
+    position_id: Optional[str] = None
+    native_stop_loss: bool = False
+    native_take_profit: bool = False
+    protection_source: Optional[str] = None
+    strategy: Optional[str] = None
+    timeframe: Optional[str] = None
 
 
 class Balance(BaseModel):
@@ -178,9 +197,12 @@ class OpenOrder(BaseModel):
     status: str
     reduce_only: bool = False
     created_at: Optional[datetime] = None
+    exchange_confirmed: bool = True
     # 机器人追踪
     bot_id: Optional[str] = None
     client_order_id: Optional[str] = None
+    strategy: Optional[str] = None
+    timeframe: Optional[str] = None
 
 
 class TradeHistory(BaseModel):

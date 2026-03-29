@@ -25,22 +25,28 @@ class KlineAnalyzerMixin:
 
     def _price_precision(self, symbol: str, reference_price: float) -> int:
         """优先按交易所规格推断价格精度。"""
-        if getattr(self, "exchange_name", "") == "ctrader":
-            try:
-                info = self.get_symbol_info(symbol)
-                tick_size = float(info.get("tick_size") or 0.0)
-            except Exception:
-                tick_size = 0.0
-            if tick_size > 0:
-                return min(8, max(2, self._decimals_from_step(tick_size)))
-            if reference_price >= 1000:
-                return 2
-            if reference_price >= 100:
-                return 3
-            if reference_price >= 1:
-                return 5
+        tick_size = 0.0
+        try:
+            info = self.get_symbol_info(symbol)
+            tick_size = float(info.get("tick_size") or 0.0)
+        except Exception:
+            tick_size = 0.0
+
+        if tick_size > 0:
+            minimum_decimals = 2 if getattr(self, "exchange_name", "") == "ctrader" else 0
+            return min(8, max(minimum_decimals, self._decimals_from_step(tick_size)))
+
+        if reference_price >= 1000:
+            return 2
+        if reference_price >= 100:
+            return 3
+        if reference_price >= 1:
+            return 4
+        if reference_price >= 0.1:
+            return 5
+        if reference_price >= 0.01:
             return 6
-        return 2
+        return 7
 
     @staticmethod
     def _round_price(value: float, precision: int) -> float:
