@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { execFileSync } from "child_process";
 import fs from "fs";
 
+export const dynamic = "force-dynamic";
+
 const QUERY_BASE = process.env.AB_PATROL_QUERY_BASE || "http://127.0.0.1:8086";
 const CONTROL_SCRIPT =
-  "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/tools/pa_crypto_control.py";
+  "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/tools/ops/pa_crypto_control.py";
 const PATROL_DATA =
   "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/pa_trader";
 

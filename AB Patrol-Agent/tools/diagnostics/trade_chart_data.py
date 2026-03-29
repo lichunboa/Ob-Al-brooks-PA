@@ -14,33 +14,41 @@ import argparse
 import json
 from pathlib import Path
 from typing import Any
+import glob
 
 import pandas as pd
-import requests
 
 from _bootstrap import ensure_agent_root_on_path
 
 ROOT = ensure_agent_root_on_path()
 
-from libs.backtest.data_loader import DataLoader  # noqa: E402
-from runtime.live_market_archive import live_daily_cache_path  # noqa: E402
+from libs.common.bar_store import load_canonical_bars  # noqa: E402
+from libs.common.market_symbols import normalize_bar_symbol  # noqa: E402
+from brooks_chart_overlay import build_brooks_chart_overlay  # noqa: E402
 
 
 TIMEFRAME_RULES = {
     "1m": pd.Timedelta(minutes=1),
     "5m": pd.Timedelta(minutes=5),
     "15m": pd.Timedelta(minutes=15),
+    "30m": pd.Timedelta(minutes=30),
     "1h": pd.Timedelta(hours=1),
+    "4h": pd.Timedelta(hours=4),
     "1d": pd.Timedelta(days=1),
 }
 
 WINDOW_BARS = {
-    "1m": 160,
-    "5m": 120,
-    "15m": 100,
-    "1h": 72,
-    "1d": 40,
+    "1m": 260,
+    "5m": 220,
+    "15m": 220,
+    "30m": 180,
+    "1h": 140,
+    "4h": 100,
+    "1d": 72,
 }
+
+RUNTIME_STATE_PATH = ROOT / "data" / "pa_trader" / "state" / "runtime_state.json"
+LATEST_CYCLE_GLOB = str(ROOT / "data" / "pa_trader" / "cycles" / "cycle_*.json")
 
 
 def parse_args() -> argparse.Namespace:
@@ -57,11 +65,10 @@ def _load_payload(path: Path) -> dict[str, Any]:
 
 def _normalize_timeframe(value: Any) -> str:
     text = str(value or "").strip().lower()
-    matched = text[:3] if text.startswith("15m") else text[:2]
-    for candidate in ("1m", "5m", "15m", "1h", "1d"):
+    for candidate in ("1m", "5m", "15m", "30m", "1h", "4h", "1d"):
         if text.startswith(candidate):
             return candidate
-    return "15m"
+    return "1m"
 
 
 def _to_naive_utc(value: Any) -> pd.Timestamp | None:
@@ -103,6 +110,168 @@ def _flatten_template14(value: Any) -> dict[str, Any]:
     return payload
 
 
+def _summary_item(
+    key: str,
+    label: str,
+    color: str,
+    detail_lines: list[str],
+    *,
+    group_key: str | None = None,
+    group_label: str | None = None,
+) -> dict[str, Any]:
+    payload = {
+        "key": key,
+        "label": label,
+        "color": color,
+        "detailTitle": label,
+        "detailLines": detail_lines,
+    }
+    if group_key:
+        payload["groupKey"] = group_key
+    if group_label:
+        payload["groupLabel"] = group_label
+    return payload
+
+
+def _infer_tradingview_market_meta(symbol: str, base_url: str | None = None) -> dict[str, Any]:
+    normalized_symbol = normalize_bar_symbol(symbol)
+    base = str(base_url or "").strip()
+    if not normalized_symbol:
+        return {}
+
+    if normalized_symbol.endswith("USDT") or ":8093" in base:
+        return {
+            "marketSymbol": normalized_symbol,
+            "marketKind": "crypto",
+            "tradingViewDefaultExchange": "BINANCE",
+            "tradingViewFullSymbol": f"BINANCE:{normalized_symbol}.P",
+        }
+
+    if len(normalized_symbol) == 6 and normalized_symbol.isalpha():
+        return {
+            "marketSymbol": normalized_symbol,
+            "marketKind": "forex",
+            "tradingViewDefaultExchange": "OANDA",
+            "tradingViewFullSymbol": f"OANDA:{normalized_symbol}",
+        }
+
+    return {
+        "marketSymbol": normalized_symbol,
+        "marketKind": "unknown",
+        "tradingViewDefaultExchange": "BINANCE",
+        "tradingViewFullSymbol": normalized_symbol,
+    }
+
+
+def _load_runtime_symbol_context(symbol: str) -> dict[str, Any]:
+    normalized_symbol = normalize_bar_symbol(symbol)
+    if not normalized_symbol:
+        return {}
+
+    try:
+        if RUNTIME_STATE_PATH.exists():
+            runtime_state = json.loads(RUNTIME_STATE_PATH.read_text(encoding="utf-8"))
+            container = runtime_state.get("symbols") or {}
+            if isinstance(container, dict):
+                direct = container.get(normalized_symbol)
+                if isinstance(direct, dict):
+                    return direct
+                for key, item in container.items():
+                    if normalize_bar_symbol(str(key)) == normalized_symbol and isinstance(item, dict):
+                        return item
+            direct_root = runtime_state.get(normalized_symbol)
+            if isinstance(direct_root, dict):
+                return direct_root
+    except Exception:
+        pass
+
+    try:
+        cycle_files = sorted(glob.glob(LATEST_CYCLE_GLOB))
+        if cycle_files:
+            latest = json.loads(Path(cycle_files[-1]).read_text(encoding="utf-8"))
+            decision = latest.get("decision") or {}
+            for container_key in ("symbols", "symbol_updates"):
+                container = decision.get(container_key)
+                if isinstance(container, dict):
+                    direct = container.get(normalized_symbol)
+                    if isinstance(direct, dict):
+                        return direct
+                    for key, item in container.items():
+                        if normalize_bar_symbol(str(key)) == normalized_symbol and isinstance(item, dict):
+                            return item
+    except Exception:
+        pass
+    return {}
+
+
+def _build_runtime_status_summary(symbol: str) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    context = _load_runtime_symbol_context(symbol)
+    if not context:
+        return None, {}
+
+    status = str(context.get("status") or "").strip() or "unknown"
+    signal = str(context.get("signal") or context.get("signal_type") or "").strip()
+    candidate_stage = str(context.get("candidate_stage") or "").strip()
+    execution_mode = str(context.get("execution_mode") or "").strip()
+    strategy = str(context.get("strategy") or "").strip()
+    planned_trade = context.get("planned_trade")
+    has_planned_trade = isinstance(planned_trade, dict) and bool(planned_trade)
+
+    if status == "watching":
+        label = "机会：等待中"
+        color = "#94a3b8"
+        detail_lines = [
+            f"当前 runtime 状态：{status}。",
+            "这意味着系统没有把当前结构升级成 pre-signal / candidate / executable。",
+            "图上的 H/L、ii/ioi、MAG、MM 只是结构层与目标层，不等于系统已经认可开仓。",
+            "只有 signal、candidate_stage、planned_trade 和 trade gate 同时过关，才会进入真实下单链。",
+        ]
+    else:
+        label = f"机会：{status}"
+        color = "#22c55e" if status in {"entry_ready", "candidate", "executable"} else "#f59e0b"
+        detail_lines = [
+            f"当前 runtime 状态：{status}。",
+            f"signal：{signal or '无'}；candidate_stage：{candidate_stage or '无'}；execution_mode：{execution_mode or '无'}。",
+            f"策略：{strategy or '无'}；planned_trade：{'有' if has_planned_trade else '无'}。",
+            "这张图里的结构标记只是辅助读图，真正是否下单仍以 runtime 当前状态为准。",
+        ]
+
+    return (
+        _summary_item(
+            "strategy_gate",
+            label,
+            color,
+            detail_lines,
+            group_key="runtime_gate",
+            group_label="运行态 / 执行链",
+        ),
+        {
+            "runtimeStatus": status,
+            "runtimeSignal": signal or None,
+            "runtimeCandidateStage": candidate_stage or None,
+            "runtimeExecutionMode": execution_mode or None,
+            "runtimeStrategy": strategy or None,
+            "runtimeHasPlannedTrade": has_planned_trade,
+        },
+    )
+
+
+def _event_scope_summary() -> dict[str, Any]:
+    return _summary_item(
+        "chart_scope",
+        "图表范围：事件复盘",
+        "#818cf8",
+        [
+            "当前图围绕选中的历史主事件窗口重算结构标记，用来解释那笔事件当时的上下文。",
+            "窗口里的 H/L、ii/ioi、MM 是该窗口内的结构投影，不等于当前 live 仍然存在同样机会。",
+            "如果要看当前是否有 live 机会，请结合“机会”按钮和运行态状态一起判断。",
+            "历史事件复盘图用于解释过去发生了什么，live 是否下单仍以当前 runtime 决策链为准。",
+        ],
+        group_key="runtime_gate",
+        group_label="运行态 / 执行链",
+    )
+
+
 def _normalize_trade_items(trades: list[dict[str, Any]]) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
     for trade in trades:
@@ -135,9 +304,11 @@ def _resolve_window(
     anchors: list[pd.Timestamp],
     timeframe: str,
     selected_ts: pd.Timestamp | None,
+    requested_bars: int | None = None,
 ) -> tuple[pd.Timestamp, pd.Timestamp]:
     delta = TIMEFRAME_RULES.get(timeframe, pd.Timedelta(minutes=5))
-    radius = WINDOW_BARS.get(timeframe, 100)
+    radius = requested_bars or WINDOW_BARS.get(timeframe, 100)
+    radius = max(40, int(radius))
     if selected_ts is not None:
         return selected_ts - delta * radius, selected_ts + delta * radius
     if not anchors:
@@ -147,68 +318,29 @@ def _resolve_window(
 
 
 def _load_backtest_bars(symbol: str, timeframe: str, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
-    cache_candidates = [
-        ROOT / "data" / "history" / "cache",
-        ROOT / "data" / "backtest_cache",
-    ]
-    df_1m = pd.DataFrame()
-    for cache_dir in cache_candidates:
-        df_1m = DataLoader.load(
-            symbol,
-            start_date=start.strftime("%Y-%m-%d"),
-            end_date=end.strftime("%Y-%m-%d"),
-            cache_dir=str(cache_dir),
-        )
-        if not df_1m.empty:
-            break
-    if df_1m.empty:
-        raise RuntimeError(f"{symbol} 没有可用历史数据")
-    if timeframe == "1m":
-        bars = df_1m.copy()
-    else:
-        bars = DataLoader.resample(df_1m, timeframe)
-    bars["timestamp"] = pd.to_datetime(bars["timestamp"], utc=True).dt.tz_localize(None)
-    bars = bars[(bars["timestamp"] >= start) & (bars["timestamp"] <= end)].reset_index(drop=True)
-    if bars.empty:
-        raise RuntimeError(f"{symbol} {timeframe} 在选定窗口内没有 K 线")
+    bars = load_canonical_bars(
+        ROOT,
+        normalize_bar_symbol(symbol),
+        timeframe,
+        start,
+        end,
+        prefer_live=False,
+    )
+    bars.attrs["candle_source"] = "统一 bar 数据层：historical"
     return bars
 
 
 def _load_live_bars(symbol: str, timeframe: str, date_text: str, start: pd.Timestamp, end: pd.Timestamp, base_url: str) -> pd.DataFrame:
-    cache_path = live_daily_cache_path(ROOT, symbol, date_text)
-    if cache_path.exists():
-        bars_1m = pd.read_parquet(cache_path)
-        bars_1m["timestamp"] = pd.to_datetime(bars_1m["timestamp"], utc=True, errors="coerce").dt.tz_localize(None)
-        bars_1m = bars_1m.dropna(subset=["timestamp"]).sort_values("timestamp").reset_index(drop=True)
-    else:
-        response = requests.get(
-            f"{base_url.rstrip('/')}/klines/{symbol}",
-            params={"interval": timeframe, "limit": max(120, WINDOW_BARS.get(timeframe, 100) * 2)},
-            timeout=20,
-        )
-        response.raise_for_status()
-        payload = response.json()
-        bars = payload.get("bars") if isinstance(payload, dict) else None
-        if not isinstance(bars, list) or not bars:
-            raise RuntimeError(f"{symbol} {timeframe} 没有可用 K 线")
-        bars_1m = pd.DataFrame(bars)
-        bars_1m["timestamp"] = pd.to_datetime(bars_1m.get("time"), utc=True, errors="coerce").dt.tz_localize(None)
-        bars_1m["open"] = pd.to_numeric(bars_1m.get("O"), errors="coerce")
-        bars_1m["high"] = pd.to_numeric(bars_1m.get("H"), errors="coerce")
-        bars_1m["low"] = pd.to_numeric(bars_1m.get("L"), errors="coerce")
-        bars_1m["close"] = pd.to_numeric(bars_1m.get("C"), errors="coerce")
-        bars_1m["volume"] = pd.to_numeric(bars_1m.get("vol"), errors="coerce").fillna(0.0)
-        bars_1m = bars_1m.dropna(subset=["timestamp", "open", "high", "low", "close"])
-        bars_1m = bars_1m[["timestamp", "open", "high", "low", "close", "volume"]].reset_index(drop=True)
-    if timeframe == "1m":
-        bars = bars_1m.copy()
-    else:
-        bars = DataLoader.resample(bars_1m, timeframe)
-    bars["timestamp"] = pd.to_datetime(bars["timestamp"], utc=True, errors="coerce").dt.tz_localize(None)
-    bars = bars[(bars["timestamp"] >= start) & (bars["timestamp"] <= end)].reset_index(drop=True)
-    if bars.empty:
-        raise RuntimeError(f"{symbol} {timeframe} 在选定窗口内没有实时 K 线")
-    return bars
+    _ = date_text
+    return load_canonical_bars(
+        ROOT,
+        normalize_bar_symbol(symbol),
+        timeframe,
+        start,
+        end,
+        base_url=base_url,
+        prefer_live=True,
+    )
 
 
 def _nearest_index(index: pd.DatetimeIndex, ts: pd.Timestamp) -> int:
@@ -251,6 +383,33 @@ def _serialize_volume(bars: pd.DataFrame) -> list[dict[str, Any]]:
         payload.append({"time": _to_epoch_seconds(row.timestamp), "value": float(getattr(row, "volume", 0.0) or 0.0), "color": color})
         previous_close = close_price
     return payload
+
+
+def _merge_overlay_price_lines(
+    base_lines: list[dict[str, Any]],
+    overlay_lines: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    merged = list(base_lines)
+    seen = {
+        (
+            round(float(item.get("price") or 0.0), 8),
+            str(item.get("title") or ""),
+        )
+        for item in merged
+        if _safe_float(item.get("price")) is not None
+    }
+    for item in overlay_lines:
+        price = _safe_float(item.get("price"))
+        if price is None or price <= 0:
+            continue
+        signature = (round(price, 8), str(item.get("title") or ""))
+        if signature in seen:
+            continue
+        seen.add(signature)
+        payload = dict(item)
+        payload["price"] = price
+        merged.append(payload)
+    return merged
 
 
 def _backtest_chart_payload(symbol: str, timeframe: str, trades: list[dict[str, Any]], selected_index: int | None) -> dict[str, Any]:
@@ -301,6 +460,8 @@ def _backtest_chart_payload(symbol: str, timeframe: str, trades: list[dict[str, 
         if price is not None and price > 0:
             price_lines.append({"price": price, "color": color, "title": title})
 
+    overlay = build_brooks_chart_overlay(bars, timeframe)
+
     focus_title = (
         f"{symbol} {timeframe} | "
         f"{selected.get('strategy') or selected.get('playbook_id') or selected.get('playbook_family') or '未命名策略'} | "
@@ -315,9 +476,13 @@ def _backtest_chart_payload(symbol: str, timeframe: str, trades: list[dict[str, 
         "candles": _serialize_candles(bars),
         "ema20": _serialize_ema(bars),
         "volume": _serialize_volume(bars),
-        "markers": markers,
-        "priceLines": price_lines,
+        "markers": list(overlay.get("markers") or []) + markers,
+        "priceLines": _merge_overlay_price_lines(price_lines, list(overlay.get("priceLines") or [])),
+        "overlayLines": list(overlay.get("overlayLines") or []),
+        "signalSummary": list(overlay.get("signalSummary") or []),
         "focusMeta": {
+            **dict(overlay.get("focusMeta") or {}),
+            **_infer_tradingview_market_meta(symbol),
             "strategy": selected.get("strategy"),
             "playbookId": selected.get("playbook_id"),
             "playbookFamily": selected.get("playbook_family"),
@@ -417,10 +582,62 @@ def _pick_live_focus_events(events: list[dict[str, Any]], selected: dict[str, An
     return chosen or [selected]
 
 
+def _live_signal_only_payload(symbol: str, timeframe: str, base_url: str) -> dict[str, Any]:
+    """仅按品种/周期生成实时信号总览，不依赖具体事件。"""
+    now = pd.Timestamp.utcnow().tz_localize(None)
+    window_start, window_end = _resolve_window([now], timeframe, now)
+    date_text = now.strftime("%Y-%m-%d")
+    bars = _load_live_bars(symbol, timeframe, date_text, window_start, window_end, base_url)
+    candle_source = str(bars.attrs.get("candle_source") or "未知")
+    overlay = build_brooks_chart_overlay(bars, timeframe)
+    runtime_summary, runtime_meta = _build_runtime_status_summary(symbol)
+    signal_summary = list(overlay.get("signalSummary") or [])
+    if runtime_summary is not None:
+        signal_summary.insert(1, runtime_summary)
+    return {
+        "source": "live",
+        "symbol": symbol,
+        "timeframe": timeframe,
+        "focusTitle": f"{symbol} {timeframe} | 实时 Brooks 信号总览",
+        "candles": _serialize_candles(bars),
+        "ema20": _serialize_ema(bars),
+        "volume": _serialize_volume(bars),
+        "markers": list(overlay.get("markers") or []),
+        "priceLines": list(overlay.get("priceLines") or []),
+        "overlayLines": list(overlay.get("overlayLines") or []),
+        "signalSummary": signal_summary,
+        "focusMeta": {
+            **dict(overlay.get("focusMeta") or {}),
+            **_infer_tradingview_market_meta(symbol, base_url),
+            **runtime_meta,
+            "strategy": None,
+            "playbookId": None,
+            "marketState": None,
+            "type": "SIGNAL_OVERVIEW",
+            "status": "watching",
+            "side": None,
+            "loggedAt": now.isoformat(),
+            "entryPrice": None,
+            "plannedEntryPrice": None,
+            "actualEntryPrice": None,
+            "eventPrice": None,
+            "stopLoss": None,
+            "plannedStopLoss": None,
+            "actualStopLoss": None,
+            "takeProfit": None,
+            "plannedTakeProfit": None,
+            "actualTakeProfit": None,
+            "orderClass": None,
+            "protectionKind": None,
+            "candleSource": candle_source,
+        },
+    }
+
+
 def _live_chart_payload(symbol: str, timeframe: str, events: list[dict[str, Any]], selected_index: int | None, base_url: str) -> dict[str, Any]:
     normalized = _normalize_event_items(events)
     if not normalized:
-        raise RuntimeError("缺少可用实盘事件")
+        return _live_signal_only_payload(symbol, timeframe, base_url)
     selected = normalized[selected_index] if selected_index is not None and 0 <= selected_index < len(normalized) else normalized[-1]
     anchors = [item["logged_at"] for item in normalized]
     window_start, window_end = _resolve_window(anchors, timeframe, selected["logged_at"])
@@ -444,6 +661,16 @@ def _live_chart_payload(symbol: str, timeframe: str, events: list[dict[str, Any]
     narrowed = _pick_live_focus_events(focused or [selected], selected)
     window_events = [item for item in narrowed if bars["timestamp"].iloc[0] <= item["logged_at"] <= bars["timestamp"].iloc[-1]] or narrowed
     timestamps = pd.DatetimeIndex(bars["timestamp"])
+    candle_source = str(bars.attrs.get("candle_source") or "未知")
+    planned_entry_price = _safe_float(selected.get("plannedEntryPrice")) or _safe_float(selected.get("entryPrice"))
+    actual_entry_price = _safe_float(selected.get("actualEntryPrice"))
+    planned_stop_loss = _safe_float(selected.get("plannedStopLoss")) or _safe_float(selected.get("stopLoss"))
+    actual_stop_loss = _safe_float(selected.get("actualStopLoss"))
+    planned_take_profit = _safe_float(selected.get("plannedTakeProfit")) or _safe_float(selected.get("takeProfit"))
+    actual_take_profit = _safe_float(selected.get("actualTakeProfit"))
+    display_entry_price = actual_entry_price or planned_entry_price
+    display_stop_loss = actual_stop_loss or planned_stop_loss
+    display_take_profit = actual_take_profit or planned_take_profit
 
     markers: list[dict[str, Any]] = []
     for item in window_events:
@@ -454,7 +681,11 @@ def _live_chart_payload(symbol: str, timeframe: str, events: list[dict[str, Any]
             and str(item.get("type") or "") == str(selected.get("type") or "")
             and str(item.get("orderId") or "") == str(selected.get("orderId") or "")
         )
-        event_price = _safe_float(item.get("eventPrice")) or _safe_float(item.get("entryPrice"))
+        event_price = (
+            _safe_float(item.get("eventPrice"))
+            or _safe_float(item.get("plannedEntryPrice"))
+            or _safe_float(item.get("entryPrice"))
+        )
         if event_price is None:
             event_price = float(bars.iloc[_nearest_index(timestamps, item["logged_at"])]["close"])
         if event_type == "OPEN_ORDER":
@@ -488,13 +719,26 @@ def _live_chart_payload(symbol: str, timeframe: str, events: list[dict[str, Any]
 
     price_lines = []
     for price, color, title in (
-        (_safe_float(selected.get("entryPrice")), "#22c55e", "入场"),
-        (_safe_float(selected.get("stopLoss")), "#ef4444", "止损"),
-        (_safe_float(selected.get("takeProfit")), "#f59e0b", "止盈"),
+        (display_entry_price, "#22c55e", "入场"),
+        (display_stop_loss, "#ef4444", "止损"),
+        (display_take_profit, "#f59e0b", "止盈"),
         (_safe_float(selected.get("eventPrice")), "#e2e8f0", "事件价格"),
     ):
         if price is not None and price > 0:
-            price_lines.append({"price": price, "color": color, "title": title})
+            price_lines.append({"price": price, "color": color, "title": title, "lineStyle": "solid"})
+    if actual_entry_price is not None and planned_entry_price is not None and abs(actual_entry_price - planned_entry_price) > max(1e-6, abs(actual_entry_price) * 1e-5):
+        price_lines.append({"price": planned_entry_price, "color": "#94a3b8", "title": "计划入场", "lineStyle": "dotted"})
+    if actual_stop_loss is not None and planned_stop_loss is not None and abs(actual_stop_loss - planned_stop_loss) > max(1e-6, abs(actual_stop_loss) * 1e-5):
+        price_lines.append({"price": planned_stop_loss, "color": "#fca5a5", "title": "计划止损", "lineStyle": "dotted"})
+    if actual_take_profit is not None and planned_take_profit is not None and abs(actual_take_profit - planned_take_profit) > max(1e-6, abs(actual_take_profit) * 1e-5):
+        price_lines.append({"price": planned_take_profit, "color": "#fcd34d", "title": "计划止盈", "lineStyle": "dotted"})
+
+    overlay = build_brooks_chart_overlay(bars, timeframe)
+    runtime_summary, runtime_meta = _build_runtime_status_summary(symbol)
+    signal_summary = list(overlay.get("signalSummary") or [])
+    signal_summary.insert(0, _event_scope_summary())
+    if runtime_summary is not None:
+        signal_summary.insert(1, runtime_summary)
 
     focus_title = (
         f"{symbol} {timeframe} | "
@@ -510,9 +754,14 @@ def _live_chart_payload(symbol: str, timeframe: str, events: list[dict[str, Any]
         "candles": _serialize_candles(bars),
         "ema20": _serialize_ema(bars),
         "volume": _serialize_volume(bars),
-        "markers": markers,
-        "priceLines": price_lines,
+        "markers": list(overlay.get("markers") or []) + markers,
+        "priceLines": _merge_overlay_price_lines(price_lines, list(overlay.get("priceLines") or [])),
+        "overlayLines": list(overlay.get("overlayLines") or []),
+        "signalSummary": signal_summary,
         "focusMeta": {
+            **dict(overlay.get("focusMeta") or {}),
+            **_infer_tradingview_market_meta(symbol, base_url),
+            **runtime_meta,
             "strategy": selected.get("strategy"),
             "playbookId": selected.get("playbookId"),
             "marketState": selected.get("marketState"),
@@ -520,12 +769,19 @@ def _live_chart_payload(symbol: str, timeframe: str, events: list[dict[str, Any]
             "status": selected.get("status"),
             "side": selected.get("side"),
             "loggedAt": selected["logged_at"].isoformat(),
-            "entryPrice": _safe_float(selected.get("entryPrice")),
+            "entryPrice": display_entry_price,
+            "plannedEntryPrice": planned_entry_price,
+            "actualEntryPrice": actual_entry_price,
             "eventPrice": _safe_float(selected.get("eventPrice")),
-            "stopLoss": _safe_float(selected.get("stopLoss")),
-            "takeProfit": _safe_float(selected.get("takeProfit")),
+            "stopLoss": display_stop_loss,
+            "plannedStopLoss": planned_stop_loss,
+            "actualStopLoss": actual_stop_loss,
+            "takeProfit": display_take_profit,
+            "plannedTakeProfit": planned_take_profit,
+            "actualTakeProfit": actual_take_profit,
             "orderClass": selected.get("orderClass"),
             "protectionKind": selected.get("protectionKind"),
+            "candleSource": candle_source,
             **_flatten_template14(selected.get("template14")),
         },
     }
@@ -534,7 +790,7 @@ def _live_chart_payload(symbol: str, timeframe: str, events: list[dict[str, Any]
 def main() -> None:
     args = parse_args()
     payload = _load_payload(Path(args.payload_file))
-    symbol = str(payload.get("symbol") or "").strip().upper()
+    symbol = normalize_bar_symbol(str(payload.get("symbol") or ""))
     timeframe = _normalize_timeframe(payload.get("timeframe"))
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -548,7 +804,7 @@ def main() -> None:
             list(payload.get("trades") or []),
             int(payload["tradeIndex"]) if payload.get("tradeIndex") is not None else None,
         )
-    elif isinstance(payload.get("events"), list):
+    elif isinstance(payload.get("events"), list) or "events" not in payload:
         result = _live_chart_payload(
             symbol,
             timeframe,

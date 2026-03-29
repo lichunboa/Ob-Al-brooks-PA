@@ -77,6 +77,17 @@ export function normalizeChartSymbol(value: string): string {
     .replace(/:(USDT|USD)$/g, '');
 }
 
+export function isCryptoLikeSymbol(value: string): boolean {
+  const normalized = normalizeChartSymbol(value);
+  return normalized.endsWith('USDT') || normalized.endsWith('USDC') || normalized.endsWith('BUSD');
+}
+
+export function resolveConfiguredSymbol(value: string, candidates: string[]): string {
+  const symbolKey = normalizeSymbolKey(value);
+  const matched = candidates.find((item) => normalizeSymbolKey(item) === symbolKey);
+  return matched ? normalizeChartSymbol(matched) : normalizeChartSymbol(value);
+}
+
 export function looksLikeTrackedSymbol(value: string): boolean {
   return Boolean(value) && !value.startsWith('_') && value.length <= 24 && /^[A-Z0-9/:\- ]+$/.test(value);
 }

@@ -6,6 +6,8 @@ import logging
 from decimal import Decimal, InvalidOperation
 from datetime import UTC, datetime
 
+from libs.common.market_symbols import is_crypto_symbol, normalize_bar_symbol
+
 logger = logging.getLogger(__name__)
 
 
@@ -60,16 +62,18 @@ class KlineAnalyzerMixin:
 
     def _normalize_symbol_for_ccxt(self, symbol: str) -> str:
         """标准化 symbol 为 ccxt 格式。"""
+        transport_symbol = normalize_bar_symbol(symbol)
         if getattr(self, "exchange_name", "") == "ctrader":
-            return symbol.split(":")[0].replace("/", "").replace("-", "").upper()
-        if "/" in symbol:
-            return symbol
-        raw = symbol.split(":")[0] if ":" in symbol else symbol
-        settle = symbol.split(":")[1] if ":" in symbol else "USDT"
+            return transport_symbol
+        if "/" in str(symbol):
+            return str(symbol)
+        if not is_crypto_symbol(transport_symbol):
+            return transport_symbol
+        settle = str(symbol).split(":")[1] if ":" in str(symbol) else "USDT"
         for quote in ["USDT", "BUSD", "USDC"]:
-            if raw.endswith(quote):
-                return f"{raw[:-len(quote)]}/{quote}:{settle}"
-        return symbol
+            if transport_symbol.endswith(quote):
+                return f"{transport_symbol[:-len(quote)]}/{quote}:{settle}"
+        return transport_symbol
 
     @staticmethod
     def _calc_ema(values: list, period: int) -> list:

@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import logging
 
+from libs.common.market_symbols import normalize_bar_symbol, normalize_symbol_key
+
 from .config import WORKSPACE
 
 logger = logging.getLogger(__name__)
@@ -69,7 +71,7 @@ class BotRegistryMixin:
 
     def _norm_position_key(self, symbol: str) -> str:
         """标准化 position_bot_map key 为 `XXXUSDT:USDT` 格式。"""
-        normalized = symbol.replace("/", "")
+        normalized = normalize_bar_symbol(symbol)
         if ":" not in normalized:
             normalized += ":USDT"
         return normalized
@@ -197,7 +199,7 @@ class BotRegistryMixin:
         if not bot_id:
             return
 
-        normalized_symbol = symbol.replace("/", "") if symbol else ""
+        normalized_symbol = normalize_bar_symbol(symbol) if symbol else ""
         self._order_bot_map[str(order_id)] = {
             "bot_id": bot_id,
             "symbol": normalized_symbol,
@@ -215,8 +217,7 @@ class BotRegistryMixin:
     @staticmethod
     def _norm_symbol_base(symbol: str) -> str:
         """统一提取 symbol 基础部分用于比较。"""
-        normalized = symbol.replace("/", "")
-        return normalized.split(":")[0] if ":" in normalized else normalized
+        return normalize_symbol_key(symbol)
 
     def get_bot_symbols(self, bot_id: str) -> set:
         """获取某 bot 关联的所有 symbol。"""
@@ -252,7 +253,7 @@ class BotRegistryMixin:
                     continue
                 bot_id = self._parse_bot_id_from_client_order_id(client_order_id)
                 if bot_id:
-                    raw_symbol = order.get("symbol", "").replace("/", "")
+                    raw_symbol = normalize_bar_symbol(order.get("symbol", ""))
                     self._order_bot_map[order_id] = {"bot_id": bot_id, "symbol": raw_symbol}
                     recovered_orders += 1
 

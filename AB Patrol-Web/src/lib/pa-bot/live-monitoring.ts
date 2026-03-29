@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
+import { normalizeChartSymbol, normalizeSymbolKey } from './runtime-symbols';
+
 function findProjectRoot(): string {
   const explicitRoot = process.env.AB_PATROL_PROJECT_ROOT?.trim();
   if (explicitRoot) {
@@ -69,10 +71,13 @@ function asString(value: unknown): string {
 
 function dedupeSymbols(values: unknown): string[] {
   const ordered: string[] = [];
+  const seen = new Set<string>();
   for (const item of asArray(values)) {
-    const symbol = asString(item).trim().toUpperCase();
-    if (symbol && !ordered.includes(symbol)) {
+    const symbol = normalizeChartSymbol(asString(item));
+    const symbolKey = normalizeSymbolKey(symbol);
+    if (symbol && symbolKey && !seen.has(symbolKey)) {
       ordered.push(symbol);
+      seen.add(symbolKey);
     }
   }
   return ordered;

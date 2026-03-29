@@ -2,8 +2,10 @@ import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { NextResponse } from 'next/server';
+import { normalizeLiveChartTimeframe } from '../../../../lib/pa-bot/live-chart-timeframe';
 import { AGENT_ROOT, loadMonitoringConfig } from '../../../../lib/pa-bot/live-monitoring';
 import { buildChartCommand } from '../../../../lib/pa-bot/chart-command';
+import { isCryptoLikeSymbol, normalizeChartSymbol, normalizeSymbolKey, resolveConfiguredSymbol } from '../../../../lib/pa-bot/runtime-symbols';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,28 +24,32 @@ const TMP_ROOT = path.join(LIVE_CHART_ROOT, 'tmp');
 const CHART_SCRIPT = path.join(AGENT_ROOT, 'tools', 'diagnostics', 'trade_chart_data.py');
 
 function normalizeChartTimeframe(value: unknown): string {
-  const text = String(value || '').trim().toLowerCase();
-  const matched = text.match(/^(1m|5m|15m|1h|1d)/i);
-  return matched?.[1]?.toLowerCase() || '15m';
+  return normalizeLiveChartTimeframe(value);
 }
 
 function resolveBaseUrl(symbol: string, candidate: unknown): string {
-  const explicit = String(candidate || '').trim();
-  if (explicit) {
-    return explicit;
-  }
-  const config = loadMonitoringConfig();
-  const upperSymbol = symbol.trim().toUpperCase();
-  for (const account of config.accounts || []) {
-    const symbols = (account.symbols || []).map((item) => String(item || '').trim().toUpperCase());
-    if (symbols.includes(upperSymbol) && account.base_url) {
-      return account.base_url;
+    const explicit = String(candidate || '').trim();
+    if (explicit) {
+      return explicit;
     }
-  }
-  if (upperSymbol.endsWith('USDT')) {
-    return 'http://127.0.0.1:8093';
-  }
-  return 'http://127.0.0.1:8092';
+    const config = loadMonitoringConfig();
+    const symbolKey = normalizeSymbolKey(symbol);
+    for (const account of config.accounts || []) {
+      const symbols = (account.symbols || []).map((item) => String(item || ''));
+      if (symbols.some((item) => normalizeSymbolKey(item) === symbolKey) && account.base_url) {
+        return account.base_url;
+      }
+    }
+    if (isCryptoLikeSymbol(symbol)) {
+      return 'http://127.0.0.1:8093';
+    }
+    return 'http://127.0.0.1:8092';
+}
+
+function resolveRequestSymbol(symbol: string): string {
+  const config = loadMonitoringConfig();
+  const configuredSymbols = config.accounts.flatMap((account) => account.symbols || []);
+  return resolveConfiguredSymbol(symbol, configuredSymbols);
 }
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -53,11 +59,10 @@ function asObject(value: unknown): Record<string, unknown> {
 export async function POST(request: Request) {
   try {
     const payload = asObject(await request.json()) as LiveChartRequest;
-    const symbol = String(payload.symbol || '').trim().toUpperCase();
+    const symbol = resolveRequestSymbol(String(payload.symbol || ''));
     const timeframe = normalizeChartTimeframe(payload.timeframe);
-    const events = Array.isArray(payload.events) ? payload.events : [];
-    if (!symbol || events.length === 0) {
-      return NextResponse.json({ ok: false, error: '实盘图表参数不完整，至少需要 symbol/events。' }, { status: 400 });
+    if (!symbol) {
+      return NextResponse.json({ ok: false, error: '实盘图表参数不完整，至少需要 symbol。' }, { status: 400 });
     }
 
     fs.mkdirSync(TMP_ROOT, { recursive: true });
@@ -70,7 +75,7 @@ export async function POST(request: Request) {
       JSON.stringify(
         {
           ...payload,
-          symbol,
+          symbol: normalizeChartSymbol(symbol),
           timeframe,
           baseUrl,
         },

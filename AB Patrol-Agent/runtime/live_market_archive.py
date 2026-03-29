@@ -9,8 +9,10 @@ from typing import Any
 import pandas as pd
 
 try:
+    from libs.common.market_symbols import safe_symbol_storage_name
     from .path_layout import backtest_cache_dir
 except ImportError:  # pragma: no cover - 兼容脚本直接运行 runtime/*.py
+    from libs.common.market_symbols import safe_symbol_storage_name
     from path_layout import backtest_cache_dir
 
 
@@ -24,7 +26,7 @@ def live_daily_cache_dir(agent_root: Path, date_text: str) -> Path:
 
 def live_daily_cache_path(agent_root: Path, symbol: str, date_text: str) -> Path:
     """返回某一天某品种的实盘 1m K 线归档文件。"""
-    safe_symbol = str(symbol or "").strip().upper()
+    safe_symbol = safe_symbol_storage_name(symbol)
     return live_daily_cache_dir(agent_root, date_text) / f"{safe_symbol}_{date_text}_1m.parquet"
 
 
